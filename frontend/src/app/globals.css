@@ -134,3 +134,29 @@
     color: oklch(0.32 0 0);
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Thin, subtle scrollbar for the one place in the app shell that may scroll
+   internally (the sidebar nav, only when items exceed the viewport).
+   Do not apply decoratively elsewhere - the app uses a single page scrollbar.
+--------------------------------------------------------------------------- */
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: rgba(148, 163, 184, 0.3);
+    border-radius: 9999px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(148, 163, 184, 0.5);
+  }
+}

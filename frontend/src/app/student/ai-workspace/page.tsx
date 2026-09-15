@@ -1,9 +1,9 @@
 import PageContainer from "@/components/shared/PageContainer";
 
-export default function DashboardPage() {
+export default function AIWorkspacePage() {
   return (
     <PageContainer>
-      <h1 className="text-[28px] font-semibold tracking-tight text-[#0F172A]">Dashboard</h1>
+      <h1 className="text-[28px] font-semibold tracking-tight text-[#0F172A]">AI Workspace</h1>
       <p className="mt-2 text-[14px] text-[#64748B]">Content coming soon.</p>
     </PageContainer>
   );

@@ -1,12 +1,29 @@
 "use client";
 
-import { useState, useEffect } from "react";
+/**
+ * DashboardSidebar
+ * Shared left navigation for all authenticated role shells.
+ *
+ * Layout contract:
+ *   - desktop: sticky, full viewport height, 240px expanded / 68px collapsed
+ *   - the nav list is the ONLY scroll container here, and only scrolls when the
+ *     item list genuinely exceeds the viewport (thin, subtle scrollbar)
+ *   - the 60px brand row matches the header height so both baselines align
+ *
+ * Tokens: bg #06152B - hover/surface #0B1F3A - active #2563EB
+ *         text #FFFFFF - muted #94A3B8 - AI accent #7C3AED
+ */
+
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
-import { ChevronDown, X } from "lucide-react";
+import { ChevronDown, ChevronLeft, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+
+export const SIDEBAR_WIDTH_EXPANDED = 240;
+export const SIDEBAR_WIDTH_COLLAPSED = 68;
 
 // ---------------------------------------------------------------------------
 // Types
@@ -43,49 +60,73 @@ export interface DashboardSidebarProps {
 }
 
 // ---------------------------------------------------------------------------
-// Sidebar Item Component
+// Brand row - height matches the 60px header
+// ---------------------------------------------------------------------------
+function SidebarBrand({ isExpanded }: { isExpanded: boolean }) {
+  return (
+    <div
+      className={cn(
+        "flex h-[60px] shrink-0 items-center border-b border-white/5",
+        isExpanded ? "px-4" : "justify-center px-0"
+      )}
+    >
+      <div className="flex items-center gap-2.5">
+        <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-[#0B1F3A]">
+          <svg viewBox="0 0 20 20" className="size-4 text-blue-300" fill="none" aria-hidden="true">
+            <path d="M10 2L17 6V14L10 18L3 14V6L10 2Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+            <path d="M10 7L13 9V13L10 15L7 13V9L10 7Z" fill="currentColor" opacity="0.5" />
+          </svg>
+        </div>
+        {isExpanded && (
+          <div className="flex flex-col">
+            <span className="text-[14px] font-semibold leading-none text-white">AAI&ndash;DBITIC</span>
+            <span className="mt-1 text-[11px] font-medium leading-none text-[#94A3B8]">
+              Innovation Centre
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Sidebar item
 // ---------------------------------------------------------------------------
 function SidebarItem({
   item,
   isActive,
   isExpanded,
-  onMobileClose,
+  onNavigate,
 }: {
   item: NavItem;
   isActive: boolean;
   isExpanded: boolean;
-  onMobileClose: () => void;
+  onNavigate: () => void;
 }) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(isActive);
   const Icon = item.icon;
-
-  const hasSubItems = item.subItems && item.subItems.length > 0;
-  const isAI = item.isAI;
-
-  const handleClick = () => {
-    if (hasSubItems) {
-      setIsOpen(!isOpen);
-    } else {
-      onMobileClose();
-    }
-  };
+  const hasSubItems = Boolean(item.subItems?.length);
 
   const content = (
     <>
       <Icon
         className={cn(
-          "size-[18px] shrink-0 transition-colors duration-200",
-          isActive ? "text-white" : isAI ? "text-[#7C3AED]" : "text-slate-400 group-hover:text-slate-200"
+          "size-[18px] shrink-0 transition-colors duration-150",
+          isActive
+            ? "text-white"
+            : item.isAI
+              ? "text-[#7C3AED]"
+              : "text-[#94A3B8] group-hover:text-white"
         )}
         aria-hidden="true"
       />
-      {/* Label and Submenu Chevron (only shown when expanded) */}
       {isExpanded && (
-        <div className="flex flex-1 items-center justify-between overflow-hidden ml-3">
+        <div className="ml-3 flex flex-1 items-center justify-between overflow-hidden">
           <span
             className={cn(
-              "text-sm font-medium truncate transition-colors duration-200",
-              isActive ? "text-white" : "text-slate-300 group-hover:text-white"
+              "truncate text-[14px] font-medium transition-colors duration-150",
+              isActive ? "text-white" : "text-[#CBD5E1] group-hover:text-white"
             )}
           >
             {item.label}
@@ -93,76 +134,63 @@ function SidebarItem({
           {hasSubItems && (
             <ChevronDown
               className={cn(
-                "size-[14px] text-slate-400 transition-transform duration-200",
+                "size-[14px] text-[#94A3B8] transition-transform duration-150",
                 isOpen && "rotate-180"
               )}
+              aria-hidden="true"
             />
           )}
         </div>
       )}
 
-      {/* Tooltip for collapsed state */}
+      {/* Collapsed-state label, revealed on hover */}
       {!isExpanded && (
-        <div className="pointer-events-none absolute left-full ml-4 rounded-md bg-[#06152B] px-2.5 py-1.5 text-xs font-medium text-white opacity-0 shadow-sm transition-opacity duration-200 group-hover:opacity-100 hidden md:block z-50">
+        <span className="pointer-events-none absolute left-full z-50 ml-3 hidden whitespace-nowrap rounded-md border border-white/10 bg-[#0B1F3A] px-2.5 py-1.5 text-[12px] font-medium text-white opacity-0 transition-opacity duration-150 group-hover:opacity-100 md:block">
           {item.label}
-        </div>
+        </span>
       )}
     </>
   );
 
   const wrapperClass = cn(
-    "group relative flex items-center h-10 w-full rounded-[8px] transition-all duration-150 outline-none",
+    "group relative flex h-10 w-full items-center rounded-[8px] outline-none transition-colors duration-150",
+    "focus-visible:ring-2 focus-visible:ring-[#2563EB]/60",
     isExpanded ? "px-3" : "justify-center px-0",
-    isActive
-      ? "bg-[#2563EB]"
-      : "hover:bg-[#0B1F3A]"
+    isActive ? "bg-[#2563EB]" : "hover:bg-[#0B1F3A]"
   );
 
   return (
-    <div className="flex flex-col w-full">
+    <div className="flex w-full flex-col">
       {hasSubItems ? (
-        <button type="button" onClick={handleClick} className={wrapperClass}>
+        <button type="button" onClick={() => setIsOpen((v) => !v)} className={wrapperClass}>
           {content}
         </button>
       ) : (
-        <Link href={item.href || "#"} onClick={handleClick} className={wrapperClass}>
+        <Link href={item.href ?? "#"} onClick={onNavigate} className={wrapperClass}>
           {content}
         </Link>
       )}
 
-      {/* Sub Items */}
-      {hasSubItems && isExpanded && (
-        <AnimatePresence>
-          {isOpen && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="overflow-hidden"
+      {hasSubItems && isExpanded && isOpen && (
+        <div className="mt-1 flex flex-col gap-0.5 pl-[30px] pr-1">
+          {item.subItems!.map((subItem) => (
+            <Link
+              key={subItem.label}
+              href={subItem.href}
+              onClick={onNavigate}
+              className="flex h-8 items-center rounded-md px-3 text-[13px] font-medium text-[#94A3B8] transition-colors hover:bg-[#0B1F3A] hover:text-white"
             >
-              <div className="flex flex-col gap-1 mt-1 pl-[34px] pr-2">
-                {item.subItems!.map((subItem) => (
-                  <Link
-                    key={subItem.label}
-                    href={subItem.href}
-                    onClick={onMobileClose}
-                    className="flex items-center h-8 rounded-md px-2 text-[13px] font-medium text-[#94A3B8] hover:text-white hover:bg-[#0B1F3A] transition-colors"
-                  >
-                    <span className="truncate">{subItem.label}</span>
-                  </Link>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              <span className="truncate">{subItem.label}</span>
+            </Link>
+          ))}
+        </div>
       )}
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// DashboardSidebar — main export
+// DashboardSidebar
 // ---------------------------------------------------------------------------
 export default function DashboardSidebar({
   sections,
@@ -171,118 +199,100 @@ export default function DashboardSidebar({
   onMobileClose,
 }: DashboardSidebarProps) {
   const pathname = usePathname();
-  // Sidebar expanded state for desktop
   const [isExpanded, setIsExpanded] = useState(true);
 
-  // Close mobile drawer on route change
+  // Close the mobile drawer whenever the route changes.
   useEffect(() => {
     onMobileClose();
   }, [pathname, onMobileClose]);
 
-  // Lock body scroll when mobile drawer is open
-  useEffect(() => {
-    if (isMobileOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isMobileOpen]);
+  const isItemActive = useCallback(
+    (item: NavItem) =>
+      pathname === item.href || (item.subItems?.some((sub) => pathname === sub.href) ?? false),
+    [pathname]
+  );
 
-  const SidebarContent = (
-    <div className="flex h-full w-full flex-col bg-[#06152B] border-r border-white/5">
-      {/* Brand Area */}
-      <div className={cn("flex items-center h-[68px] shrink-0", isExpanded ? "px-6" : "justify-center px-0")}>
-        <div className="flex items-center gap-3">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-[#0B1F3A]">
-            <svg viewBox="0 0 20 20" className="size-4 text-blue-300" fill="none" aria-hidden="true">
-              <path d="M10 2L17 6V14L10 18L3 14V6L10 2Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-              <path d="M10 7L13 9V13L10 15L7 13V9L10 7Z" fill="currentColor" opacity="0.5" />
-            </svg>
-          </div>
-          {isExpanded && (
-            <div className="flex flex-col">
-              <span className="text-[15px] font-semibold text-white leading-none">AAI–DBITIC</span>
-              <span className="text-[11px] font-medium text-[#94A3B8] leading-none mt-1">Innovation Centre</span>
-            </div>
-          )}
-        </div>
-      </div>
+  const renderContent = (expanded: boolean) => (
+    <div className="flex h-full w-full flex-col bg-[#06152B]">
+      <SidebarBrand isExpanded={expanded} />
 
-      {/* Navigation Sections */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden py-4 custom-scrollbar">
-        <div className={cn("flex flex-col gap-6", isExpanded ? "px-4" : "px-3")}>
-          {sections.map((section, idx) => (
-            <div key={idx} className="flex flex-col gap-1.5">
-              {isExpanded && (
-                <div className="px-2 mb-1">
-                  <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-[#94A3B8]">
-                    {section.label}
-                  </h3>
-                </div>
+      {/* Nav list - the only scroll container in the shell, and only when needed. */}
+      <nav className="scrollbar-thin min-h-0 flex-1 overflow-y-auto overflow-x-hidden py-4">
+        <div className="flex flex-col gap-5 px-3">
+          {sections.map((section) => (
+            <div key={section.label} className="flex flex-col gap-1">
+              {expanded && (
+                <h3 className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#64748B]">
+                  {section.label}
+                </h3>
               )}
               {section.items.map((item) => (
                 <SidebarItem
                   key={item.label}
                   item={item}
-                  isActive={pathname === item.href || (item.subItems?.some(sub => pathname === sub.href) ?? false)}
-                  isExpanded={isExpanded}
-                  onMobileClose={onMobileClose}
+                  isActive={isItemActive(item)}
+                  isExpanded={expanded}
+                  onNavigate={onMobileClose}
                 />
               ))}
             </div>
           ))}
         </div>
-      </div>
+      </nav>
 
-      {/* Profile Area */}
-      <div className={cn("shrink-0 border-t border-white/5 py-4", isExpanded ? "px-4" : "px-3")}>
+      {/* Profile */}
+      <div className="shrink-0 border-t border-white/5 p-3">
         <button
+          type="button"
           className={cn(
-            "flex w-full items-center gap-3 rounded-[8px] hover:bg-[#0B1F3A] transition-colors outline-none",
-            isExpanded ? "p-2" : "p-2 justify-center"
+            "flex w-full items-center gap-3 rounded-[8px] p-2 outline-none transition-colors hover:bg-[#0B1F3A]",
+            !expanded && "justify-center"
           )}
         >
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#2563EB] text-white text-xs font-semibold">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#2563EB] text-[12px] font-semibold text-white">
             {user.initials}
           </div>
-          {isExpanded && (
+          {expanded && (
             <>
-              <div className="flex flex-1 flex-col items-start overflow-hidden">
-                <span className="text-sm font-semibold text-white truncate w-full text-left">{user.name}</span>
-                <span className="text-xs font-normal text-[#94A3B8] truncate w-full text-left">{user.role}</span>
+              <div className="flex min-w-0 flex-1 flex-col items-start">
+                <span className="w-full truncate text-left text-[13px] font-semibold text-white">
+                  {user.name}
+                </span>
+                <span className="w-full truncate text-left text-[11px] text-[#94A3B8]">
+                  {user.role}
+                </span>
               </div>
-              <ChevronDown className="size-[14px] text-[#94A3B8] shrink-0 ml-1" />
+              <ChevronDown className="size-[14px] shrink-0 text-[#94A3B8]" aria-hidden="true" />
             </>
           )}
         </button>
       </div>
-
-      {/* Desktop Collapse Toggle */}
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 size-6 items-center justify-center rounded-full bg-[#0B1F3A] border border-white/10 text-[#94A3B8] hover:text-white hover:bg-[#06152B] transition-colors shadow-sm z-10"
-      >
-        <ChevronDown className={cn("size-[14px] transition-transform duration-200", isExpanded ? "rotate-90" : "-rotate-90")} />
-      </button>
     </div>
   );
 
   return (
     <>
-      {/* Desktop Sidebar */}
-      <motion.aside
-        initial={false}
-        animate={{ width: isExpanded ? 240 : 72 }}
-        transition={{ duration: 0.2, ease: "easeInOut" }}
-        className="hidden md:block relative h-full shrink-0 z-20"
+      {/* Desktop - sticky full-height rail, contributes no page-level scrollbar */}
+      <aside
+        style={{ width: isExpanded ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED }}
+        className="sticky top-0 z-30 hidden h-screen shrink-0 border-r border-white/5 transition-[width] duration-200 ease-in-out md:block"
       >
-        {SidebarContent}
-      </motion.aside>
+        {renderContent(isExpanded)}
 
-      {/* Mobile Overlay & Drawer */}
+        <button
+          type="button"
+          onClick={() => setIsExpanded((v) => !v)}
+          aria-label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
+          className="absolute -right-3 top-[76px] hidden size-6 items-center justify-center rounded-full border border-[#E2E8F0] bg-white text-[#64748B] transition-colors hover:text-[#0F172A] md:flex"
+        >
+          <ChevronLeft
+            className={cn("size-[14px] transition-transform duration-200", !isExpanded && "rotate-180")}
+            aria-hidden="true"
+          />
+        </button>
+      </aside>
+
+      {/* Mobile drawer */}
       <AnimatePresence>
         {isMobileOpen && (
           <>
@@ -292,21 +302,23 @@ export default function DashboardSidebar({
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
               onClick={onMobileClose}
-              className="fixed inset-0 bg-slate-900/60 z-40 md:hidden"
+              className="fixed inset-0 z-40 bg-[#06152B]/60 md:hidden"
             />
             <motion.aside
               initial={{ x: "-100%" }}
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "tween", duration: 0.25, ease: "easeOut" }}
-              className="fixed inset-y-0 left-0 w-[256px] z-50 md:hidden"
+              className="fixed inset-y-0 left-0 z-50 w-[248px] md:hidden"
             >
-              {SidebarContent}
+              {renderContent(true)}
               <button
+                type="button"
                 onClick={onMobileClose}
-                className="absolute top-4 -right-10 flex size-8 items-center justify-center rounded-full bg-slate-800 text-white"
+                aria-label="Close navigation"
+                className="absolute -right-11 top-3 flex size-9 items-center justify-center rounded-full bg-[#0B1F3A] text-white"
               >
-                <X className="size-5" />
+                <X className="size-5" aria-hidden="true" />
               </button>
             </motion.aside>
           </>
