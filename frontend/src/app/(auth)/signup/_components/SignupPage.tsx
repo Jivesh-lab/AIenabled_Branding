@@ -29,10 +29,10 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="flex min-h-screen w-full">
-      {/* Left — brand panel (desktop only) */}
+    <div className="flex min-h-screen w-full overflow-hidden">
+      {/* Left — brand panel, animates in from left */}
       <motion.div
-        className="contents"
+        className="hidden lg:flex lg:w-[55%] shrink-0"
         variants={panelVariants}
         initial="hidden"
         animate="visible"
@@ -41,9 +41,9 @@ export default function SignupPage() {
         <SignupBrandPanel />
       </motion.div>
 
-      {/* Right — signup form */}
+      {/* Right — signup form, animates in from right */}
       <motion.div
-        className="contents"
+        className="flex flex-1 min-h-screen"
         variants={formVariants}
         initial="hidden"
         animate="visible"

@@ -3,11 +3,10 @@
 /**
  * LoginPage
  * Assembles the split-screen login layout:
- *   Left  → LoginBrandPanel (55% on desktop)
- *   Right → LoginForm       (flex-1)
+ *   Left  → LoginBrandPanel (55% on desktop, hidden on mobile)
+ *   Right → LoginForm       (flex-1, always visible)
  *
- * Owns the entrance animations via Motion.
- * Respects prefers-reduced-motion.
+ * Owns entrance animations. Respects prefers-reduced-motion.
  */
 
 import type { Variants } from "motion/react";
@@ -29,10 +28,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen w-full">
-      {/* Left — brand panel (desktop only) */}
+    <div className="flex min-h-screen w-full overflow-hidden">
+      {/* Left — brand panel, animates in from left */}
       <motion.div
-        className="contents"
+        className="hidden lg:flex lg:w-[55%] shrink-0"
         variants={panelVariants}
         initial="hidden"
         animate="visible"
@@ -41,9 +40,9 @@ export default function LoginPage() {
         <LoginBrandPanel />
       </motion.div>
 
-      {/* Right — login form */}
+      {/* Right — form panel, animates in from right */}
       <motion.div
-        className="contents"
+        className="flex flex-1 min-h-screen"
         variants={formVariants}
         initial="hidden"
         animate="visible"

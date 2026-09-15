@@ -11,7 +11,7 @@ import IncubationPipeline from "@/app/(auth)/login/_components/IncubationPipelin
 function BrandPanelBackground() {
   return (
     <>
-      <div className="absolute inset-0 bg-[#0B1E3D]" aria-hidden="true" />
+      <div className="absolute inset-0 bg-[#0B1F3A]" aria-hidden="true" />
       <div
         className="absolute inset-0 opacity-30"
         style={{
@@ -70,29 +70,35 @@ function BrandLogoMark() {
 
 export default function SignupBrandPanel() {
   return (
-    <div className="relative hidden lg:flex lg:w-[55%] flex-col justify-between p-12 overflow-hidden">
+    <div className="relative flex w-full flex-col p-12 overflow-hidden bg-[#0B1F3A]">
       <BrandPanelBackground />
 
-      <div className="relative z-10 flex flex-col h-full gap-12">
+      <div className="relative z-10 flex flex-col h-full">
+        {/* Logo — top */}
         <BrandLogoMark />
 
-        <div className="flex-1 flex flex-col justify-center max-w-md">
-          <p className="text-[11px] font-semibold tracking-[0.18em] uppercase text-blue-400 mb-5">
+        {/* Main copy — fixed offset from logo */}
+        <div className="mt-14 max-w-md">
+          <p className="text-[11px] font-semibold tracking-[0.18em] uppercase text-blue-400 mb-4">
             AI-Powered Incubation
           </p>
-          <h1 className="text-[2.6rem] font-bold leading-[1.15] tracking-tight text-white mb-5">
+          <h1 className="text-[2.25rem] font-bold leading-[1.2] tracking-tight text-white mb-4">
             Join the AAI–DBITIC
             <br />
             Ecosystem
           </h1>
-          <p className="text-[0.95rem] leading-[1.75] text-slate-400 max-w-sm">
+          <p className="text-sm leading-[1.75] text-slate-400 max-w-sm">
             Connect with researchers, mentors, industry leaders and investors.
             Bring your ideas into an ecosystem built for real-world impact.
           </p>
         </div>
 
-        <IncubationPipeline />
+        {/* Lifecycle pipeline — pinned to bottom */}
+        <div className="mt-auto">
+          <IncubationPipeline />
+        </div>
       </div>
     </div>
   );
 }
+

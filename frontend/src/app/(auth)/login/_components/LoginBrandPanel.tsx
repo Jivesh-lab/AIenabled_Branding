@@ -5,8 +5,8 @@ import IncubationPipeline from "./IncubationPipeline";
 function BrandPanelBackground() {
   return (
     <>
-      {/* Deep navy base */}
-      <div className="absolute inset-0 bg-[#0B1E3D]" aria-hidden="true" />
+      {/* Deep navy base — PRIMARY_NAVY from design system */}
+      <div className="absolute inset-0 bg-[#0B1F3A]" aria-hidden="true" />
 
       {/* Soft radial glow — one layer only */}
       <div
@@ -69,31 +69,33 @@ function BrandLogoMark() {
 
 export default function LoginBrandPanel() {
   return (
-    <div className="relative hidden lg:flex lg:w-[55%] flex-col justify-between p-12 overflow-hidden">
+    <div className="relative flex w-full flex-col p-12 overflow-hidden bg-[#0B1F3A]">
       <BrandPanelBackground />
 
-      <div className="relative z-10 flex flex-col h-full gap-12">
-        {/* Logo */}
+      <div className="relative z-10 flex flex-col h-full">
+        {/* Logo — top */}
         <BrandLogoMark />
 
-        {/* Main copy */}
-        <div className="flex-1 flex flex-col justify-center max-w-md">
-          <p className="text-[11px] font-semibold tracking-[0.18em] uppercase text-blue-400 mb-5">
+        {/* Main copy — fixed offset from logo */}
+        <div className="mt-14 max-w-md">
+          <p className="text-[11px] font-semibold tracking-[0.18em] uppercase text-blue-400 mb-4">
             AI-Powered Incubation
           </p>
-          <h1 className="text-[2.6rem] font-bold leading-[1.15] tracking-tight text-white mb-5">
+          <h1 className="text-[2.25rem] font-bold leading-[1.2] tracking-tight text-white mb-4">
             Where Ideas
             <br />
             Become Ventures
           </h1>
-          <p className="text-[0.95rem] leading-[1.75] text-slate-400 max-w-sm">
+          <p className="text-sm leading-[1.75] text-slate-400 max-w-sm">
             A connected ecosystem that helps transform academic innovation into
             research, prototypes, startups and real-world impact.
           </p>
         </div>
 
-        {/* Lifecycle pipeline */}
-        <IncubationPipeline />
+        {/* Lifecycle pipeline — pinned to bottom */}
+        <div className="mt-auto">
+          <IncubationPipeline />
+        </div>
       </div>
     </div>
   );
