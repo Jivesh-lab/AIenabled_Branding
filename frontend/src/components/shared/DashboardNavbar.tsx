@@ -10,8 +10,8 @@
  *   CENTER: global search
  *   RIGHT:  + New Idea - Help - Notifications - Profile
  *
- * Tokens: bg #FFFFFF - border #E2E8F0 - text #0F172A - muted #64748B
- *         primary #2563EB
+ * Ocean Royale tokens: bg-white - border-line - text-ink - text-muted-ink
+ *                       primary: bg-brand / hover:bg-brand-hover
  *
  * TODO: wire notification count and profile menu actions during backend integration.
  */
@@ -56,7 +56,7 @@ function GlobalSearch() {
     <div className="mx-4 hidden w-full max-w-[360px] md:flex lg:mx-6">
       <div className="group relative w-full">
         <Search
-          className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#64748B] transition-colors group-focus-within:text-[#2563EB]"
+          className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-ink transition-colors group-focus-within:text-brand"
           aria-hidden="true"
         />
         <input
@@ -64,15 +64,15 @@ function GlobalSearch() {
           placeholder="Search projects, mentors, documents..."
           aria-label="Global search"
           className={cn(
-            "h-9 w-full rounded-[8px] border border-[#E2E8F0] bg-[#F8FAFC]",
-            "pl-9 pr-12 text-[13px] text-[#0F172A] placeholder:text-[#64748B]",
-            "focus:border-[#2563EB] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20",
+            "h-9 w-full rounded-[8px] border border-line bg-canvas",
+            "pl-9 pr-12 text-[13px] text-ink placeholder:text-muted-ink",
+            "focus:border-brand focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand/20",
             "transition-colors duration-150"
           )}
         />
         <kbd
           aria-hidden="true"
-          className="absolute right-3 top-1/2 hidden -translate-y-1/2 items-center rounded border border-[#E2E8F0] bg-white px-1.5 py-0.5 text-[10px] font-medium text-[#94A3B8] lg:inline-flex"
+          className="absolute right-3 top-1/2 hidden -translate-y-1/2 items-center rounded border border-line bg-white px-1.5 py-0.5 text-[10px] font-medium text-[#94A3B8] lg:inline-flex"
         >
           &#8984;K
         </kbd>
@@ -102,8 +102,8 @@ function IconButton({
       onClick={onClick}
       className={cn(
         "flex size-9 shrink-0 items-center justify-center rounded-[8px]",
-        "text-[#64748B] transition-colors duration-150 hover:bg-[#F1F5F9] hover:text-[#0F172A]",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]/40",
+        "text-muted-ink transition-colors duration-150 hover:bg-[#F1F5F9] hover:text-ink",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40",
         className
       )}
     >
@@ -177,19 +177,19 @@ function ProfileDropdown({ user }: { user: NavbarUser }) {
         className={cn(
           "flex h-9 items-center gap-2 rounded-[8px] px-1.5",
           "transition-colors duration-150 hover:bg-[#F1F5F9]",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]/40"
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
         )}
       >
         <div
           aria-hidden="true"
-          className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#2563EB] text-[12px] font-semibold leading-none text-white"
+          className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand text-[12px] font-semibold leading-none text-white"
         >
           {user.initials}
         </div>
 
         <div className="hidden flex-col items-start text-left leading-none lg:flex">
-          <span className="text-[13px] font-semibold leading-none text-[#0F172A]">{user.name}</span>
-          <span className="mt-1 text-[11px] leading-none text-[#64748B]">{user.role}</span>
+          <span className="text-[13px] font-semibold leading-none text-ink">{user.name}</span>
+          <span className="mt-1 text-[11px] leading-none text-muted-ink">{user.role}</span>
         </div>
 
         <ChevronDown
@@ -204,11 +204,11 @@ function ProfileDropdown({ user }: { user: NavbarUser }) {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-[8px] border border-[#E2E8F0] bg-white py-1 shadow-lg shadow-slate-200/60"
+          className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-[8px] border border-line bg-white py-1 shadow-lg shadow-slate-200/60"
         >
-          <div className="border-b border-[#E2E8F0] px-4 py-3">
-            <p className="text-[13px] font-semibold text-[#0F172A]">{user.name}</p>
-            <p className="mt-0.5 text-[11px] text-[#64748B]">{user.role}</p>
+          <div className="border-b border-line px-4 py-3">
+            <p className="text-[13px] font-semibold text-ink">{user.name}</p>
+            <p className="mt-0.5 text-[11px] text-muted-ink">{user.role}</p>
           </div>
 
           {MENU_ITEMS.map(({ icon: Icon, label }) => (
@@ -222,7 +222,7 @@ function ProfileDropdown({ user }: { user: NavbarUser }) {
                 "transition-colors duration-100",
                 label === "Sign Out"
                   ? "text-[#DC2626] hover:bg-red-50"
-                  : "text-[#334155] hover:bg-[#F1F5F9] hover:text-[#0F172A]"
+                  : "text-[#334155] hover:bg-[#F1F5F9] hover:text-ink"
               )}
             >
               <Icon className="size-4 shrink-0 opacity-70" aria-hidden="true" />
@@ -245,7 +245,7 @@ export default function DashboardNavbar({
   onMenuClick,
 }: DashboardNavbarProps) {
   return (
-    <header className="sticky top-0 z-30 flex h-[60px] shrink-0 items-center gap-2 border-b border-[#E2E8F0] bg-white px-4 lg:px-6">
+    <header className="sticky top-0 z-30 flex h-[60px] shrink-0 items-center gap-2 border-b border-line bg-white px-4 lg:px-6">
       {/* LEFT */}
       <div className="flex min-w-0 items-center gap-3">
         <IconButton label="Open navigation" onClick={onMenuClick} className="-ml-1.5 md:hidden">
@@ -253,12 +253,12 @@ export default function DashboardNavbar({
         </IconButton>
 
         {/* Brand appears here only on mobile; on desktop the sidebar owns it. */}
-        <span className="text-[14px] font-semibold tracking-tight text-[#0F172A] md:hidden">
+        <span className="text-[14px] font-semibold tracking-tight text-ink md:hidden">
           AAI&ndash;DBITIC
         </span>
 
         {workspaceLabel && (
-          <span className="hidden truncate text-[13px] font-medium text-[#64748B] md:inline-block">
+          <span className="hidden truncate text-[13px] font-medium text-muted-ink md:inline-block">
             {workspaceLabel}
           </span>
         )}
@@ -273,9 +273,9 @@ export default function DashboardNavbar({
           type="button"
           className={cn(
             "hidden h-9 items-center gap-1.5 rounded-[8px] px-3.5 sm:inline-flex",
-            "bg-[#2563EB] text-[13px] font-semibold text-white",
-            "transition-colors duration-150 hover:bg-[#1D4ED8] active:bg-[#1E40AF]",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]/50 focus-visible:ring-offset-1"
+            "bg-brand text-[13px] font-semibold text-white",
+            "transition-colors duration-150 hover:bg-brand-hover active:bg-brand-active",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 focus-visible:ring-offset-1"
           )}
         >
           <Plus className="-ml-0.5 size-4" aria-hidden="true" />

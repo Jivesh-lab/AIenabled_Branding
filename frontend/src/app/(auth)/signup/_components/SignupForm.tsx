@@ -133,8 +133,8 @@ type PasswordValues = z.infer<typeof passwordSchema>;
 function MobileLogoMark() {
   return (
     <div className="flex lg:hidden items-center gap-2.5 mb-8">
-      <div className="flex size-8 items-center justify-center rounded-md bg-[#0B1F3A]">
-        <svg viewBox="0 0 20 20" className="size-4 text-blue-300" fill="none" aria-hidden="true">
+      <div className="flex size-8 items-center justify-center rounded-md bg-brand-deep">
+        <svg viewBox="0 0 20 20" className="size-4 text-brand-cyan" fill="none" aria-hidden="true">
           <path d="M10 2L17 6V14L10 18L3 14V6L10 2Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
           <path d="M10 7L13 9V13L10 15L7 13V9L10 7Z" fill="currentColor" opacity="0.5" />
         </svg>
@@ -275,7 +275,7 @@ function StepRoleSelect({
         className={cn(
           "w-full flex items-center justify-center gap-2",
           "h-10 rounded-md px-4 text-sm font-semibold text-white",
-          "bg-[#2563EB] hover:bg-[#1d4ed8] active:bg-[#1e40af]",
+          "bg-brand hover:bg-brand-hover active:bg-brand-active",
           "transition-colors duration-150",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/50"
         )}
@@ -370,7 +370,7 @@ function StepBasicInfo({
             type="submit"
             className={cn(
               "flex-1 flex items-center justify-center gap-2 h-10 rounded-md px-4 text-sm font-semibold text-white",
-              "bg-[#2563EB] hover:bg-[#1d4ed8] active:bg-[#1e40af]",
+              "bg-brand hover:bg-brand-hover active:bg-brand-active",
               "transition-colors duration-150",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/50"
             )}
@@ -502,7 +502,7 @@ function StepRoleSpecific({
             type="submit"
             className={cn(
               "flex-1 flex items-center justify-center gap-2 h-10 rounded-md px-4 text-sm font-semibold text-white",
-              "bg-[#2563EB] hover:bg-[#1d4ed8] active:bg-[#1e40af]",
+              "bg-brand hover:bg-brand-hover active:bg-brand-active",
               "transition-colors duration-150",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/50"
             )}
@@ -619,7 +619,7 @@ function StepPassword({
             disabled={isSubmitting}
             className={cn(
               "flex-1 flex items-center justify-center gap-2 h-10 rounded-md px-4 text-sm font-semibold text-white",
-              "bg-[#2563EB] hover:bg-[#1d4ed8] active:bg-[#1e40af]",
+              "bg-brand hover:bg-brand-hover active:bg-brand-active",
               "transition-colors duration-150",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/50",
               "disabled:opacity-60 disabled:cursor-not-allowed"
@@ -656,7 +656,7 @@ function StepAccountStatus({ email }: { email: string }) {
         href="/login"
         className={cn(
           "inline-flex items-center justify-center gap-2 h-10 rounded-md px-6 text-sm font-semibold text-white",
-          "bg-[#2563EB] hover:bg-[#1d4ed8] transition-colors duration-150",
+          "bg-brand hover:bg-brand-hover transition-colors duration-150",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/50"
         )}
       >
@@ -702,7 +702,7 @@ export default function SignupForm() {
   const showSocialBlock = step === 0;
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center bg-[#F8FAFC] px-6 py-10 sm:px-10 lg:px-14">
+    <div className="flex flex-1 flex-col items-center justify-center bg-canvas px-6 py-10 sm:px-10 lg:px-14">
       <MobileLogoMark />
 
       <div className="w-full max-w-[440px]">

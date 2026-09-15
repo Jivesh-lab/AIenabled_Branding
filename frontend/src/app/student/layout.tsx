@@ -81,7 +81,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   const openMobile = useCallback(() => setIsMobileOpen(true), []);
 
   return (
-    <div className="flex min-h-screen w-full bg-[#F8FAFC]">
+    <div className="flex min-h-screen w-full bg-canvas">
       <DashboardSidebar
         sections={STUDENT_SECTIONS}
         user={MOCK_USER}

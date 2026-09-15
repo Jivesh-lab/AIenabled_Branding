@@ -10,6 +10,25 @@
   --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-inter);
+
+  /* --- OCEAN ROYALE BRAND TOKENS (single source of truth) ---------------
+     Generates utilities: bg-brand, text-brand-deep, border-line, ring-brand/50 ...
+     Do NOT hardcode brand hex values in components; use these tokens. */
+  --color-brand-deep: #03045E;       /* PRIMARY_DEEP  - logo mark, auth brand panels */
+  --color-brand: #023EBA;            /* PRIMARY       - CTAs, links, active, focus */
+  --color-brand-hover: #023399;
+  --color-brand-active: #01287A;
+  --color-brand-cyan: #00B4D8;       /* ACCENT_CYAN   - AI features, charts */
+  --color-brand-cyan-soft: #CAF0F8;  /* LIGHT_CYAN    - soft backgrounds */
+  --color-brand-cyan-ink: #0E7490;   /* readable cyan TEXT on a cyan tint */
+  --color-brand-gold: #FBB02D;       /* ACCENT_GOLD   - warm emphasis */
+  --color-brand-gold-ink: #A16207;   /* readable gold TEXT on a gold tint */
+  --color-ink: #0F172A;              /* TEXT */
+  --color-muted-ink: #64748B;        /* MUTED_TEXT */
+  --color-line: #D8EAF0;             /* BORDER */
+  --color-canvas: #F8FAFC;           /* BACKGROUND */
+  --color-icon: #475569;             /* resting navigation / control icons */
+  --color-nav-hover: #F1FAFC;        /* navigation row hover on a light surface */
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -55,8 +74,8 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  /* AAI–DBITIC brand navy as primary */
-  --primary: oklch(0.31 0.11 259);
+  /* Ocean Royale PRIMARY (#023EBA) */
+  --primary: #023EBA;
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -65,23 +84,23 @@
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.31 0.11 259 / 40%);
+  --border: #D8EAF0;
+  --input: #D8EAF0;
+  --ring: color-mix(in oklch, #023EBA 40%, transparent);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --radius: 0.5rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.31 0.11 259);
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #0F172A;
+  --sidebar-primary: #023EBA;
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-accent: #CAF0F8;
+  --sidebar-accent-foreground: #023EBA;
+  --sidebar-border: #D8EAF0;
+  --sidebar-ring: #023EBA;
 }
 
 
@@ -111,7 +130,7 @@
   --chart-5: oklch(0.269 0 0);
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary: #00B4D8;
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.269 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);

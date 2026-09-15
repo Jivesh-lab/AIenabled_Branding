@@ -26,7 +26,7 @@ export default function IncubationPipeline() {
             className={cn(
               "rounded-full px-2.5 py-1 border text-[11px] tracking-wide",
               index === 0
-                ? "border-blue-400/40 text-blue-300 bg-blue-900/30"
+                ? "border-blue-400/40 text-brand-cyan bg-blue-900/30"
                 : index === PIPELINE_STAGES.length - 1
                   ? "border-emerald-400/40 text-emerald-300 bg-emerald-900/30"
                   : "border-slate-600/50 text-slate-400 bg-slate-800/40"

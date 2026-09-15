@@ -46,10 +46,10 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 function MobileLogoMark() {
   return (
     <div className="flex lg:hidden items-center gap-2.5 mb-10">
-      <div className="flex size-8 items-center justify-center rounded-md bg-[#0B1E3D]">
+      <div className="flex size-8 items-center justify-center rounded-md bg-brand-deep">
         <svg
           viewBox="0 0 20 20"
-          className="size-4 text-blue-300"
+          className="size-4 text-brand-cyan"
           fill="none"
           aria-hidden="true"
         >
@@ -250,9 +250,9 @@ export default function LoginForm() {
             className={cn(
               "w-full flex items-center justify-center gap-2",
               "h-10 rounded-md px-4 text-sm font-semibold text-white",
-              "bg-[#1A3A7C] hover:bg-[#152F68] active:bg-[#112860]",
+              "bg-brand hover:bg-brand-hover active:bg-brand-active",
               "transition-colors duration-150",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1A3A7C]/50",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50",
               "disabled:opacity-60 disabled:cursor-not-allowed"
             )}
           >

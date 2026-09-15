@@ -6,14 +6,14 @@ function BrandPanelBackground() {
   return (
     <>
       {/* Deep navy base — PRIMARY_NAVY from design system */}
-      <div className="absolute inset-0 bg-[#0B1F3A]" aria-hidden="true" />
+      <div className="absolute inset-0 bg-brand-deep" aria-hidden="true" />
 
       {/* Soft radial glow — one layer only */}
       <div
         className="absolute inset-0 opacity-30"
         style={{
           background:
-            "radial-gradient(ellipse 80% 60% at 30% 40%, #1E4080, transparent)",
+            "radial-gradient(ellipse 80% 60% at 30% 40%, #023EBA, transparent)",
         }}
         aria-hidden="true"
       />
@@ -38,7 +38,7 @@ function BrandLogoMark() {
       <div className="flex size-9 items-center justify-center rounded-lg bg-blue-500/20 border border-blue-400/30">
         <svg
           viewBox="0 0 20 20"
-          className="size-5 text-blue-300"
+          className="size-5 text-brand-cyan"
           fill="none"
           aria-hidden="true"
         >
@@ -69,7 +69,7 @@ function BrandLogoMark() {
 
 export default function LoginBrandPanel() {
   return (
-    <div className="relative flex w-full flex-col p-12 overflow-hidden bg-[#0B1F3A]">
+    <div className="relative flex w-full flex-col p-12 overflow-hidden bg-brand-deep">
       <BrandPanelBackground />
 
       <div className="relative z-10 flex flex-col h-full">

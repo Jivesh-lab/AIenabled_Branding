@@ -30,18 +30,49 @@
 
 ### 1.2 CSS Variables (globals.css)
 
-The Tailwind/shadcn design tokens in `frontend/src/app/globals.css` are set to:
+`frontend/src/app/globals.css` is the single source of truth. Ocean Royale is
+declared once inside `@theme inline`, which generates the Tailwind utilities that
+components must use instead of hardcoded hex values.
 
 ```css
---primary: oklch(0.31 0.11 259);       /* maps to brand navy direction */
+/* Brand tokens -> utilities: bg-brand, text-brand-deep, border-line, ring-brand/50 ... */
+--color-brand-deep: #03045E;       /* PRIMARY_DEEP  - logo mark, auth brand panels */
+--color-brand: #023EBA;            /* PRIMARY       - CTAs, links, active, focus */
+--color-brand-hover: #023399;
+--color-brand-active: #01287A;
+--color-brand-cyan: #00B4D8;       /* ACCENT_CYAN   - AI features, charts */
+--color-brand-cyan-soft: #CAF0F8;  /* LIGHT_CYAN    - soft backgrounds */
+--color-brand-cyan-ink: #0E7490;   /* readable cyan TEXT on a cyan tint */
+--color-brand-gold: #FBB02D;       /* ACCENT_GOLD   - warm emphasis */
+--color-brand-gold-ink: #A16207;   /* readable gold TEXT on a gold tint */
+--color-ink: #0F172A;              /* TEXT */
+--color-muted-ink: #64748B;        /* MUTED_TEXT */
+--color-line: #D8EAF0;             /* BORDER */
+--color-canvas: #F8FAFC;           /* BACKGROUND */
+--color-icon: #475569;             /* resting navigation / control icons */
+--color-nav-hover: #F1FAFC;        /* navigation row hover on a light surface */
+```
+
+The shadcn semantic variables are mapped onto the same palette:
+
+```css
+--primary: #023EBA;
 --primary-foreground: oklch(0.985 0 0);
---background: oklch(1 0 0);
---foreground: oklch(0.145 0 0);
---border: oklch(0.922 0 0);
---input: oklch(0.922 0 0);
---ring: oklch(0.31 0.11 259 / 40%);
+--border: #D8EAF0;
+--input: #D8EAF0;
+--ring: color-mix(in oklch, #023EBA 40%, transparent);
+--sidebar: #FFFFFF;
+--sidebar-foreground: #0F172A;
+--sidebar-primary: #023EBA;
+--sidebar-accent: #CAF0F8;
+--sidebar-accent-foreground: #023EBA;
+--sidebar-border: #D8EAF0;
 --radius: 0.5rem;
 ```
+
+**Usage rule**: write `bg-brand`, `border-line`, `text-muted-ink` — never
+`bg-[#023EBA]`. Semantic `SUCCESS` / `WARNING` / `ERROR` keep their own hex values
+and are unaffected by the brand palette.
 
 ### 1.3 Color Usage Rules
 
@@ -168,15 +199,38 @@ padding: p-5 or p-6
 shadow: shadow-sm only
 ```
 
-### 6.6 Sidebar (not yet built — reserved)
+### 6.6 Sidebar (built — `DashboardSidebar`)
+
+**The sidebar is LIGHT.** Navigation stays visually quiet so page content and
+primary actions carry the attention. Ocean Royale appears through the active
+state and small accents only — never as a full-height navy panel. This is a
+frozen decision: do not reintroduce a dark sidebar for any role.
+
+| Element | Token | Value |
+|---|---|---|
+| Background | `bg-white` | `#FFFFFF` |
+| Border | `border-line` | `#D8EAF0` |
+| Main text | `text-ink` | `#0F172A` |
+| Secondary text | `text-muted-ink` | `#64748B` |
+| Icons (resting) | `text-icon` | `#475569` |
+| Hover background | `bg-nav-hover` | `#F1FAFC` |
+| Active background | `bg-brand-cyan-soft` | `#CAF0F8` |
+| Active text / icon / indicator | `text-brand` / `bg-brand` | `#023EBA` |
+| AI icon accent | `text-brand-cyan` | `#00B4D8` |
+| Logo mark | `bg-brand-deep` + cyan glyph | `#03045E` / `#00B4D8` |
 
 ```
-background: #03045E (PRIMARY_DEEP)
-text: white
-active item: #023EBA (PRIMARY) highlight
-icon size: size-5 (20px)
-minimal decoration
+width:        240px expanded / 68px collapsed
+item height:  40px, radius 8px
+icon size:    size-[18px]
+active row:   bg #CAF0F8, text/icon #023EBA, 3px left indicator #023EBA
+hover row:    bg #F1FAFC, icon darkens to #0F172A
 ```
+
+Rules:
+- No glowing blue, no gradient rows, no large filled blocks for the active item.
+- The AI Workspace row keeps normal `text-ink` label text; only its **icon** is cyan.
+- Section labels: `11px / 600 / uppercase / tracking-[0.08em] / text-muted-ink`.
 
 ### 6.7 Badges / Status (not yet built — reserved)
 
@@ -343,6 +397,73 @@ src/mock/
 | Investor Portal | `/investor/...` | ⏳ Pending |
 | Incubation Admin | `/admin/...` | ⏳ Pending |
 | Management | `/management/...` | ⏳ Pending |
+
+---
+
+## 15.1 Student Dashboard — Locked Structure
+
+> **Status: structure frozen. Section detail is specified one section at a time
+> before any of it is built.** Do not implement sections ahead of their spec.
+
+**Design intent** — the dashboard answers *"here is what is happening with your
+innovation, and here is what you should do next"*, not *"here are many things
+about you."* Prioritise work and deadlines over vanity metrics.
+
+### Section order (locked)
+
+1. **Header** — `Student Dashboard` + supporting line + `+ Submit New Idea` (the single primary CTA)
+2. **At a Glance** — compact KPI row: Active Projects · Pending Reviews · Upcoming Meetings · Milestones Due
+3. **My Projects** — the largest content area
+4. **Upcoming Meetings**
+5. **Incubation Journey** — Idea → Faculty Review → Department Review → Incubation Review → Prototype → Market Ready → Startup
+6. **Next Actions**
+7. **AI Insights** — compact
+8. **Recent Activity**
+9. **Funding Opportunities** — small preview only
+
+### Desktop grid
+
+```
+Header                                        [+ Submit New Idea]
+─────────────────────────────────────────────────────────────────
+KPI row (4 up, full width)
+─────────────────────────────────────┬───────────────────────────
+MY PROJECTS                          │ UPCOMING MEETINGS
+─────────────────────────────────────┼───────────────────────────
+INCUBATION JOURNEY                   │ NEXT ACTIONS
+─────────────────────────────────────┼───────────────────────────
+AI INSIGHTS                          │ RECENT ACTIVITY
+─────────────────────────────────────┴───────────────────────────
+FUNDING OPPORTUNITIES (full width)
+```
+
+### Content rules
+
+- **Every project card** must answer: where am I · what stage · what is next · when is it due.
+  Category, mentor, progress %, **next milestone**, **due date**.
+- **Next Actions** is a task list (task · project · due), not an analytics card.
+- **AI Insights** is a compact intelligence layer: small cyan icon, `#CAF0F8`
+  information block, blue links. It must never be the visually dominant section.
+- **Funding** shows 2–3 opportunities with a `View all →` link. It is a preview,
+  not the funding system.
+
+### Excluded from this dashboard
+
+| Item | Reason |
+|---|---|
+| Innovation Score banner (`84/100`) | Vanity metric; does not tell the student what to do. May return later as a small KPI or under Profile / Performance. |
+| "Top 15% of cohort" | Introduces academic ranking that is not meaningful to incubation. |
+| Large gradient hero banner | Violates the restrained-surface rule (§6.5). |
+| Oversized AI section / purple accents | AI is a layer, not the product's headline. Ocean Royale only — see §1.3. |
+| Copy like "Your innovation journey is looking bright." | Generic filler. Supporting lines state what the page does. |
+
+### Colour treatment
+
+- KPI cards: `bg-white`, `border-line`, `shadow-sm`, primary number `text-brand`
+  (`#023EBA`), small icon `text-brand-cyan` (`#00B4D8`). **No gradients.**
+- `#CAF0F8` — sparingly, for information blocks only.
+- `#FBB02D` — attention / priority states only (overdue, urgent). Never decorative.
+- No purple anywhere.
 
 ---
 
