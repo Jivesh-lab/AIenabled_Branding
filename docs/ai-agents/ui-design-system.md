@@ -14,17 +14,16 @@
 
 | Token | Hex | CSS Variable (oklch approx.) | Purpose |
 |---|---|---|---|
-| `PRIMARY_NAVY` | `#0B1F3A` | `oklch(0.20 0.07 259)` | Sidebar, branded panels, dark navigation |
-| `DEEP_NAVY` | `#06152B` | `oklch(0.14 0.06 259)` | Darkest brand background layer |
-| `PRIMARY_BLUE` | `#2563EB` | `oklch(0.51 0.22 264)` | Primary buttons, links, active states, focus rings |
-| `SECONDARY_BLUE` | `#0EA5E9` | `oklch(0.66 0.18 232)` | Secondary actions, visual highlights |
-| `CYAN` | `#06B6D4` | `oklch(0.69 0.16 210)` | Charts, data visualization, accent |
-| `AI_VIOLET` | `#7C3AED` | `oklch(0.49 0.25 293)` | **AI features ONLY** |
+| `PRIMARY_DEEP` | `#03045E` | `oklch(0.20 0.12 260)` | Sidebar, branded panels, dark navigation |
+| `PRIMARY` | `#023EBA` | `oklch(0.40 0.20 260)` | Primary buttons, links, active states, focus rings |
+| `ACCENT_CYAN` | `#00B4D8` | `oklch(0.65 0.15 230)` | AI features, charts, data visualization |
+| `LIGHT_CYAN` | `#CAF0F8` | `oklch(0.92 0.05 230)` | Subtle highlights, soft backgrounds |
+| `ACCENT_GOLD` | `#FBB02D` | `oklch(0.78 0.18 75)` | Warm highlights, secondary actions, visual emphasis |
+| `SURFACE` | `#FFFFFF` | `oklch(1 0 0)` | Card surfaces |
 | `BACKGROUND` | `#F8FAFC` | `oklch(0.985 0 0)` | Page background |
-| `CARD` | `#FFFFFF` | `oklch(1 0 0)` | Card surfaces |
 | `TEXT` | `#0F172A` | `oklch(0.145 0 0)` | Primary body text |
 | `MUTED_TEXT` | `#64748B` | `oklch(0.556 0 0)` | Supporting / muted text |
-| `BORDER` | `#E2E8F0` | `oklch(0.922 0 0)` | Borders, dividers, input borders |
+| `BORDER` | `#D8EAF0` | `oklch(0.92 0.02 230)` | Borders, dividers, input borders |
 | `SUCCESS` | `#16A34A` | `oklch(0.56 0.16 145)` | Success states only |
 | `WARNING` | `#D97706` | `oklch(0.64 0.17 70)` | Warning states only |
 | `ERROR` | `#DC2626` | `oklch(0.58 0.22 27)` | Error states only |
@@ -48,13 +47,12 @@ The Tailwind/shadcn design tokens in `frontend/src/app/globals.css` are set to:
 
 | Color | Use | Never Use For |
 |---|---|---|
-| `PRIMARY_NAVY / DEEP_NAVY` | Sidebar, dark nav, brand panels | General page backgrounds |
-| `PRIMARY_BLUE` | Primary CTA buttons, links, focus, active | Decoration |
-| `SECONDARY_BLUE / CYAN` | Charts, secondary buttons, visual emphasis | Primary actions |
-| `AI_VIOLET` | AI Assistant, AI Evaluation, AI Insights, AI content | General UI decoration |
+| `PRIMARY_DEEP` | Sidebar, dark nav, brand panels | General page backgrounds |
+| `PRIMARY` | Primary CTA buttons, links, focus, active | Decoration |
+| `ACCENT_CYAN / ACCENT_GOLD` | AI features, charts, secondary buttons, visual emphasis | Primary actions |
 | `SUCCESS / WARNING / ERROR` | Semantic state only | Visual decoration |
 
-> **Rule**: Do not use arbitrary colors for decoration. Every color decision must have a semantic reason.
+> **Rule**: Do not use arbitrary colors for decoration. Every color decision must have a semantic reason. AI features must use the Ocean Royale palette (mainly `#00B4D8` and `#023EBA`), not a separate purple/violet palette.
 
 ---
 
@@ -129,9 +127,9 @@ Use moderate, non-pill rounding. Avoid everything looking like a pill.
 
 ```tsx
 className="h-10 rounded-md px-4 text-sm font-semibold text-white
-  bg-[#1A3A7C] hover:bg-[#152F68] active:bg-[#112860]
+  bg-[#023EBA] hover:bg-[#023399] active:bg-[#01287A]
   transition-colors duration-150
-  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1A3A7C]/50
+  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#023EBA]/50
   disabled:opacity-60 disabled:cursor-not-allowed"
 ```
 
@@ -164,7 +162,7 @@ className="flex flex-1 items-center justify-center gap-2 rounded-md
 
 ```
 background: #FFFFFF
-border: 1px solid #E2E8F0
+border: 1px solid #D8EAF0
 border-radius: 0.5rem
 padding: p-5 or p-6
 shadow: shadow-sm only
@@ -173,9 +171,9 @@ shadow: shadow-sm only
 ### 6.6 Sidebar (not yet built — reserved)
 
 ```
-background: #0B1F3A (PRIMARY_NAVY)
+background: #03045E (PRIMARY_DEEP)
 text: white
-active item: PRIMARY_BLUE highlight
+active item: #023EBA (PRIMARY) highlight
 icon size: size-5 (20px)
 minimal decoration
 ```
@@ -248,7 +246,7 @@ const panelVariants: Variants = {
 ### Auth Pages (Login · Signup · Forgot Password · Reset Password)
 
 ```
-Desktop:  55% brand panel (LEFT, dark navy) | 45% form panel (RIGHT, slate-50)
+Desktop:  55% brand panel (LEFT, PRIMARY_DEEP) | 45% form panel (RIGHT, slate-50)
 Tablet:   Brand panel hidden, form full width
 Mobile:   Mobile logo mark + full-width form
 ```
@@ -256,7 +254,7 @@ Mobile:   Mobile logo mark + full-width form
 ### Application Pages (not yet built)
 
 ```
-Desktop: Fixed sidebar (PRIMARY_NAVY) + scrollable content area (BACKGROUND)
+Desktop: Fixed sidebar (PRIMARY_DEEP) + scrollable content area (BACKGROUND)
 Mobile:  Collapsible sidebar / bottom nav
 ```
 
