@@ -13,7 +13,7 @@ import { PROJECTS } from "@/mock/student-dashboard";
 export default function MyProjects() {
   return (
     <section aria-label="My projects">
-      <SectionHeading title="My Projects" action={{ label: "View all", href: "/student/projects/1" }} />
+      <SectionHeading title="My Projects" action={{ label: "View all", href: "/student/projects" }} />
 
       <div className="flex flex-col gap-4">
         {PROJECTS.map((project) => (

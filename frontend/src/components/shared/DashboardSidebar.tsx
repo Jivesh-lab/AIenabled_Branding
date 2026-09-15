@@ -224,9 +224,12 @@ export default function DashboardSidebar({
     onMobileClose();
   }, [pathname, onMobileClose]);
 
+  // A nav item stays active on its nested routes, e.g. My Projects on /student/projects/2.
   const isItemActive = useCallback(
-    (item: NavItem) =>
-      pathname === item.href || (item.subItems?.some((sub) => pathname === sub.href) ?? false),
+    (item: NavItem) => {
+      const matches = (href?: string) => !!href && (pathname === href || pathname.startsWith(`${href}/`));
+      return matches(item.href) || (item.subItems?.some((sub) => matches(sub.href)) ?? false);
+    },
     [pathname]
   );
 

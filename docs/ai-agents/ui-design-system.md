@@ -51,6 +51,8 @@ components must use instead of hardcoded hex values.
 --color-canvas: #F8FAFC;           /* BACKGROUND */
 --color-icon: #475569;             /* resting navigation / control icons */
 --color-nav-hover: #F1FAFC;        /* navigation row hover on a light surface */
+--color-success: #16A34A;          /* APPROVED - state only */
+--color-danger: #DC2626;           /* REJECTED, validation errors - state only */
 ```
 
 The shadcn semantic variables are mapped onto the same palette:
@@ -464,6 +466,39 @@ FUNDING OPPORTUNITIES (full width)
 - `#CAF0F8` — sparingly, for information blocks only.
 - `#FBB02D` — attention / priority states only (overdue, urgent). Never decorative.
 - No purple anywhere.
+
+---
+
+## 15.2 Project Status Model — Locked
+
+Every project carries **three independent fields**. They are never merged into
+one enum, and one is never displayed as another.
+
+| Field | Values | Answers |
+|---|---|---|
+| **Review Status** | `DRAFT` → `SUBMITTED` → `UNDER_REVIEW` → `REVISION_REQUESTED` → `APPROVED` / `REJECTED` | Where is this in the approval process? |
+| **Pipeline Position** | `FACULTY_REVIEW` → `DEPARTMENT_REVIEW` → `INCUBATION_REVIEW` | Which reviewer holds it? |
+| **Maturity** | `IDEA` → `CONCEPT` → `PROTOTYPE` → `MVP` → `MARKET_READY` | How developed is the thing itself? |
+
+A project can be `PROTOTYPE` + `UNDER_REVIEW` + `DEPARTMENT_REVIEW` at the same time.
+**Never use maturity as review status.**
+
+Defined once in code: `frontend/src/types/status.ts` (values, labels, badge tones).
+
+### Status colours
+
+| State | Colour | Token |
+|---|---|---|
+| `REVISION_REQUESTED` | Gold `#FBB02D` | `brand-gold` / `brand-gold-ink` |
+| `APPROVED` | Green `#16A34A` | `success` |
+| `REJECTED` | Red `#DC2626` | `danger` |
+| `UNDER_REVIEW` | Primary `#023EBA` | `brand` |
+| `SUBMITTED` | Cyan | `brand-cyan-ink` |
+| `DRAFT` | Muted | `muted-ink` |
+| AI content | Cyan `#00B4D8` | `brand-cyan` — **no violet anywhere, including AI cards** |
+
+`REVISION_REQUESTED` is the most actionable state a student can be in. It must
+always be visible and filterable wherever projects are listed.
 
 ---
 

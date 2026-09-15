@@ -6,6 +6,9 @@
  * dashboard components render against.
  */
 
+import type { StatusTone } from "@/types/status";
+export type { StatusTone };
+
 export type ProjectStage =
   | "Idea Submitted"
   | "Faculty Review"
@@ -14,8 +17,6 @@ export type ProjectStage =
   | "In Development"
   | "Market Ready"
   | "Startup / Product";
-
-export type StatusTone = "info" | "progress" | "attention" | "neutral";
 
 export interface KpiStat {
   id: string;
@@ -88,7 +89,7 @@ export interface FundingOpportunity {
 // ---------------------------------------------------------------------------
 
 export const KPI_STATS: KpiStat[] = [
-  { id: "active-projects", label: "Active Projects", value: 3, icon: "projects", href: "/student/projects/1" },
+  { id: "active-projects", label: "Active Projects", value: 3, icon: "projects", href: "/student/projects" },
   { id: "pending-reviews", label: "Pending Reviews", value: 1, icon: "reviews", href: "/student/journey" },
   { id: "upcoming-meetings", label: "Upcoming Meetings", value: 2, icon: "meetings", href: "/student/meetings" },
   { id: "milestones-due", label: "Milestones Due", value: 4, icon: "milestones", href: "/student/journey" },

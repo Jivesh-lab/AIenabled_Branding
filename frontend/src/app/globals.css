@@ -29,6 +29,10 @@
   --color-canvas: #F8FAFC;           /* BACKGROUND */
   --color-icon: #475569;             /* resting navigation / control icons */
   --color-nav-hover: #F1FAFC;        /* navigation row hover on a light surface */
+
+  /* Semantic state colours - state only, never decoration */
+  --color-success: #16A34A;          /* APPROVED */
+  --color-danger: #DC2626;           /* REJECTED, validation errors */
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);

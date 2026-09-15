@@ -8,7 +8,7 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { StatusTone } from "@/mock/student-dashboard";
+import type { StatusTone } from "@/types/status";
 
 export function Card({
   children,
@@ -65,6 +65,9 @@ const TONE_CLASS: Record<StatusTone, string> = {
   info: "border-brand-cyan/30 bg-brand-cyan/10 text-brand-cyan-ink",
   // Gold — genuinely needs the student's attention
   attention: "border-brand-gold/40 bg-brand-gold/10 text-brand-gold-ink",
+  // Green / red — terminal review outcomes only
+  success: "border-success/25 bg-success/10 text-success",
+  danger: "border-danger/25 bg-danger/10 text-danger",
   neutral: "border-line bg-canvas text-muted-ink",
 };
 
@@ -77,6 +80,20 @@ export function StatusBadge({ label, tone }: { label: string; tone: StatusTone }
         TONE_CLASS[tone]
       )}
     >
+      {label}
+    </span>
+  );
+}
+
+/**
+ * Maturity is a different axis from review status, so it must not look like a
+ * status badge: outlined, sentence case, no semantic colour (§15.2).
+ */
+export function MaturityTag({ label }: { label: string }) {
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-line bg-white px-2 py-0.5 text-[12px] font-medium text-ink">
+      <span aria-hidden="true" className="size-1.5 rounded-full bg-brand-cyan" />
+      <span className="sr-only">Maturity: </span>
       {label}
     </span>
   );

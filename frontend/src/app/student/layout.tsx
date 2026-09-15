@@ -42,14 +42,8 @@ const STUDENT_SECTIONS: NavSection[] = [
     label: "Innovation",
     items: [
       { label: "Submit New Idea", icon: Lightbulb, href: "/student/submit" },
-      {
-        label: "My Projects",
-        icon: FolderKanban,
-        subItems: [
-          { label: "AI Medical Scanner", href: "/student/projects/1" },
-          { label: "Smart Grid Tool", href: "/student/projects/2" },
-        ],
-      },
+      // Projects are listed on the My Projects page, never in the permanent navigation.
+      { label: "My Projects", icon: FolderKanban, href: "/student/projects" },
       { label: "AI Workspace", icon: Sparkles, href: "/student/ai-workspace", isAI: true },
     ],
   },
