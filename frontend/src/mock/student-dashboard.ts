@@ -89,10 +89,10 @@ export interface FundingOpportunity {
 // ---------------------------------------------------------------------------
 
 export const KPI_STATS: KpiStat[] = [
-  { id: "active-projects", label: "Active Projects", value: 3, icon: "projects", href: "/student/projects" },
-  { id: "pending-reviews", label: "Pending Reviews", value: 1, icon: "reviews", href: "/student/journey" },
-  { id: "upcoming-meetings", label: "Upcoming Meetings", value: 2, icon: "meetings", href: "/student/meetings" },
-  { id: "milestones-due", label: "Milestones Due", value: 4, icon: "milestones", href: "/student/journey" },
+  { id: "active-projects", label: "Active Projects", value: 3, icon: "projects", href: "/workspace/student/projects" },
+  { id: "pending-reviews", label: "Pending Reviews", value: 1, icon: "reviews", href: "/workspace/student/journey" },
+  { id: "upcoming-meetings", label: "Upcoming Meetings", value: 2, icon: "meetings", href: "/workspace/student/meetings" },
+  { id: "milestones-due", label: "Milestones Due", value: 4, icon: "milestones", href: "/workspace/student/journey" },
 ];
 
 export const PROJECTS: Project[] = [
@@ -106,7 +106,7 @@ export const PROJECTS: Project[] = [
     progress: 58,
     nextMilestone: "Prototype validation",
     dueDate: "18 Sep 2026",
-    href: "/student/projects/1",
+    href: "/workspace/student/projects/1",
   },
   {
     id: "2",
@@ -118,7 +118,7 @@ export const PROJECTS: Project[] = [
     progress: 34,
     nextMilestone: "Upload revised proposal",
     dueDate: "15 Sep 2026",
-    href: "/student/projects/2",
+    href: "/workspace/student/projects/2",
   },
   {
     id: "3",
@@ -130,7 +130,7 @@ export const PROJECTS: Project[] = [
     progress: 21,
     nextMilestone: "Submit market research",
     dueDate: "20 Sep 2026",
-    href: "/student/projects/3",
+    href: "/workspace/student/projects/3",
   },
 ];
 
@@ -200,7 +200,7 @@ export const FUNDING_OPPORTUNITIES: FundingOpportunity[] = [
     amount: "Up to ₹2 Lakh",
     deadline: "28 Sep 2026",
     domain: "AI / Deep Tech",
-    href: "/student/funding",
+    href: "/workspace/student/funding",
   },
   {
     id: "f2",
@@ -208,7 +208,7 @@ export const FUNDING_OPPORTUNITIES: FundingOpportunity[] = [
     amount: "Up to ₹5 Lakh",
     deadline: "05 Oct 2026",
     domain: "Any domain",
-    href: "/student/funding",
+    href: "/workspace/student/funding",
   },
   {
     id: "f3",
@@ -216,6 +216,6 @@ export const FUNDING_OPPORTUNITIES: FundingOpportunity[] = [
     amount: "Up to ₹3 Lakh",
     deadline: "12 Oct 2026",
     domain: "AgriTech",
-    href: "/student/funding",
+    href: "/workspace/student/funding",
   },
 ];

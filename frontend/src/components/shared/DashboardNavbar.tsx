@@ -17,6 +17,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   Bell,
@@ -138,14 +139,15 @@ function NotificationButton({ count = 0 }: { count?: number }) {
 // Profile dropdown
 // ---------------------------------------------------------------------------
 const MENU_ITEMS = [
-  { icon: User, label: "My Profile" },
-  { icon: Settings, label: "Account Settings" },
-  { icon: LogOut, label: "Sign Out" },
+  { icon: User, label: "My Profile", getPath: (role: string) => `/workspace/${role.toLowerCase().replace(' ', '-')}/profile` },
+  { icon: Settings, label: "Account Settings", getPath: (role: string) => `/workspace/${role.toLowerCase().replace(' ', '-')}/settings` },
+  { icon: LogOut, label: "Sign Out", getPath: () => "/login" },
 ];
 
 function ProfileDropdown({ user }: { user: NavbarUser }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   // Dismiss on outside click or Escape.
   useEffect(() => {
@@ -211,12 +213,18 @@ function ProfileDropdown({ user }: { user: NavbarUser }) {
             <p className="mt-0.5 text-[11px] text-muted-ink">{user.role}</p>
           </div>
 
-          {MENU_ITEMS.map(({ icon: Icon, label }) => (
+          {MENU_ITEMS.map(({ icon: Icon, label, getPath }) => (
             <button
               key={label}
               role="menuitem"
               type="button"
-              onClick={() => setOpen(false)}
+              onClick={() => {
+                setOpen(false);
+                if (label === "Sign Out") {
+                  localStorage.removeItem("mockUserRole");
+                }
+                router.push(getPath(user.role));
+              }}
               className={cn(
                 "flex w-full items-center gap-3 px-4 py-2 text-[13px] font-medium",
                 "transition-colors duration-100",

@@ -20,6 +20,7 @@ import { useState } from "react";
 import { Eye, EyeOff, ArrowRight } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -104,6 +105,8 @@ function ButtonSpinner() {
 // ---------------------------------------------------------------------------
 export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
+  const [mockRole, setMockRole] = useState<"student" | "mentor" | "industry">("student");
+  const router = useRouter();
 
   const {
     register,
@@ -117,9 +120,13 @@ export default function LoginForm() {
   // TODO: Replace with real auth mutation during backend integration phase.
   function onSubmit(values: LoginFormValues) {
     console.info(
-      "[AAI-DBITIC] Login submit (frontend-only — not yet wired to backend):",
-      { email: values.email }
+      "[AAI-DBITIC] Login submit (frontend-only — redirecting to dashboard):",
+      { email: values.email, mockRole }
     );
+    localStorage.setItem("mockUserRole", mockRole);
+    if (mockRole === "student") router.push('/workspace/student/dashboard');
+    else if (mockRole === "mentor") router.push('/workspace/mentor/dashboard');
+    else if (mockRole === "industry") router.push('/workspace/industry-partner/dashboard');
   }
 
   return (
@@ -241,6 +248,36 @@ export default function LoginForm() {
                 {errors.password.message}
               </p>
             )}
+          </div>
+
+          {/* Mock Role Selector */}
+          <div className="space-y-1.5">
+            <Label
+              htmlFor="mock-role"
+              className="text-sm font-medium text-slate-700"
+            >
+              Login As Role <span className="text-slate-400 font-normal">(Dev Only)</span>
+            </Label>
+            <select
+              id="mock-role"
+              value={mockRole}
+              onChange={(e) => setMockRole(e.target.value as any)}
+              className={cn(
+                "w-full h-10 px-3 border border-slate-200 bg-white text-slate-900 rounded-md",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/30 focus-visible:border-blue-600",
+                "transition-colors duration-150 appearance-none"
+              )}
+              style={{
+                backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 0.75rem center',
+                backgroundSize: '1em'
+              }}
+            >
+              <option value="student">Student</option>
+              <option value="mentor">Mentor</option>
+              <option value="industry">Industry Partner</option>
+            </select>
           </div>
 
           {/* Submit button */}
