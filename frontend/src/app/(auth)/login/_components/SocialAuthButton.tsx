@@ -36,24 +36,30 @@ const PROVIDER_CONFIG: Record<SocialProvider, SocialProviderConfig> = {
 };
 
 // Placeholder — replace with real OAuth call during backend integration.
-function handleSocialAuth(provider: SocialProvider): void {
-  console.info(
-    `[AAI-DBITIC] Social auth for "${provider}" is not yet configured. ` +
-      `This will be connected during the OAuth/backend integration phase.`
-  );
-}
 
 interface SocialAuthButtonProps {
   provider: SocialProvider;
+  onClick?: (provider: SocialProvider) => void;
 }
 
-export default function SocialAuthButton({ provider }: SocialAuthButtonProps) {
+export default function SocialAuthButton({ provider, onClick }: SocialAuthButtonProps) {
   const { label, icon } = PROVIDER_CONFIG[provider];
+
+  const handleClick = () => {
+    if (onClick) {
+      onClick(provider);
+    } else {
+      console.info(
+        `[AAI-DBITIC] Social auth for "${provider}" is not yet configured. ` +
+          `This will be connected during the OAuth/backend integration phase.`
+      );
+    }
+  };
 
   return (
     <button
       type="button"
-      onClick={() => handleSocialAuth(provider)}
+      onClick={handleClick}
       aria-label={label}
       className={cn(
         "flex flex-1 items-center justify-center gap-2",

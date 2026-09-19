@@ -18,9 +18,11 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Eye, EyeOff, ArrowRight } from "lucide-react";
+import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -105,7 +107,7 @@ function ButtonSpinner() {
 // ---------------------------------------------------------------------------
 export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
-  const [mockRole, setMockRole] = useState<"student" | "mentor" | "industry">("student");
+  const [mockRole, setMockRole] = useState<"student" | "mentor" | "industry" | "faculty" | "investor" | "startup">("student");
   const router = useRouter();
 
   const {
@@ -117,16 +119,47 @@ export default function LoginForm() {
     mode: "onTouched",
   });
 
+  function handleSuccessfulLogin(role: string) {
+    localStorage.setItem("mockUserRole", role);
+    const routes: Record<string, string> = {
+      student: '/workspace/student/dashboard',
+      mentor: '/workspace/mentor/dashboard',
+      industry: '/workspace/industry-partner/dashboard',
+      faculty: '/workspace/faculty/dashboard',
+      investor: '/workspace/investor/dashboard',
+      startup: '/workspace/startup/dashboard',
+    };
+    router.push(routes[role] || '/workspace/student/dashboard');
+  }
+
   // TODO: Replace with real auth mutation during backend integration phase.
   function onSubmit(values: LoginFormValues) {
     console.info(
       "[AAI-DBITIC] Login submit (frontend-only — redirecting to dashboard):",
       { email: values.email, mockRole }
     );
+    handleSuccessfulLogin(mockRole);
+  }
+
+  async function handleSocialAuth(provider: string) {
+    console.info(`Initiating actual OAuth flow via ${provider}`);
+    
+    // We pass a callbackUrl, so once NextAuth completes, it goes to the relevant dashboard
+    // Currently relying on our mockRole to decide which dashboard. In a fully built app,
+    // the backend/session data would determine the correct URL.
+    const routes: Record<string, string> = {
+      student: '/workspace/student/dashboard',
+      mentor: '/workspace/mentor/dashboard',
+      industry: '/workspace/industry-partner/dashboard',
+      faculty: '/workspace/faculty/dashboard',
+      investor: '/workspace/investor/dashboard',
+      startup: '/workspace/startup/dashboard',
+    };
+    
+    const targetUrl = routes[mockRole] || '/workspace/student/dashboard';
     localStorage.setItem("mockUserRole", mockRole);
-    if (mockRole === "student") router.push('/workspace/student/dashboard');
-    else if (mockRole === "mentor") router.push('/workspace/mentor/dashboard');
-    else if (mockRole === "industry") router.push('/workspace/industry-partner/dashboard');
+    
+    await signIn(provider, { callbackUrl: targetUrl });
   }
 
   return (
@@ -277,6 +310,9 @@ export default function LoginForm() {
               <option value="student">Student</option>
               <option value="mentor">Mentor</option>
               <option value="industry">Industry Partner</option>
+              <option value="faculty">Faculty</option>
+              <option value="investor">Investor</option>
+              <option value="startup">Startup / Alumni</option>
             </select>
           </div>
 
@@ -318,9 +354,9 @@ export default function LoginForm() {
 
         {/* Social auth buttons */}
         <div className="flex gap-2.5">
-          <SocialAuthButton provider="google" />
-          <SocialAuthButton provider="github" />
-          <SocialAuthButton provider="facebook" />
+          <SocialAuthButton provider="google" onClick={handleSocialAuth} />
+          <SocialAuthButton provider="github" onClick={handleSocialAuth} />
+          <SocialAuthButton provider="facebook" onClick={handleSocialAuth} />
         </div>
 
         {/* Sign up link */}

@@ -14,6 +14,9 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
+import { toast } from "sonner";
 import { Eye, EyeOff, CheckCircle, ArrowLeft, ArrowRight } from "lucide-react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -679,6 +682,7 @@ type FormState = {
 export default function SignupForm() {
   const [step, setStep] = useState<0 | 1 | 2 | 3 | 4>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const router = useRouter();
   const [formState, setFormState] = useState<FormState>({
     role: null,
     basic: null,
@@ -697,6 +701,25 @@ export default function SignupForm() {
     await new Promise((r) => setTimeout(r, 800));
     setIsSubmitting(false);
     setStep(4);
+  }
+
+  async function handleSocialAuth(provider: string) {
+    console.info(`Initiating actual OAuth flow via ${provider} for signup`);
+    const roleToUse = formState.role || "student";
+    
+    const routes: Record<string, string> = {
+      student: '/workspace/student/dashboard',
+      mentor: '/workspace/mentor/dashboard',
+      industry: '/workspace/industry-partner/dashboard',
+      faculty: '/workspace/faculty/dashboard',
+      investor: '/workspace/investor/dashboard',
+      startup: '/workspace/startup/dashboard',
+    };
+    
+    const targetUrl = routes[roleToUse] || '/workspace/student/dashboard';
+    localStorage.setItem("mockUserRole", roleToUse);
+    
+    await signIn(provider, { callbackUrl: targetUrl });
   }
 
   const showSocialBlock = step === 0;
@@ -757,9 +780,9 @@ export default function SignupForm() {
               <Separator className="flex-1 bg-slate-200" />
             </div>
             <div className="flex gap-2.5">
-              <SocialAuthButton provider="google" />
-              <SocialAuthButton provider="github" />
-              <SocialAuthButton provider="facebook" />
+              <SocialAuthButton provider="google" onClick={handleSocialAuth} />
+              <SocialAuthButton provider="github" onClick={handleSocialAuth} />
+              <SocialAuthButton provider="facebook" onClick={handleSocialAuth} />
             </div>
           </>
         )}
