@@ -689,37 +689,48 @@ export default function SignupForm() {
     roleSpecific: null,
   });
 
-  // TODO: Replace with real registration API call during backend integration.
-  async function handleFinalSubmit() {
+  async function handleFinalSubmit(passwordValues: PasswordValues) {
+    if (!formState.role || !formState.basic) return;
+
     setIsSubmitting(true);
-    console.info("[AAI-DBITIC] Signup payload (frontend-only — not yet wired):", {
-      role: formState.role,
-      email: formState.basic?.email,
-      roleSpecific: formState.roleSpecific,
-    });
-    // Simulate a brief network delay for UX
-    await new Promise((r) => setTimeout(r, 800));
-    setIsSubmitting(false);
-    setStep(4);
+    try {
+      const payload = {
+        name: formState.basic.fullName,
+        email: formState.basic.email,
+        password: passwordValues.password,
+        role: formState.role,
+        profile: formState.roleSpecific ?? {},
+      };
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/auth/register`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(data.message || "Registration failed. Please try again.");
+        return;
+      }
+
+      // Success — advance to confirmation screen
+      setStep(4);
+    } catch {
+      toast.error("Network error. Please check your connection and try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   async function handleSocialAuth(provider: string) {
-    console.info(`Initiating actual OAuth flow via ${provider} for signup`);
+    // OAuth users: role assignment happens post-login via onboarding flow
     const roleToUse = formState.role || "student";
-    
-    const routes: Record<string, string> = {
-      student: '/workspace/student/dashboard',
-      mentor: '/workspace/mentor/dashboard',
-      industry: '/workspace/industry-partner/dashboard',
-      faculty: '/workspace/faculty/dashboard',
-      investor: '/workspace/investor/dashboard',
-      startup: '/workspace/startup/dashboard',
-    };
-    
-    const targetUrl = routes[roleToUse] || '/workspace/student/dashboard';
-    localStorage.setItem("mockUserRole", roleToUse);
-    
-    await signIn(provider, { callbackUrl: targetUrl });
+    await signIn(provider, { callbackUrl: `/workspace/${roleToUse}/dashboard` });
   }
 
   const showSocialBlock = step === 0;
@@ -764,7 +775,7 @@ export default function SignupForm() {
         {step === 3 && (
           <StepPassword
             onBack={() => setStep(2)}
-            onSubmit={handleFinalSubmit}
+            onSubmit={(values) => handleFinalSubmit(values)}
             isSubmitting={isSubmitting}
           />
         )}
