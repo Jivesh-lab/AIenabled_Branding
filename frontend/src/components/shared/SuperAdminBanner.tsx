@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 
 const WORKSPACE_OPTIONS = [
   { label: "Super Admin Portal", path: "/workspace/super-admin/dashboard" },
+  { label: "Admin Operational Workspace", path: "/workspace/admin/dashboard" },
   { label: "Student Workspace", path: "/workspace/student/dashboard" },
   { label: "Faculty Workspace", path: "/workspace/faculty/dashboard" },
   { label: "Mentor Workspace", path: "/workspace/mentor/dashboard" },

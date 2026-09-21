@@ -76,7 +76,7 @@ const MOCK_AUDIT_LOGS: AuditLogItem[] = [
 ];
 
 export default function AuditLogViewer() {
-  const [logs, setLogs] = useState<AuditLogItem[]>(MOCK_AUDIT_LOGS);
+  const [logs, setLogs] = useState<AuditLogItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
@@ -103,12 +103,12 @@ export default function AuditLogViewer() {
 
       if (res.ok) {
         const data = await res.json();
-        if (data.logs && data.logs.length > 0) {
+        if (Array.isArray(data.logs)) {
           setLogs(data.logs);
         }
       }
-    } catch {
-      // Fallback to local mock array if server unreachable
+    } catch (err) {
+      console.error("Failed to fetch audit logs from database:", err);
     } finally {
       setLoading(false);
     }

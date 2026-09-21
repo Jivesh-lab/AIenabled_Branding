@@ -11,6 +11,7 @@ const ROLE_WORKSPACE: Record<string, string> = {
   industry: "/workspace/industry-partner/dashboard",
   investor: "/workspace/investor/dashboard",
   startup: "/workspace/startup/dashboard",
+  admin: "/workspace/admin/dashboard",
   "super_admin": "/workspace/super-admin/dashboard",
 };
 
@@ -22,6 +23,7 @@ const WORKSPACE_ROLE_SEGMENT: Record<string, string> = {
   "industry-partner": "industry",
   investor: "investor",
   startup: "startup",
+  admin: "admin",
   "super-admin": "super_admin",
 };
 
@@ -49,8 +51,8 @@ export async function proxy(req: NextRequest) {
 
     const userRole = token.role as string;
 
-    // Super Admin has universal access to inspect any workspace segment
-    if (userRole === "super_admin") {
+    // Super Admin & Admin have access to oversight/inspect workspace segments
+    if (userRole === "super_admin" || userRole === "admin") {
       return NextResponse.next();
     }
 

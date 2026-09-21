@@ -59,6 +59,32 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    // Account Status & Operations Management
+    status: {
+      type: String,
+      enum: ['active', 'inactive', 'pending', 'rejected'],
+      default: 'active',
+    },
+    mustChangePassword: {
+      type: Boolean,
+      default: false,
+    },
+    rejectionReason: {
+      type: String,
+      default: null,
+    },
+    lastLogin: {
+      type: Date,
+      default: null,
+    },
+    isSoftDeleted: {
+      type: Boolean,
+      default: false,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true }
 );

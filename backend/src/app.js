@@ -4,6 +4,7 @@ const cookieParser = require('cookie-parser');
 const connectDB = require('./config/db');
 const authRouter = require('./routes/auth');
 const auditRouter = require('./routes/audit');
+const adminRouter = require('./routes/admin');
 
 const app = express();
 
@@ -30,6 +31,7 @@ app.use(cookieParser()); // Parse Cookie header → req.cookies
 // ---------------------------------------------------------------------------
 app.use('/api/auth', authRouter);
 app.use('/api/audit', auditRouter);
+app.use('/api/admin', adminRouter);
 
 // Health check
 app.get('/api/health', (_request, response) => {
