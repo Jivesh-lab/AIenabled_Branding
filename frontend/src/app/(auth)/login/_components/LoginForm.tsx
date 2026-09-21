@@ -12,7 +12,10 @@
  * - Social auth buttons row (Google, GitHub, Facebook)
  * - Sign up navigation link
  *
- * TODO: Wire onSubmit to a real auth mutation during backend integration.
+ * Auth: uses NextAuth signIn('credentials') → CredentialsProvider calls
+ *       Express /api/auth/login → issues httpOnly JWT cookie.
+ *       Role is embedded in the NextAuth session JWT.
+ *       Workspace redirect is handled by middleware.ts (Edge).
  */
 
 import Link from "next/link";
@@ -21,8 +24,8 @@ import { Eye, EyeOff, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -107,59 +110,61 @@ function ButtonSpinner() {
 // ---------------------------------------------------------------------------
 export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
-  const [mockRole, setMockRole] = useState<"student" | "mentor" | "industry" | "faculty" | "investor" | "startup">("student");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [require2FA, setRequire2FA] = useState(false);
+  const [twoFactorCode, setTwoFactorCode] = useState("");
   const router = useRouter();
 
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    getValues,
+    formState: { errors },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     mode: "onTouched",
   });
 
-  function handleSuccessfulLogin(role: string) {
-    localStorage.setItem("mockUserRole", role);
-    const routes: Record<string, string> = {
-      student: '/workspace/student/dashboard',
-      mentor: '/workspace/mentor/dashboard',
-      industry: '/workspace/industry-partner/dashboard',
-      faculty: '/workspace/faculty/dashboard',
-      investor: '/workspace/investor/dashboard',
-      startup: '/workspace/startup/dashboard',
-    };
-    router.push(routes[role] || '/workspace/student/dashboard');
-  }
+  async function onSubmit(values: LoginFormValues) {
+    setIsSubmitting(true);
+    try {
+      const result = await signIn("credentials", {
+        email: values.email,
+        password: values.password,
+        twoFactorCode: twoFactorCode,
+        redirect: false,
+      });
 
-  // TODO: Replace with real auth mutation during backend integration phase.
-  function onSubmit(values: LoginFormValues) {
-    console.info(
-      "[AAI-DBITIC] Login submit (frontend-only — redirecting to dashboard):",
-      { email: values.email, mockRole }
-    );
-    handleSuccessfulLogin(mockRole);
+      if (!result) {
+        toast.error("Something went wrong. Please try again.");
+        return;
+      }
+
+      if (result.error) {
+        if (result.error.includes("REQUIRE_2FA")) {
+          setRequire2FA(true);
+          toast.info("Two-Factor Authentication required. Please enter your 6-digit TOTP code.");
+          return;
+        }
+        // Show user-friendly message
+        toast.error("Invalid credentials or 2FA code. Please check and try again.");
+        return;
+      }
+
+      // Successful sign-in — push to root, proxy.ts redirects to role workspace
+      toast.success("Signed in successfully!");
+      router.push("/");
+      router.refresh();
+    } catch {
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   async function handleSocialAuth(provider: string) {
-    console.info(`Initiating actual OAuth flow via ${provider}`);
-    
-    // We pass a callbackUrl, so once NextAuth completes, it goes to the relevant dashboard
-    // Currently relying on our mockRole to decide which dashboard. In a fully built app,
-    // the backend/session data would determine the correct URL.
-    const routes: Record<string, string> = {
-      student: '/workspace/student/dashboard',
-      mentor: '/workspace/mentor/dashboard',
-      industry: '/workspace/industry-partner/dashboard',
-      faculty: '/workspace/faculty/dashboard',
-      investor: '/workspace/investor/dashboard',
-      startup: '/workspace/startup/dashboard',
-    };
-    
-    const targetUrl = routes[mockRole] || '/workspace/student/dashboard';
-    localStorage.setItem("mockUserRole", mockRole);
-    
-    await signIn(provider, { callbackUrl: targetUrl });
+    // OAuth flow — post-login onboarding handles role assignment
+    await signIn(provider, { callbackUrl: "/" });
   }
 
   return (
@@ -283,38 +288,31 @@ export default function LoginForm() {
             )}
           </div>
 
-          {/* Mock Role Selector */}
-          <div className="space-y-1.5">
-            <Label
-              htmlFor="mock-role"
-              className="text-sm font-medium text-slate-700"
-            >
-              Login As Role <span className="text-slate-400 font-normal">(Dev Only)</span>
-            </Label>
-            <select
-              id="mock-role"
-              value={mockRole}
-              onChange={(e) => setMockRole(e.target.value as any)}
-              className={cn(
-                "w-full h-10 px-3 border border-slate-200 bg-white text-slate-900 rounded-md",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/30 focus-visible:border-blue-600",
-                "transition-colors duration-150 appearance-none"
-              )}
-              style={{
-                backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
-                backgroundRepeat: 'no-repeat',
-                backgroundPosition: 'right 0.75rem center',
-                backgroundSize: '1em'
-              }}
-            >
-              <option value="student">Student</option>
-              <option value="mentor">Mentor</option>
-              <option value="industry">Industry Partner</option>
-              <option value="faculty">Faculty</option>
-              <option value="investor">Investor</option>
-              <option value="startup">Startup / Alumni</option>
-            </select>
-          </div>
+          {/* 2FA TOTP Challenge Code Input */}
+          {require2FA && (
+            <div className="space-y-1.5 p-3.5 rounded-lg border border-amber-200 bg-amber-50/70 animate-in fade-in duration-200">
+              <div className="flex items-center gap-2 mb-1 text-amber-900 font-semibold text-xs uppercase tracking-wider">
+                <span className="flex size-5 items-center justify-center rounded bg-amber-200 text-amber-800">🔒</span>
+                Two-Factor Security Code Required
+              </div>
+              <Label htmlFor="login-2fa" className="text-xs text-slate-700 font-medium">
+                Authenticator 6-Digit Code
+              </Label>
+              <Input
+                id="login-2fa"
+                type="text"
+                maxLength={6}
+                placeholder="123456"
+                value={twoFactorCode}
+                onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, ""))}
+                className="h-10 text-center text-lg tracking-widest font-mono border-amber-300 bg-white focus-visible:ring-amber-500"
+                autoFocus
+              />
+              <p className="text-[11px] text-slate-500">
+                Open your authenticator app (Google Authenticator / Authy) and enter your temporary 6-digit passcode.
+              </p>
+            </div>
+          )}
 
           {/* Submit button */}
           <button

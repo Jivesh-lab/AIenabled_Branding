@@ -18,6 +18,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import {
   Bell,
@@ -146,6 +147,7 @@ const MENU_ITEMS = [
 
 function ProfileDropdown({ user }: { user: NavbarUser }) {
   const [open, setOpen] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
@@ -218,12 +220,21 @@ function ProfileDropdown({ user }: { user: NavbarUser }) {
               key={label}
               role="menuitem"
               type="button"
-              onClick={() => {
+              disabled={label === "Sign Out" && isSigningOut}
+              onClick={async () => {
                 setOpen(false);
                 if (label === "Sign Out") {
-                  localStorage.removeItem("mockUserRole");
+                  setIsSigningOut(true);
+                  try {
+                    await signOut({ redirect: false });
+                    router.push("/login");
+                    router.refresh();
+                  } finally {
+                    setIsSigningOut(false);
+                  }
+                } else {
+                  router.push(getPath(user.role));
                 }
-                router.push(getPath(user.role));
               }}
               className={cn(
                 "flex w-full items-center gap-3 px-4 py-2 text-[13px] font-medium",

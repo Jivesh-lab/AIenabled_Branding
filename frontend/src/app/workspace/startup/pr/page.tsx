@@ -13,10 +13,19 @@ export default function PressReleasesPage() {
           <p className="text-muted-foreground mt-1">Manage and view your press releases details.</p>
         </div>
 
-        <div className="bg-card border rounded-2xl p-12 text-center flex flex-col items-center justify-center text-muted-foreground mt-10 shadow-sm">
-          <Newspaper className="w-12 h-12 mb-4 opacity-20" />
-          <p className="text-lg font-medium text-foreground mb-1">Coming Soon</p>
-          <p className="text-sm">This module is currently under active development.</p>
+        <div className="bg-card border rounded-2xl p-8 flex flex-col gap-4 text-left text-muted-foreground mt-10 shadow-sm">
+          <div className="flex items-center gap-3 border-b border-border/50 pb-4">
+            <Newspaper className="w-5 h-5 text-foreground opacity-70" />
+            <h2 className="text-xl font-semibold text-foreground m-0">Module Configuration</h2>
+          </div>
+          <p className="text-sm leading-relaxed">
+            This workspace module is currently being provisioned. Once fully activated, this environment will support the following capabilities:
+          </p>
+          <ul className="list-disc list-outside text-sm space-y-2 mt-2 ml-5 marker:text-slate-300">
+            <li>Structured data management and historical tracking</li>
+            <li>Real-time analytics and automated reporting</li>
+            <li>Role-based access control and collaborative editing</li>
+          </ul>
         </div>
       </div>
     </PageContainer>
