@@ -13,6 +13,7 @@ export type AllowedRole =
   | "industry"
   | "investor"
   | "startup"
+  | "admin"
   | "super_admin";
 
 interface BaseWorkspaceLayoutProps {

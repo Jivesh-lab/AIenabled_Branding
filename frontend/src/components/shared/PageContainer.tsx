@@ -13,13 +13,23 @@ import { cn } from "@/lib/utils";
 
 export default function PageContainer({
   children,
+  title,
+  description,
   className,
 }: {
   children: React.ReactNode;
+  title?: string;
+  description?: string;
   className?: string;
 }) {
   return (
-    <div className={cn("mx-auto w-full max-w-[1440px] px-6 py-6 lg:px-8 lg:py-8", className)}>
+    <div className={cn("mx-auto w-full max-w-[1440px] px-6 py-6 lg:px-8 lg:py-8 space-y-6", className)}>
+      {title && (
+        <div className="space-y-1">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">{title}</h1>
+          {description && <p className="text-xs text-slate-500">{description}</p>}
+        </div>
+      )}
       {children}
     </div>
   );

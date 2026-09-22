@@ -6,20 +6,20 @@ const router = express.Router();
 
 /**
  * GET /api/audit
- * Protected: super_admin only.
+ * Protected: super_admin & admin.
  * Retrieves paginated audit logs with search/filtering capabilities.
  */
-router.get('/', authenticate, requireRole('super_admin'), async (req, res) => {
+router.get('/', authenticate, requireRole('super_admin', 'admin'), async (req, res) => {
   try {
     const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 20;
+    const limit = parseInt(req.query.limit, 10) || 50;
     const skip = (page - 1) * limit;
 
     const filter = {};
     if (req.query.action) {
       filter.action = req.query.action;
     }
-    if (req.query.status) {
+    if (req.query.status && req.query.status !== 'ALL') {
       filter.status = req.query.status;
     }
     if (req.query.search) {
