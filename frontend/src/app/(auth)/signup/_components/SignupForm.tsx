@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * SignupForm — Multi-step registration flow
+ * SignupForm â€” Multi-step registration flow
  *
  * Step 1: Choose account type (role selection as cards)
  * Step 2: Basic information (name + email)
@@ -142,7 +142,7 @@ function MobileLogoMark() {
           <path d="M10 7L13 9V13L10 15L7 13V9L10 7Z" fill="currentColor" opacity="0.5" />
         </svg>
       </div>
-      <span className="text-sm font-semibold text-slate-800">AAI–DBITIC</span>
+      <span className="text-sm font-semibold text-slate-800">AAI-DBITIC</span>
     </div>
   );
 }
@@ -220,7 +220,7 @@ function PasswordStrengthBar({ password }: { password: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// Step 1 — Role selector
+// Step 1 â€” Role selector
 // ---------------------------------------------------------------------------
 function StepRoleSelect({
   onSelect,
@@ -298,7 +298,7 @@ function StepRoleSelect({
 }
 
 // ---------------------------------------------------------------------------
-// Step 2 — Basic information
+// Step 2 â€” Basic information
 // ---------------------------------------------------------------------------
 function StepBasicInfo({
   onBack,
@@ -388,7 +388,7 @@ function StepBasicInfo({
 }
 
 // ---------------------------------------------------------------------------
-// Step 3 — Role-specific fields
+// Step 3 â€” Role-specific fields
 // ---------------------------------------------------------------------------
 type RoleSpecificValues = Record<string, string>;
 
@@ -520,7 +520,7 @@ function StepRoleSpecific({
 }
 
 // ---------------------------------------------------------------------------
-// Step 4 — Password
+// Step 4 â€” Password
 // ---------------------------------------------------------------------------
 function StepPassword({
   onBack,
@@ -628,7 +628,7 @@ function StepPassword({
               "disabled:opacity-60 disabled:cursor-not-allowed"
             )}
           >
-            {isSubmitting ? <><ButtonSpinner /> Creating account…</> : "Create Account"}
+            {isSubmitting ? <><ButtonSpinner /> Creating account...€¦</> : "Create Account"}
           </button>
         </div>
       </form>
@@ -637,7 +637,7 @@ function StepPassword({
 }
 
 // ---------------------------------------------------------------------------
-// Step 5 — Account created / status
+// Step 5 â€” Account created / status
 // ---------------------------------------------------------------------------
 function StepAccountStatus({ email }: { email: string }) {
   return (
@@ -653,7 +653,7 @@ function StepAccountStatus({ email }: { email: string }) {
       </p>
       <p className="text-sm font-medium text-slate-800 mb-6">{email}</p>
       <p className="text-xs text-slate-400 max-w-xs mx-auto mb-8">
-        Your account is pending verification. Please check your inbox and verify your email to activate your AAI–DBITIC account.
+        Your account is pending verification. Please check your inbox and verify your email to activate your AAI-DBITIC account.
       </p>
       <Link
         href="/login"
@@ -718,7 +718,7 @@ export default function SignupForm() {
         return;
       }
 
-      // Success — advance to confirmation screen
+      // Success â€” advance to confirmation screen
       setStep(4);
     } catch {
       toast.error("Network error. Please check your connection and try again.");
@@ -736,8 +736,7 @@ export default function SignupForm() {
   const showSocialBlock = step === 0;
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center bg-canvas px-6 py-10 sm:px-10 lg:px-14">
-      <MobileLogoMark />
+    <div className="w-full rounded-2xl bg-white/85 backdrop-blur-xl border border-white/60 shadow-[0_8px_48px_rgba(0,0,0,0.12)] p-7 max-h-[90vh] overflow-y-auto">
 
       <div className="w-full max-w-[440px]">
         {step === 0 && (
@@ -782,7 +781,7 @@ export default function SignupForm() {
 
         {step === 4 && <StepAccountStatus email={formState.basic?.email ?? ""} />}
 
-        {/* Social auth — shown only on Step 1 */}
+        {/* Social auth â€” shown only on Step 1 */}
         {showSocialBlock && (
           <>
             <div className="my-5 flex items-center gap-3">
@@ -801,3 +800,5 @@ export default function SignupForm() {
     </div>
   );
 }
+
+
