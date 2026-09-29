@@ -90,7 +90,7 @@ export default function LoginForm() {
         redirect: false,
         email: values.email,
         password: values.password,
-        ...(require2FA && twoFactorCode ? { totpCode: twoFactorCode } : {}),
+        ...(require2FA && twoFactorCode ? { twoFactorCode: twoFactorCode } : {}),
       });
 
       if (!result) {
@@ -98,7 +98,7 @@ export default function LoginForm() {
         return;
       }
 
-      if (result.error === "2FA_REQUIRED") {
+      if (result.error === "REQUIRE_2FA") {
         setRequire2FA(true);
         toast.info("Two-factor authentication required.");
         return;
