@@ -13,6 +13,12 @@ export const metadata: Metadata = {
   title: "AAI–DBITIC | Innovation Centre",
   description:
     "AAI–DBITIC is an AI-powered academic incubation platform connecting students, faculty, mentors, industry and investors.",
+  keywords: ["AAI–DBITIC", "DBIT entrepreneurship", "student innovation", "startup incubation", "Idiot's Room"],
+  openGraph: {
+    title: "AAI–DBITIC | Innovation Centre",
+    description: "Turn student ideas into research, prototypes, startups, and real-world impact.",
+    type: "website",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
