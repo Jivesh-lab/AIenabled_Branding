@@ -23,6 +23,11 @@ const ADMIN_NAV: NavSection[] = [
         label: "Admin Dashboard",
       },
       {
+        href: "/workspace/admin/applications",
+        icon: FileText,
+        label: "Startup Applications",
+      },
+      {
         href: "/workspace/admin/users",
         icon: Users,
         label: "User Management",

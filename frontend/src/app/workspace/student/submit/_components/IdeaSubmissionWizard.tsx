@@ -149,14 +149,31 @@ export default function IdeaSubmissionWizard() {
   // -------------------------------------------------------------------------
   async function onValid(values: IdeaFormValues) {
     setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 700));
-    clearDraft();
-    setSubmitted({
-      name: values.name.trim() || "Untitled idea",
-      referenceId: `IDEA-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
-    });
-    setIsSubmitting(false);
-    scrollToTop();
+    try {
+      const response = await fetch("/api/applications/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(values),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || data.detail || "Failed to submit application");
+      }
+
+      clearDraft();
+      setSubmitted({
+        name: values.name.trim() || "Untitled idea",
+        referenceId: data.application_id || `IDEA-${new Date().getFullYear()}`,
+      });
+      scrollToTop();
+    } catch (error: any) {
+      console.error("Submission error:", error);
+      alert(error.message || "An error occurred during submission");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   function onInvalid(errors: FieldErrors<IdeaFormValues>) {
