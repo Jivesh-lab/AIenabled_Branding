@@ -24,21 +24,6 @@ async function authenticate(req, res, next) {
     }
   }
 
-  // Fallback for development / cross-origin admin requests
-  try {
-    const adminUser =
-      (await User.findOne({ email: 'admin@aai-dbitic.edu' })) ||
-      (await User.findOne({ role: 'admin' })) ||
-      (await User.findOne({ role: 'super_admin' }));
-
-    if (adminUser) {
-      req.user = { id: adminUser._id, role: adminUser.role, email: adminUser.email };
-      return next();
-    }
-  } catch (err) {
-    console.error('[AUTH MIDDLEWARE ERROR]', err);
-  }
-
   return res.status(401).json({
     success: false,
     message: 'Authentication required. Please sign in.',

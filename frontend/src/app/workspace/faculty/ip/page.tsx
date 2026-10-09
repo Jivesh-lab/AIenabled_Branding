@@ -215,7 +215,8 @@ export default function FacultyIPPage() {
                   <div>
                     <label className="block text-xs font-semibold text-ink mb-1.5">Inventor / Student *</label>
                     <select className="w-full px-3 py-2 text-sm border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/30 bg-white">
-                      {SUPERVISED_PROJECTS.map((p) => <option key={p.id}>{p.student}</option>)}
+                      <option>Aria Winters</option>
+                      <option>Chen Wei</option>
                     </select>
                   </div>
                 </div>

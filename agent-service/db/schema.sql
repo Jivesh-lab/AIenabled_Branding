@@ -43,12 +43,16 @@ CREATE TABLE IF NOT EXISTS applications (
     ai_summary      TEXT,                          -- LLM-generated application summary
     ai_feedback     TEXT,                          -- LLM-generated improvement suggestions
     documents       JSONB DEFAULT '[]',            -- [{name, url, type, uploaded_at}]
+    form_data       JSONB DEFAULT '{}',            -- Unmapped frontend form fields
     submitted_at    TIMESTAMPTZ,
     reviewed_at     TIMESTAMPTZ,
     reviewer_id     VARCHAR(64),                   -- MongoDB admin user id
     created_at      TIMESTAMPTZ DEFAULT NOW(),
     updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Safely add form_data if the table was already created
+ALTER TABLE applications ADD COLUMN IF NOT EXISTS form_data JSONB DEFAULT '{}';
 
 CREATE INDEX IF NOT EXISTS idx_applications_startup_id ON applications(startup_id);
 CREATE INDEX IF NOT EXISTS idx_applications_status     ON applications(status);

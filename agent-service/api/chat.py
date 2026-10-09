@@ -16,6 +16,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
+from api.auth import get_current_user, AuthenticatedUser
+
 from core.orchestrator import build_orchestrator
 from core.state import AgentState
 from db.postgres import get_db
@@ -100,19 +102,22 @@ async def _log_session(
 # ── Routes ────────────────────────────────────────────────────────────────────
 
 @router.post("", response_model=ChatResponse)
-async def chat(request: ChatRequest, pool=Depends(get_db)) -> ChatResponse:
+async def chat(request: ChatRequest, current_user: AuthenticatedUser = Depends(get_current_user), pool=Depends(get_db)) -> ChatResponse:
     """
     Non-streaming chat endpoint.
     Runs the full orchestrator graph and returns the complete response.
     Suitable for programmatic API calls (not the interactive chat UI).
     """
+    if request.user_id != current_user.id and current_user.role not in ["admin", "super_admin"]:
+        raise HTTPException(status_code=403, detail="Not authorized to act as this user")
+
     session_id = str(uuid.uuid4())
     start_time = time.time()
 
     initial_state: AgentState = {
         "session_id": session_id,
-        "user_id": request.user_id,
-        "user_role": request.user_role,
+        "user_id": current_user.id,
+        "user_role": current_user.role,
         "startup_id": request.startup_id,
         "messages": [],
         "user_input": request.message,
@@ -174,6 +179,7 @@ async def stream_chat(
     user_id: str,
     user_role: str = "student",
     startup_id: str | None = None,
+    current_user: AuthenticatedUser = Depends(get_current_user),
     pool=Depends(get_db),
 ):
     """
@@ -181,10 +187,13 @@ async def stream_chat(
     The chat widget connects here and receives token-by-token output.
     Each event is: data: {"type": "token"|"step"|"done", "content": "..."}
     """
+    if user_id != current_user.id and current_user.role not in ["admin", "super_admin"]:
+        raise HTTPException(status_code=403, detail="Not authorized to stream as another user")
+
     initial_state: AgentState = {
         "session_id": session_id,
-        "user_id": user_id,
-        "user_role": user_role,
+        "user_id": current_user.id,
+        "user_role": current_user.role,
         "startup_id": startup_id,
         "messages": [],
         "user_input": message,
@@ -248,8 +257,10 @@ async def stream_chat(
 
 
 @router.get("/sessions/{user_id}")
-async def get_sessions(user_id: str, limit: int = 20, pool=Depends(get_db)):
+async def get_sessions(user_id: str, limit: int = 20, current_user: AuthenticatedUser = Depends(get_current_user), pool=Depends(get_db)):
     """Return a user's chat session history (most recent first)."""
+    if user_id != current_user.id and current_user.role not in ["admin", "super_admin"]:
+        raise HTTPException(status_code=403, detail="Not authorized to access this user's sessions")
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             """
@@ -266,8 +277,10 @@ async def get_sessions(user_id: str, limit: int = 20, pool=Depends(get_db)):
 
 
 @router.get("/sessions/{user_id}/{session_id}/messages")
-async def get_session_messages(user_id: str, session_id: str, pool=Depends(get_db)):
+async def get_session_messages(user_id: str, session_id: str, current_user: AuthenticatedUser = Depends(get_current_user), pool=Depends(get_db)):
     """Return full message history for a specific session."""
+    if user_id != current_user.id and current_user.role not in ["admin", "super_admin"]:
+        raise HTTPException(status_code=403, detail="Not authorized to access this user's messages")
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             "SELECT messages, context FROM chat_sessions WHERE id = $1::uuid AND user_id = $2",

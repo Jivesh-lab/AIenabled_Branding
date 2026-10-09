@@ -25,7 +25,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api import chat_router, agents_router, rag_router
+from api import chat_router, agents_router, rag_router, applications_router
 from config import get_settings
 from core.tools.database import set_pool
 from db.postgres import apply_schema, close_pool, create_pool
@@ -85,6 +85,7 @@ app.add_middleware(
 app.include_router(chat_router)
 app.include_router(agents_router)
 app.include_router(rag_router)
+app.include_router(applications_router)
 
 
 # ── Health check ──────────────────────────────────────────────────────────────

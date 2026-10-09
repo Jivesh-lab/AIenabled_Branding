@@ -42,6 +42,9 @@ class Settings(BaseSettings):
 
     # ── Auth (shared with Express) ────────────────────────────────────────────
     jwt_secret: str
+    
+    # ── Internal Auth (shared with Next.js) ───────────────────────────────────
+    internal_jwt_secret: str
 
     # ── SMTP ──────────────────────────────────────────────────────────────────
     smtp_host: str = "smtp.gmail.com"
