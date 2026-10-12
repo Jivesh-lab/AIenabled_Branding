@@ -66,7 +66,7 @@ router.post(
     body('name').trim().isLength({ min: 2, max: 80 }).withMessage('Full name is required (2–80 characters)'),
     body('email').trim().isEmail().withMessage('A valid email is required').normalizeEmail(),
     body('role')
-      .isIn(['student', 'faculty', 'mentor', 'industry', 'investor', 'startup'])
+      .isIn(['student', 'faculty', 'mentor', 'investor'])
       .withMessage('A valid role is required'),
     ...passwordValidators,
   ],

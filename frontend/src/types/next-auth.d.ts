@@ -1,6 +1,6 @@
 import { DefaultSession, DefaultJWT } from "next-auth";
 
-type UserRole = "student" | "faculty" | "mentor" | "industry" | "investor" | "startup" | "admin" | "super_admin";
+type UserRole = "student" | "faculty" | "mentor" | "investor" | "admin" | "super_admin";
 
 declare module "next-auth" {
   interface Session {

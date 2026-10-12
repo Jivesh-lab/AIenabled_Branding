@@ -3,6 +3,13 @@ from pydantic import BaseModel, Field
 from typing import List, Optional
 from api.auth import get_internal_service, AuthenticatedUser
 from db.postgres import get_db
+from db.standalone_store import (
+    standalone_submit_application,
+    standalone_get_applications,
+    standalone_get_application_queue,
+    standalone_get_application_details,
+    standalone_decide_application,
+)
 import json
 
 router = APIRouter(prefix="/api/applications", tags=["applications"])
@@ -77,6 +84,24 @@ async def submit_application(
     
     documents = [a.model_dump() for a in submission.attachments]
     
+    if not pool:
+        application_id = standalone_submit_application(
+            applicant_id=applicant_id,
+            startup_name=startup_name,
+            tagline=tagline,
+            problem=problem,
+            solution=solution,
+            stage=stage,
+            sector=sector,
+            documents=documents,
+            form_data=form_data,
+        )
+        return {
+            "success": True,
+            "application_id": str(application_id),
+            "status": "submitted"
+        }
+
     try:
         # Single transaction to insert startup + application safely
         async with pool.acquire() as conn:
@@ -127,6 +152,9 @@ async def get_applications(
     pool=Depends(get_db)
 ):
     applicant_id = current_user.id
+    if not pool:
+        projects = standalone_get_applications(applicant_id)
+        return {"projects": projects}
     
     try:
         async with pool.acquire() as conn:
@@ -178,6 +206,10 @@ async def get_application_queue(
     if "review_applications" not in current_user.permissions:
         raise HTTPException(status_code=403, detail="Missing review_applications permission")
         
+    if not pool:
+        queue = standalone_get_application_queue()
+        return {"queue": queue}
+
     try:
         async with pool.acquire() as conn:
             records = await conn.fetch(
@@ -213,13 +245,12 @@ async def get_application_details(
     current_user: AuthenticatedUser = Depends(get_internal_service),
     pool=Depends(get_db)
 ):
-    # Depending on permissions, student can also view their own, but for this admin view:
-    # Actually wait, GET /{application_id} could be called by the student. But let's require review_applications or ensure applicant_id matches.
     if "review_applications" not in current_user.permissions:
-        # Check if student is the applicant
-        pass # To keep it simple, we will just restrict this to review_applications as per prompt "Review endpoints must require a verified internal token containing review_applications".
         raise HTTPException(status_code=403, detail="Missing review_applications permission")
         
+    if not pool:
+        return standalone_get_application_details(application_id)
+
     try:
         async with pool.acquire() as conn:
             record = await conn.fetchrow(
@@ -245,8 +276,6 @@ async def get_application_details(
             if record['documents']:
                 docs = json.loads(record['documents']) if isinstance(record['documents'], str) else record['documents']
                 
-            # Note: We need to get reviewer_comments from schema if it exists. 
-            # In PostgreSQL, altering schema might not be reflected in this query unless we SELECT *.
             return {
                 "id": str(record['app_id']),
                 "startup": {
@@ -290,21 +319,26 @@ async def decide_application(
     if decision == "revision_requested" and not payload.comments:
         raise HTTPException(status_code=400, detail="Revision requests require comments")
         
+    if not pool:
+        return standalone_decide_application(
+            application_id=application_id,
+            decision=decision,
+            reviewer_id=current_user.id,
+            comments=payload.comments,
+        )
+
     try:
         async with pool.acquire() as conn:
             async with conn.transaction():
-                # Get current status
                 current_app = await conn.fetchrow("SELECT status FROM applications WHERE id = $1", application_id)
                 if not current_app:
                     raise HTTPException(status_code=404, detail="Application not found")
                     
                 prev_status = current_app['status']
                 
-                # Check terminal states
                 if prev_status in ['approved', 'rejected'] and decision not in ['approved', 'rejected']:
                     raise HTTPException(status_code=400, detail="Cannot review a terminal application unless changing between terminal states")
                     
-                # Update application
                 await conn.execute(
                     """
                     UPDATE applications 
@@ -314,7 +348,6 @@ async def decide_application(
                     decision, current_user.id, application_id
                 )
                 
-                # Insert audit log
                 await conn.execute(
                     """
                     INSERT INTO application_audit_logs (application_id, actor_id, previous_status, new_status, comments)

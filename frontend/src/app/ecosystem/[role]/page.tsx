@@ -23,19 +23,19 @@ const roles = {
     tasks: ["Browse student projects", "Offer structured feedback", "Join a review group", "Recommend a resource"],
     metrics: [["18", "Projects needing input"], ["07", "Open requests"], ["05", "Suggested resources"]],
   },
-  "industry-investors": {
-    label: "Industry Investors",
-    title: "Find the signal earlier.",
-    description: "Review researched opportunities, founder context, and the next proof point before you engage.",
-    tasks: ["Explore opportunity briefs", "Save promising projects", "Request a founder conversation", "Track follow-up conversations"],
-    metrics: [["11", "Curated opportunities"], ["05", "Saved projects"], ["03", "Active conversations"]],
-  },
   "industry-guides": {
-    label: "Industry Guides",
+    label: "Mentors & Guides",
     title: "Turn experience into momentum.",
     description: "Offer practical context, connections, and mentorship to teams moving from campus toward market.",
     tasks: ["Choose your expertise areas", "Review a project brief", "Share practical feedback", "Schedule a guide session"],
     metrics: [["09", "Teams to support"], ["04", "Guide requests"], ["06", "Expertise areas"]],
+  },
+  "investors": {
+    label: "Investors",
+    title: "Find high-potential ventures earlier.",
+    description: "Review researched opportunities, founder context, and milestones before you engage.",
+    tasks: ["Explore opportunity briefs", "Save promising projects", "Request a founder conversation", "Track traction milestones"],
+    metrics: [["11", "Curated opportunities"], ["05", "Saved projects"], ["03", "Active conversations"]],
   },
 } as const;
 
