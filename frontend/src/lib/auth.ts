@@ -63,15 +63,16 @@ export const authOptions: NextAuthOptions = {
           throw new Error((data.message as string) || "Invalid credentials");
         }
 
-        const user = data.user as { id: string; name: string; email: string; role: string };
-        console.log(`[Auth] authorize() — login OK for role: ${user.role}`);
+        const user = data.user as { id: string; name: string; email: string; role: string; facultyRole?: string | null };
+        console.log(`[Auth] authorize() — login OK for role: ${user.role} (facultyRole: ${user.facultyRole})`);
 
         return {
           id: user.id,
           name: user.name,
           email: user.email,
           role: user.role as any,
-        };
+          facultyRole: user.facultyRole || null,
+        } as any;
       },
     }),
 
@@ -102,20 +103,22 @@ export const authOptions: NextAuthOptions = {
   },
 
   callbacks: {
-    // Embed role + id into the JWT on sign-in
+    // Embed role + facultyRole + id into the JWT on sign-in
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
         token.role = (user as { role: string }).role as typeof token.role;
+        (token as any).facultyRole = (user as any).facultyRole || null;
       }
       return token;
     },
 
-    // Expose id + role on the session object (accessible via useSession / getServerSession)
+    // Expose id + role + facultyRole on the session object (accessible via useSession / getServerSession)
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id;
         session.user.role = token.role;
+        (session.user as any).facultyRole = (token as any).facultyRole || null;
       }
       return session;
     },

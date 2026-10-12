@@ -114,6 +114,76 @@ async def investor(req: AgentRequest):
     return {"output": result["investor_output"], "session_id": state["session_id"]}
 
 
+@router.post("/application/validate")
+async def validate_application_endpoint(submission: dict[str, Any]):
+    """Check applications for missing, inconsistent, or invalid information before submission."""
+    from agents.application_agent import validate_application_data
+    result = validate_application_data(submission)
+    return {"status": "success", "validation": result}
+
+
+@router.post("/application/assess")
+async def assess_application_endpoint(submission: dict[str, Any]):
+    """Generate application summary, transparent assessment, and reviewer questions."""
+    from agents.application_agent import assess_application
+    result = await assess_application(submission)
+    return {"status": "success", "assessment": result}
+
+
+@router.post("/mentor-match")
+async def mentor_match_endpoint(req: dict[str, Any]):
+    """Recommend faculty and industry mentors based on domain, stage, challenges, and expertise."""
+    from agents.mentor_matching import match_mentors_for_startup
+    result = match_mentors_for_startup(
+        domain=req.get("domain", ""),
+        stage=req.get("stage", "Prototype"),
+        challenges=req.get("challenges", ""),
+        requested_expertise=req.get("requestedExpertise", []),
+        existing_allocations=req.get("existingAllocations", []),
+    )
+    return result
+
+
+@router.post("/workflow/coordinate")
+async def workflow_coordinate_endpoint(req: dict[str, Any]):
+    """Idempotently coordinate incubation tasks, meetings, reminders, and follow-ups."""
+    from agents.workflow_agent import coordinate_workflow_action
+    result = await coordinate_workflow_action(
+        action_type=req.get("action_type", "assign_task"),
+        target_id=req.get("target_id", "default"),
+        payload=req.get("payload", {}),
+        actor_id=req.get("actor_id", "system"),
+        actor_role=req.get("actor_role", "admin"),
+    )
+    return result
+
+
+@router.get("/workflow/history")
+async def workflow_history_endpoint(target_id: str | None = None):
+    """Retrieve activity history of coordinated incubation tasks and reminders."""
+    from agents.workflow_agent import get_workflow_activity_history
+    history = get_workflow_activity_history(target_id)
+    return {"status": "success", "history": history, "count": len(history)}
+
+
+@router.post("/monitoring/status")
+async def monitoring_status_endpoint(req: dict[str, Any]):
+    """Evaluate milestones, overdue items, risk indicators distinguishing measured facts from AI interpretations."""
+    from agents.monitoring_agent import evaluate_startup_health
+    result = evaluate_startup_health(
+        startup_name=req.get("startup_name", "Incubation Project"),
+        stage=req.get("stage", "Prototype"),
+        total_milestones=req.get("total_milestones", 4),
+        completed_milestones=req.get("completed_milestones", 2),
+        overdue_milestones=req.get("overdue_milestones", 0),
+        tasks_completed=req.get("tasks_completed", 4),
+        total_tasks=req.get("total_tasks", 5),
+        days_since_last_report=req.get("days_since_last_report", 7),
+        measured_metrics=req.get("measured_metrics", {}),
+    )
+    return result
+
+
 @router.get("/startups/{startup_id}/readiness")
 async def get_readiness(startup_id: str, pool=Depends(get_db)):
     """Return the current readiness score and breakdown for a startup."""
@@ -131,3 +201,4 @@ async def get_readiness(startup_id: str, pool=Depends(get_db)):
         "readiness_score": row["readiness_score"],
         "readiness_breakdown": row["readiness_breakdown"] or {},
     }
+

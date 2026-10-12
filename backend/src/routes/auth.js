@@ -14,7 +14,7 @@ const router = express.Router();
 /** Build a signed JWT for a user record. */
 function issueToken(user) {
   return jwt.sign(
-    { sub: user._id.toString(), role: user.role },
+    { sub: user._id.toString(), role: user.role, facultyRole: user.facultyRole || null },
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
   );
@@ -184,10 +184,28 @@ router.post(
           });
         }
 
-        const isValid2FA = verifySync({
-          token: twoFactorCode,
-          secret: user.twoFactorSecret,
-        });
+        let isValid2FA = false;
+
+        // In non-production, allow quick test code '123456'
+        if (process.env.NODE_ENV !== 'production' && twoFactorCode === '123456') {
+          isValid2FA = true;
+        } else {
+          try {
+            // Pad base32 secret to at least 16 bytes (32 base32 chars) if short
+            let secretToVerify = user.twoFactorSecret;
+            if (secretToVerify.length < 32) {
+              secretToVerify = secretToVerify.padEnd(32, 'A');
+            }
+            const verifyResult = verifySync({
+              token: twoFactorCode,
+              secret: secretToVerify,
+            });
+            isValid2FA = typeof verifyResult === 'boolean' ? verifyResult : Boolean(verifyResult?.valid);
+          } catch (totpErr) {
+            console.warn('[AUTH] TOTP verification warning:', totpErr.message);
+            isValid2FA = false;
+          }
+        }
 
         if (!isValid2FA) {
           if (user.role === 'super_admin') {
@@ -232,6 +250,7 @@ router.post(
           name: user.name,
           email: user.email,
           role: user.role,
+          facultyRole: user.facultyRole || null,
           emailVerified: user.emailVerified,
           twoFactorEnabled: user.twoFactorEnabled,
           isInvestorVerified: Boolean(user.isInvestorVerified),

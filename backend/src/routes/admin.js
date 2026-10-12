@@ -147,6 +147,34 @@ router.get('/users', async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
+// GET /api/admin/users/:id
+// View detailed profile for an individual user (authorized fields only)
+// ---------------------------------------------------------------------------
+router.get('/users/:id', async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: 'Invalid user ID format.' });
+    }
+
+    const user = await User.findById(req.params.id)
+      .select('-passwordHash -emailVerifyToken -emailVerifyExpiry -twoFactorSecret -twoFactorTempSecret')
+      .lean();
+
+    if (!user || user.isSoftDeleted) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      user,
+    });
+  } catch (err) {
+    console.error('[ADMIN API] Get user detail error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to fetch user details.' });
+  }
+});
+
+// ---------------------------------------------------------------------------
 // POST /api/admin/users
 // Single user account creation by Admin with temporary password
 // ---------------------------------------------------------------------------
@@ -303,6 +331,10 @@ router.post('/users/bulk', async (req, res) => {
 // ---------------------------------------------------------------------------
 router.put('/users/:id', async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: 'Invalid user ID format.' });
+    }
+
     const { name, email, role, status, profile } = req.body;
     const user = await User.findById(req.params.id);
 
@@ -310,9 +342,41 @@ router.put('/users/:id', async (req, res) => {
       return res.status(404).json({ success: false, message: 'User account not found.' });
     }
 
-    // Prevent non-super_admin from modifying super_admin accounts
+    // Security Rule 1: Never allow a user to promote or change their own role/status
+    if (user._id.toString() === req.user.id.toString()) {
+      if (role && role !== user.role) {
+        return res.status(403).json({ success: false, message: 'Admins cannot modify their own role.' });
+      }
+      if (status && status !== user.status) {
+        return res.status(403).json({ success: false, message: 'Admins cannot change their own account status.' });
+      }
+    }
+
+    // Security Rule 2: Ordinary admins cannot grant or modify super_admin accounts
+    if (role === 'super_admin' && req.user.role !== 'super_admin') {
+      return res.status(403).json({ success: false, message: 'Only Super Admins can assign the Super Admin role.' });
+    }
     if (user.role === 'super_admin' && req.user.role !== 'super_admin') {
-      return res.status(403).json({ success: false, message: 'Cannot modify Super Admin accounts.' });
+      return res.status(403).json({ success: false, message: 'Ordinary Admins cannot modify Super Admin accounts.' });
+    }
+
+    // Security Rule 3: Prevent demotion or deactivation of the last super_admin
+    if (user.role === 'super_admin' && (role && role !== 'super_admin' || status && status !== 'active')) {
+      const superAdminCount = await User.countDocuments({ role: 'super_admin', status: 'active', isSoftDeleted: { $ne: true } });
+      if (superAdminCount <= 1) {
+        return res.status(400).json({ success: false, message: 'Cannot demote or deactivate the last remaining Super Admin.' });
+      }
+    }
+
+    // Security Rule 4: Validate role and status enums
+    const validRoles = ['student', 'faculty', 'mentor', 'investor', 'admin', 'super_admin'];
+    const validStatuses = ['active', 'inactive', 'pending', 'rejected'];
+
+    if (role && !validRoles.includes(role)) {
+      return res.status(400).json({ success: false, message: `Invalid role: ${role}.` });
+    }
+    if (status && !validStatuses.includes(status)) {
+      return res.status(400).json({ success: false, message: `Invalid status: ${status}.` });
     }
 
     if (name) user.name = name.trim();
@@ -330,14 +394,23 @@ router.put('/users/:id', async (req, res) => {
       action: 'ADMIN_EDIT_USER',
       resource: `/api/admin/users/${user._id}`,
       workspace: 'admin',
-      details: { targetUserId: user._id, updatedFields: { name, email, role, status } },
+      details: { targetUserId: user._id, targetEmail: user.email, updatedFields: { name, email, role, status } },
       req,
     });
 
     return res.status(200).json({
       success: true,
       message: 'User account updated successfully.',
-      user,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        status: user.status,
+        isInvestorVerified: Boolean(user.isInvestorVerified),
+        profile: user.profile,
+        createdAt: user.createdAt,
+      },
     });
   } catch (err) {
     console.error('[ADMIN API] Edit user error:', err);
@@ -401,6 +474,10 @@ router.delete('/users/:id', async (req, res) => {
 
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    if (user._id.toString() === req.user.id.toString()) {
+      return res.status(403).json({ success: false, message: 'Admins cannot delete their own account.' });
     }
 
     if (user.role === 'super_admin') {

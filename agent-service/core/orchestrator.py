@@ -100,7 +100,7 @@ async def intent_analysis(state: AgentState) -> AgentState:
 
 async def task_planning(state: AgentState) -> AgentState:
     """Decide which agents to invoke and in what order."""
-    # Hardcoded rules for common intents (faster + cheaper than LLM call)
+    # Rules for intent-to-agent dispatching
     intent_to_agents = {
         "research_analysis":     ["research"],
         "prototype_evaluation":  ["prototype"],
@@ -108,9 +108,14 @@ async def task_planning(state: AgentState) -> AgentState:
         "startup_formation":     ["research", "market", "formation"],
         "incubation_check":      ["research", "prototype", "market", "incubation"],
         "investor_matching":     ["market", "investor"],
-        "general_query":         [],
+        "incubation_assistant":  ["incubation_assistant"],
+        "application_review":    ["application_agent"],
+        "mentor_match":          ["mentor_matching"],
+        "workflow_coordinate":   ["workflow_agent"],
+        "progress_monitor":      ["monitoring_agent"],
+        "general_query":         ["incubation_assistant"],
     }
-    state["planned_agents"] = intent_to_agents.get(state["intent"], [])
+    state["planned_agents"] = intent_to_agents.get(state["intent"], ["incubation_assistant"])
     logger.info("orchestrator_planned", agents=state["planned_agents"])
     return state
 
@@ -144,6 +149,16 @@ def _completed_agents(state: AgentState) -> list[str]:
         completed.append("incubation")
     if state.get("investor_output"):
         completed.append("investor")
+    if state.get("incubation_assistant_output"):
+        completed.append("incubation_assistant")
+    if state.get("application_agent_output"):
+        completed.append("application_agent")
+    if state.get("mentor_match_output"):
+        completed.append("mentor_matching")
+    if state.get("workflow_output"):
+        completed.append("workflow_agent")
+    if state.get("monitoring_output"):
+        completed.append("monitoring_agent")
     return completed
 
 
@@ -153,33 +168,35 @@ async def verification(state: AgentState) -> AgentState:
         state.get("research_output"),
         state.get("prototype_output"),
         state.get("market_output"),
+        state.get("application_agent_output"),
     ]):
-        # No specialist outputs — skip verification
-        state["requires_human_review"] = False
+        # No heavy evaluation outputs — skip verification
+        state["requires_human_review"] = state.get("requires_human_review", False)
         return state
 
-    llm = get_llm(temperature=0.0)
-    summary = {
-        "research": state.get("research_output"),
-        "prototype": state.get("prototype_output"),
-        "market": state.get("market_output"),
-    }
-    messages = [
-        SystemMessage(content=VERIFICATION_SYSTEM),
-        HumanMessage(content=json.dumps(summary, default=str)),
-    ]
-    response = await llm.ainvoke(messages)
     try:
+        llm = get_llm(temperature=0.0)
+        summary = {
+            "research": state.get("research_output"),
+            "prototype": state.get("prototype_output"),
+            "market": state.get("market_output"),
+            "application": state.get("application_agent_output"),
+        }
+        messages = [
+            SystemMessage(content=VERIFICATION_SYSTEM),
+            HumanMessage(content=json.dumps(summary, default=str)),
+        ]
+        response = await llm.ainvoke(messages)
         parsed = json.loads(response.content)
         state["requires_human_review"] = parsed.get("requires_human_review", False)
         score = parsed.get("readiness_score")
         if score is not None:
             state["readiness_score"] = score
-            # Compute breakdown from individual agent scores
             state["readiness_breakdown"] = _compute_breakdown(state)
-    except json.JSONDecodeError:
-        logger.warning("verification_parse_failed")
-        state["requires_human_review"] = False
+    except Exception as exc:
+        logger.warning("verification_parse_or_llm_failed", error=str(exc))
+        # Keep existing review requirements intact
+        state["requires_human_review"] = state.get("requires_human_review", False)
     return state
 
 
@@ -194,12 +211,16 @@ def _compute_breakdown(state: AgentState) -> dict[str, int]:
         breakdown["market"] = m.get("opportunity_score", 0)
     if f := state.get("formation_output"):
         breakdown["business_model"] = f.get("model_score", 0)
+    if a := state.get("application_agent_output"):
+        breakdown["completeness"] = a.get("completeness_score", 0)
     return breakdown
 
 
 async def response_generation(state: AgentState) -> AgentState:
     """Compose the final user-facing response."""
-    llm = get_llm(temperature=0.4)
+    # If a specialist agent already composed a response (e.g. Incubation Assistant), preserve it
+    if state.get("final_response"):
+        return state
 
     context_parts = [f"User asked: {state['user_input']}"]
     if state.get("research_output"):
@@ -208,15 +229,31 @@ async def response_generation(state: AgentState) -> AgentState:
         context_parts.append(f"Market findings: {json.dumps(state['market_output'], default=str)}")
     if state.get("prototype_output"):
         context_parts.append(f"Prototype findings: {json.dumps(state['prototype_output'], default=str)}")
+    if state.get("application_agent_output"):
+        context_parts.append(f"Application assessment: {json.dumps(state['application_agent_output'], default=str)}")
+    if state.get("mentor_match_output"):
+        context_parts.append(f"Mentor match recommendations: {json.dumps(state['mentor_match_output'], default=str)}")
+    if state.get("monitoring_output"):
+        context_parts.append(f"Monitoring health: {json.dumps(state['monitoring_output'], default=str)}")
     if state.get("readiness_score") is not None:
         context_parts.append(f"Overall readiness score: {state['readiness_score']}/100")
 
-    messages = [
-        SystemMessage(content=RESPONSE_SYSTEM),
-        HumanMessage(content="\n\n".join(context_parts)),
-    ]
-    response = await llm.ainvoke(messages)
-    state["final_response"] = response.content
+    try:
+        llm = get_llm(temperature=0.4)
+        messages = [
+            SystemMessage(content=RESPONSE_SYSTEM),
+            HumanMessage(content="\n\n".join(context_parts)),
+        ]
+        response = await llm.ainvoke(messages)
+        state["final_response"] = response.content
+    except Exception as exc:
+        logger.warning("response_generation_llm_failed_using_fallback", error=str(exc))
+        state["final_response"] = (
+            "Here is the summary of your incubation workflow:\n\n"
+            "- **Status**: Processed by incubation multi-agent workflow.\n"
+            "- **Readiness**: " + (f"{state.get('readiness_score')}/100" if state.get("readiness_score") is not None else "In Review") + "\n"
+            "- **Action**: Check your workspace dashboard for active recommendations and next steps."
+        )
     return state
 
 
@@ -233,6 +270,11 @@ def build_orchestrator() -> "CompiledGraph":
     from agents.formation import run_formation_agent
     from agents.incubation import run_incubation_agent
     from agents.investor import run_investor_agent
+    from agents.incubation_assistant import run_incubation_assistant
+    from agents.application_agent import run_application_agent
+    from agents.mentor_matching import run_mentor_matching_agent
+    from agents.workflow_agent import run_workflow_agent
+    from agents.monitoring_agent import run_monitoring_agent
 
     graph = StateGraph(AgentState)
 
@@ -246,6 +288,11 @@ def build_orchestrator() -> "CompiledGraph":
     graph.add_node("formation", run_formation_agent)
     graph.add_node("incubation", run_incubation_agent)
     graph.add_node("investor", run_investor_agent)
+    graph.add_node("incubation_assistant", run_incubation_assistant)
+    graph.add_node("application_agent", run_application_agent)
+    graph.add_node("mentor_matching", run_mentor_matching_agent)
+    graph.add_node("workflow_agent", run_workflow_agent)
+    graph.add_node("monitoring_agent", run_monitoring_agent)
     graph.add_node("verification", verification)
     graph.add_node("response_generation", response_generation)
 
@@ -257,22 +304,22 @@ def build_orchestrator() -> "CompiledGraph":
     graph.add_edge("task_planning", "agent_router_node")
 
     # Conditional routing from router_node
+    all_agent_keys = [
+        "research", "prototype", "market", "formation", "incubation", "investor",
+        "incubation_assistant", "application_agent", "mentor_matching", "workflow_agent", "monitoring_agent"
+    ]
+
     graph.add_conditional_edges(
         "agent_router_node",
         route_to_agent,
         {
-            "research": "research",
-            "prototype": "prototype",
-            "market": "market",
-            "formation": "formation",
-            "incubation": "incubation",
-            "investor": "investor",
+            **{k: k for k in all_agent_keys},
             "verification": "verification",
         },
     )
 
     # After each specialist agent → back to router (loop until all done)
-    for agent in ["research", "prototype", "market", "formation", "incubation", "investor"]:
+    for agent in all_agent_keys:
         graph.add_edge(agent, "agent_router_node")
 
     # Verification → response → end

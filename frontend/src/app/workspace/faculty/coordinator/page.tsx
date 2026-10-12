@@ -64,6 +64,8 @@ export default function FacultyCoordinatorPage() {
   const [decisionType, setDecisionType] = useState<"approve" | "reject">("approve");
   const [decisionComment, setDecisionComment] = useState("");
   const [assignedMentorName, setAssignedMentorName] = useState("");
+  const [aiMatchingLoading, setAiMatchingLoading] = useState(false);
+  const [aiMentorRecommendations, setAiMentorRecommendations] = useState<any[]>([]);
 
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
   const [announcementTitle, setAnnouncementTitle] = useState("");
@@ -406,9 +408,6 @@ export default function FacultyCoordinatorPage() {
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-canvas border border-line text-ink uppercase">
                             {proj.domain}
                           </span>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-brand-cyan/10 text-brand-cyan-ink border border-brand-cyan/20">
-                            TRL {proj.trl}
-                          </span>
                           <span
                             className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
                               proj.health === "On Track"
@@ -685,8 +684,67 @@ export default function FacultyCoordinatorPage() {
                 </div>
 
                 {decisionType === "approve" && (
-                  <div>
-                    <label className="block font-bold text-ink mb-1.5">Official Allocated Mentor Name *</label>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="block font-bold text-ink">Official Allocated Mentor Name *</label>
+                      <button
+                        type="button"
+                        disabled={aiMatchingLoading}
+                        onClick={async () => {
+                          setAiMatchingLoading(true);
+                          try {
+                            const res = await fetch("/api/agents/mentor-match", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                domain: decisionModalItem.domain || "AgriTech / ML",
+                                requestedExpertise: decisionModalItem.requestedExpertise || [],
+                                challenges: decisionModalItem.justification || "",
+                              }),
+                            });
+                            if (res.ok) {
+                              const data = await res.json();
+                              setAiMentorRecommendations(data.recommendations || []);
+                              toast.success("AI Mentor-Matching recommendations generated.");
+                            }
+                          } catch {
+                            toast.error("Failed to fetch mentor recommendations.");
+                          } finally {
+                            setAiMatchingLoading(false);
+                          }
+                        }}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold text-brand bg-brand/10 hover:bg-brand/20 rounded-md transition-colors"
+                      >
+                        <Sparkles className="size-3" />
+                        {aiMatchingLoading ? "Analyzing..." : "Get AI Recommendations"}
+                      </button>
+                    </div>
+
+                    {aiMentorRecommendations.length > 0 && (
+                      <div className="p-3 rounded-lg bg-indigo-50/60 border border-indigo-100 space-y-2">
+                        <span className="text-[11px] font-bold text-indigo-900 block">AI Recommended Candidates:</span>
+                        <div className="space-y-1.5">
+                          {aiMentorRecommendations.map((m: any) => (
+                            <div
+                              key={m.id}
+                              onClick={() => setAssignedMentorName(`${m.name} (${m.role})`)}
+                              className="p-2 bg-white rounded border border-indigo-100/70 hover:border-brand cursor-pointer flex items-center justify-between transition-all"
+                            >
+                              <div>
+                                <strong className="text-slate-900 block text-[11px]">{m.name} <span className="text-slate-500 font-normal">· {m.affiliation}</span></strong>
+                                <span className="text-[10px] text-slate-500">{m.match_reasons?.[0]}</span>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                                  {m.match_score}% Match
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     <input
                       type="text"
                       required

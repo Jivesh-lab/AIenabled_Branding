@@ -21,15 +21,15 @@ export default function AgentChatWidget() {
   
   // Use session data, fallback to defaults
   const userId = session?.user?.id || 'guest';
-  const userRole = (session?.user as any)?.role || 'student';
-  const startupId = (session?.user as any)?.startupId || undefined;
+  const userRole = (session?.user as { role?: string })?.role || 'student';
+  const startupId = (session?.user as { startupId?: string })?.startupId || undefined;
 
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [inputText, setInputText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  const { messages, isLoading, error, sendMessage, clearChat } = useAgentChat(userId, userRole, startupId);
+  const { messages, isLoading, error, sendMessage } = useAgentChat(userId, userRole, startupId);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -111,7 +111,7 @@ export default function AgentChatWidget() {
               {messages.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center text-gray-500 dark:text-gray-400 p-6">
                   <MessageSquare className="w-12 h-12 mb-4 text-blue-300 dark:text-blue-900" />
-                  <p className="text-sm">Hi! I'm your AI assistant powered by a team of specialized agents. How can I help with your startup journey today?</p>
+                  <p className="text-sm">Hi! I&apos;m your AI assistant powered by a team of specialized agents. How can I help with your startup journey today?</p>
                 </div>
               ) : (
                 messages.map((msg) => (

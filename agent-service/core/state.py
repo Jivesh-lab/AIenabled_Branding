@@ -43,6 +43,13 @@ class AgentState(TypedDict):
     formation_output: dict[str, Any] | None
     incubation_output: dict[str, Any] | None
     investor_output: dict[str, Any] | None
+    
+    # ── Five Specialized Incubation Workflow Agents ───────────────────────────
+    incubation_assistant_output: dict[str, Any] | None
+    application_agent_output: dict[str, Any] | None
+    mentor_match_output: dict[str, Any] | None
+    workflow_output: dict[str, Any] | None
+    monitoring_output: dict[str, Any] | None
 
     # ── Tools / RAG ───────────────────────────────────────────────────────────
     tool_results: list[dict[str, Any]]

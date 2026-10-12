@@ -10,6 +10,7 @@
  * - Decorative blue organic shapes in corners
  */
 
+import { Suspense } from "react";
 import type { Variants } from "motion/react";
 import { motion, useReducedMotion } from "motion/react";
 import LoginBrandPanel from "./LoginBrandPanel";
@@ -123,7 +124,9 @@ export default function LoginPage() {
           animate="visible"
           transition={{ duration: 0.5, ease: "easeOut", delay: 0.1 }}
         >
-          <LoginForm />
+          <Suspense fallback={<div className="w-full h-80 rounded-2xl bg-white/80 animate-pulse" />}>
+            <LoginForm />
+          </Suspense>
         </motion.div>
       </div>
 
