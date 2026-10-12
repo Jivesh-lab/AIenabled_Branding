@@ -10,9 +10,7 @@ export type AllowedRole =
   | "student"
   | "faculty"
   | "mentor"
-  | "industry"
   | "investor"
-  | "startup"
   | "admin"
   | "super_admin";
 

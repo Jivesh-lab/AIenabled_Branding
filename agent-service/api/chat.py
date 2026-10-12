@@ -60,6 +60,8 @@ async def _log_session(
     state: AgentState,
 ) -> None:
     """Persist chat session and agent logs to PostgreSQL."""
+    if not pool:
+        return
     try:
         async with pool.acquire() as conn:
             # Upsert chat session
@@ -261,6 +263,8 @@ async def get_sessions(user_id: str, limit: int = 20, current_user: Authenticate
     """Return a user's chat session history (most recent first)."""
     if user_id != current_user.id and current_user.role not in ["admin", "super_admin"]:
         raise HTTPException(status_code=403, detail="Not authorized to access this user's sessions")
+    if not pool:
+        return {"sessions": []}
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             """
@@ -281,6 +285,8 @@ async def get_session_messages(user_id: str, session_id: str, current_user: Auth
     """Return full message history for a specific session."""
     if user_id != current_user.id and current_user.role not in ["admin", "super_admin"]:
         raise HTTPException(status_code=403, detail="Not authorized to access this user's messages")
+    if not pool:
+        return {"messages": [], "context": {}}
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             "SELECT messages, context FROM chat_sessions WHERE id = $1::uuid AND user_id = $2",

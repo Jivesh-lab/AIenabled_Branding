@@ -41,22 +41,25 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
     logger.info("agent_service_starting", port=settings.agent_service_port, env=settings.environment)
 
-    # Create DB pool
-    pool = await create_pool()
-    app.state.db_pool = pool
+    app.state.db_pool = None
 
-    # Inject pool into the database tool (used by LangChain tools)
-    set_pool(pool)
-
-    # Apply schema (CREATE IF NOT EXISTS — safe to run on every boot)
-    await apply_schema(pool)
+    # Create DB pool (connects if PostgreSQL is running, else runs in standalone mode)
+    try:
+        pool = await create_pool()
+        app.state.db_pool = pool
+        set_pool(pool)
+        await apply_schema(pool)
+        logger.info("postgres_connected_successfully")
+    except Exception:
+        logger.info("agent_service_initialized", mode="standalone")
 
     logger.info("agent_service_ready")
     yield
 
     # Shutdown
     logger.info("agent_service_shutting_down")
-    await close_pool(pool)
+    if getattr(app.state, "db_pool", None):
+        await close_pool(app.state.db_pool)
 
 
 # ── App ───────────────────────────────────────────────────────────────────────

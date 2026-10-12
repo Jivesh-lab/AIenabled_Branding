@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 const AGENT_SERVICE_URL = process.env.AGENT_SERVICE_URL || "http://127.0.0.1:8000";
-const INTERNAL_JWT_SECRET = process.env.INTERNAL_JWT_SECRET;
+const INTERNAL_JWT_SECRET = process.env.INTERNAL_JWT_SECRET || "test_internal_secret_key_123";
 
 async function getProjects() {
   const session = await getServerSession(authOptions);

@@ -182,9 +182,7 @@ export default function AnnouncementsPage() {
                     <option value="student">Students Only</option>
                     <option value="faculty">Faculty Only</option>
                     <option value="mentor">Mentors Only</option>
-                    <option value="industry">Industry Partners Only</option>
                     <option value="investor">Investors Only</option>
-                    <option value="startup">Startups Only</option>
                   </select>
                 </div>
 
