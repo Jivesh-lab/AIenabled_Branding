@@ -78,7 +78,9 @@ def standalone_submit_application(
     stage: str,
     sector: str,
     documents: List[Dict[str, Any]],
-    form_data: Dict[str, Any]
+    form_data: Dict[str, Any],
+    ai_summary: Optional[str] = None,
+    ai_feedback: Optional[str] = None,
 ) -> str:
     now_iso = datetime.now(timezone.utc).isoformat()
     with get_connection() as conn:
@@ -108,10 +110,10 @@ def standalone_submit_application(
 
         cursor.execute(
             """
-            INSERT INTO applications (id, startup_id, applicant_id, status, documents, form_data, submitted_at, created_at, updated_at)
-            VALUES (?, ?, ?, 'submitted', ?, ?, ?, ?, ?)
+            INSERT INTO applications (id, startup_id, applicant_id, status, documents, form_data, ai_summary, ai_feedback, submitted_at, created_at, updated_at)
+            VALUES (?, ?, ?, 'submitted', ?, ?, ?, ?, ?, ?, ?)
             """,
-            (application_id, startup_id, applicant_id, json.dumps(documents), json.dumps(form_data), now_iso, now_iso, now_iso)
+            (application_id, startup_id, applicant_id, json.dumps(documents), json.dumps(form_data), ai_summary, ai_feedback, now_iso, now_iso, now_iso)
         )
         conn.commit()
 

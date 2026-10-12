@@ -214,11 +214,84 @@ export default function ApplicationsReviewPage() {
               </div>
 
               {selectedApp.aiSummary && (
-                <div className="space-y-2 text-sm bg-indigo-50/50 p-4 rounded-xl border border-indigo-100">
-                  <span className="text-indigo-800 font-semibold flex items-center gap-1.5 text-xs">
-                    <AlertCircle className="size-3.5" /> AI Analysis Summary
-                  </span>
-                  <p className="text-indigo-900/80 text-xs leading-relaxed">{selectedApp.aiSummary}</p>
+                <div className="space-y-3 bg-indigo-50/60 p-4 rounded-xl border border-indigo-100">
+                  <div className="flex items-center justify-between">
+                    <span className="text-indigo-900 font-bold flex items-center gap-1.5 text-xs">
+                      <AlertCircle className="size-4 text-indigo-600" /> Application Agent Summary & Assessment
+                    </span>
+                    <span className="text-[10px] font-semibold uppercase bg-indigo-200/60 text-indigo-800 px-2 py-0.5 rounded">
+                      Human Review Required
+                    </span>
+                  </div>
+                  <div className="text-xs text-indigo-950/80 leading-relaxed space-y-2">
+                    {(() => {
+                      try {
+                        const parsedSummary = JSON.parse(selectedApp.aiSummary);
+                        if (typeof parsedSummary === "object" && parsedSummary !== null) {
+                          return (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">
+                              {parsedSummary.target_users && (
+                                <div className="bg-white/70 p-2.5 rounded-lg border border-indigo-100/60">
+                                  <strong className="block text-[11px] text-indigo-900 mb-0.5">Target Users:</strong>
+                                  {parsedSummary.target_users}
+                                </div>
+                              )}
+                              {parsedSummary.innovation_differentiation && (
+                                <div className="bg-white/70 p-2.5 rounded-lg border border-indigo-100/60">
+                                  <strong className="block text-[11px] text-indigo-900 mb-0.5">Innovation / Differentiation:</strong>
+                                  {parsedSummary.innovation_differentiation}
+                                </div>
+                              )}
+                              {parsedSummary.requested_support && (
+                                <div className="bg-white/70 p-2.5 rounded-lg border border-indigo-100/60 md:col-span-2">
+                                  <strong className="block text-[11px] text-indigo-900 mb-0.5">Requested Incubation Support:</strong>
+                                  {parsedSummary.requested_support}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        }
+                      } catch {
+                        // Plain string fallback
+                      }
+                      return <p className="text-xs">{selectedApp.aiSummary}</p>;
+                    })()}
+                  </div>
+
+                  {selectedApp.aiFeedback && (() => {
+                    try {
+                      const parsedFeedback = JSON.parse(selectedApp.aiFeedback);
+                      const questions = parsedFeedback.questions_for_reviewers || [];
+                      const missing = parsedFeedback.missing_evidence || [];
+                      if (questions.length === 0 && missing.length === 0) return null;
+                      return (
+                        <div className="pt-2 border-t border-indigo-100/80 text-xs space-y-2">
+                          {questions.length > 0 && (
+                            <div>
+                              <strong className="text-[11px] text-indigo-900 block mb-1">Suggested Interview Questions:</strong>
+                              <ul className="list-disc pl-4 space-y-1 text-slate-700">
+                                {questions.map((q: string, idx: number) => (
+                                  <li key={idx}>{q}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {missing.length > 0 && (
+                            <div>
+                              <strong className="text-[11px] text-indigo-900 block mb-1">Missing Evidence Identified:</strong>
+                              <ul className="list-disc pl-4 space-y-0.5 text-slate-600 text-[11px]">
+                                {missing.map((m: string, idx: number) => (
+                                  <li key={idx}>{m}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    } catch {
+                      return null;
+                    }
+                  })()}
                 </div>
               )}
 

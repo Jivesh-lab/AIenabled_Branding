@@ -2,7 +2,6 @@
 
 import PageContainer from "@/components/shared/PageContainer";
 import { Card } from "@/components/shared/Surface";
-import WorkspaceSwitcherGrid from "../_components/WorkspaceSwitcherGrid";
 import AuditLogViewer from "../_components/AuditLogViewer";
 import SecurityPolicyPanel from "../_components/SecurityPolicyPanel";
 import { Shield, Users, Activity, Lock } from "lucide-react";
@@ -68,9 +67,6 @@ export default function SuperAdminDashboardPage() {
             </div>
           </Card>
         </div>
-
-        {/* Workspace Switcher Grid */}
-        <WorkspaceSwitcherGrid />
 
         {/* Audit Log Viewer */}
         <AuditLogViewer />

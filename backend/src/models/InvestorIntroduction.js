@@ -44,9 +44,19 @@ const investorIntroductionSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['pending_admin_review', 'forwarded_to_founder', 'accepted', 'declined', 'cancelled'],
+      enum: ['pending_admin_review', 'forwarded_to_founder', 'scheduled', 'accepted', 'declined', 'cancelled'],
       default: 'pending_admin_review',
       index: true,
+    },
+    scheduledMeeting: {
+      date: { type: String, default: null },
+      time: { type: String, default: null },
+      timeZone: { type: String, default: 'IST' },
+      meetingLink: { type: String, default: null },
+      scheduledByAgent: { type: Boolean, default: false },
+      emailSentToInvestor: { type: Boolean, default: false },
+      emailSentToFounder: { type: Boolean, default: false },
+      scheduledAt: { type: Date, default: null },
     },
     adminNotes: {
       type: String,

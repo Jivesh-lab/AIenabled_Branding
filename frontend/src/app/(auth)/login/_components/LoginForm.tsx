@@ -13,8 +13,8 @@ import { Eye, EyeOff, ArrowRight, Mail, Lock, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { signIn, getSession } from "next-auth/react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -74,6 +74,8 @@ export default function LoginForm() {
   const [twoFactorCode, setTwoFactorCode] = useState("");
   const router = useRouter();
 
+  const searchParams = useSearchParams();
+
   const {
     register,
     handleSubmit,
@@ -113,7 +115,54 @@ export default function LoginForm() {
         return;
       }
 
-      router.replace("/");
+      // Check callbackUrl if it points to a valid specific workspace route
+      const callbackUrl = searchParams.get("callbackUrl");
+
+      // Retrieve authenticated session to determine authoritative role
+      let session = await getSession();
+      // If session isn't loaded immediately, fetch /api/auth/session
+      if (!session?.user) {
+        try {
+          const sRes = await fetch("/api/auth/session");
+          if (sRes.ok) session = await sRes.json();
+        } catch {
+          // ignore
+        }
+      }
+
+      const userRole = (session?.user as Record<string, unknown>)?.role as string;
+      const facultyRole = (session?.user as Record<string, unknown>)?.facultyRole as string | undefined;
+      const userEmail = ((session?.user as Record<string, unknown>)?.email as string || values.email || "").toLowerCase();
+
+      let facultyDestination = "/workspace/faculty/coordinator";
+      if (facultyRole === "volunteer" || userEmail.includes("volunteer")) {
+        facultyDestination = "/workspace/faculty/volunteer";
+      }
+
+      const roleWorkspaces: Record<string, string> = {
+        student: "/workspace/student/dashboard",
+        faculty: facultyDestination,
+        mentor: "/workspace/mentor/dashboard",
+        investor: "/workspace/investor/dashboard",
+        admin: "/workspace/admin/dashboard",
+        super_admin: "/workspace/super-admin/dashboard",
+      };
+
+      let destination = roleWorkspaces[userRole] || "/";
+
+      // If callbackUrl matches the user's role workspace, honor it (e.g. deep link)
+      if (
+        callbackUrl &&
+        callbackUrl.startsWith("/workspace/") &&
+        callbackUrl !== "/workspace" &&
+        !callbackUrl.startsWith("/workspace/admin") &&
+        !callbackUrl.startsWith("/workspace/super-admin")
+      ) {
+        destination = callbackUrl;
+      }
+
+      // Use window.location.replace to ensure full session cookie sync and clean page reload
+      window.location.replace(destination);
     } catch {
       toast.error("Network error. Please check your connection.");
     } finally {

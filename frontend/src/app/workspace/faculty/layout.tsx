@@ -1,57 +1,82 @@
 "use client";
 
+import { useSession } from "next-auth/react";
 import BaseWorkspaceLayout from "@/components/shared/BaseWorkspaceLayout";
 import { NavSection } from "@/components/shared/DashboardSidebar";
 import {
-  LayoutDashboard,
-  ShieldAlert,
-  Calculator,
-  FileText,
+  ShieldCheck,
+  UserCheck,
   Users,
   Briefcase,
-  ShieldCheck,
-  UserCheck
+  LayoutDashboard,
 } from "lucide-react";
 
-const MOCK_USER = {
-  name: "Dr. Faculty Member",
-  role: "Faculty",
-  initials: "FM",
-};
-
-const FACULTY_SECTIONS: NavSection[] = [
+const COORDINATOR_SECTIONS: NavSection[] = [
   {
-    label: "Governance & Roles",
+    label: "Governance & Approvals",
     items: [
-      { label: "Faculty Coordinator", icon: ShieldCheck, href: "/workspace/faculty/coordinator" },
-      { label: "Faculty Volunteer", icon: UserCheck, href: "/workspace/faculty/volunteer" },
+      { label: "Coordinator Control", icon: ShieldCheck, href: "/workspace/faculty/coordinator" },
       { label: "Management Hub", icon: Briefcase, href: "/workspace/faculty" },
-      { label: "Research Dashboard", icon: LayoutDashboard, href: "/workspace/faculty/dashboard" },
     ],
   },
   {
     label: "Incubation Teams",
     items: [
       { label: "Student Projects", icon: Users, href: "/workspace/faculty/student-projects" },
-      { label: "Research Oversight", icon: Briefcase, href: "/workspace/faculty/oversight" },
+      { label: "Research Oversight", icon: LayoutDashboard, href: "/workspace/faculty/oversight" },
     ],
   },
+];
+
+const VOLUNTEER_SECTIONS: NavSection[] = [
   {
-    label: "IP & Grants",
+    label: "Student Mentorship & Guidance",
     items: [
-      { label: "IP Development", icon: ShieldAlert, href: "/workspace/faculty/ip" },
-      { label: "TRL Calculator", icon: Calculator, href: "/workspace/faculty/trl-calculator", isAI: true },
-      { label: "Grant Drafting", icon: FileText, href: "/workspace/faculty/grant-drafting", isAI: true },
+      { label: "Volunteer Workdesk", icon: UserCheck, href: "/workspace/faculty/volunteer" },
+      { label: "Assigned Projects", icon: Users, href: "/workspace/faculty/student-projects" },
+      { label: "Team Oversight", icon: Briefcase, href: "/workspace/faculty/oversight" },
+    ],
+  },
+];
+
+const DEFAULT_FACULTY_SECTIONS: NavSection[] = [
+  {
+    label: "Faculty Workspace",
+    items: [
+      { label: "Coordinator Portal", icon: ShieldCheck, href: "/workspace/faculty/coordinator" },
+      { label: "Volunteer Portal", icon: UserCheck, href: "/workspace/faculty/volunteer" },
+      { label: "Student Projects", icon: Users, href: "/workspace/faculty/student-projects" },
     ],
   },
 ];
 
 export default function FacultyLayout({ children }: { children: React.ReactNode }) {
+  const { data: session } = useSession();
+
+  const userEmail = (session?.user?.email || "").toLowerCase();
+  const facultyRole = (session?.user as Record<string, unknown> | undefined)?.facultyRole as string | undefined;
+
+  const isVolunteer = facultyRole === "volunteer" || userEmail.includes("volunteer");
+  const isCoordinator = facultyRole === "coordinator" || userEmail.includes("coordinator");
+
+  const sections = isVolunteer
+    ? VOLUNTEER_SECTIONS
+    : isCoordinator
+    ? COORDINATOR_SECTIONS
+    : DEFAULT_FACULTY_SECTIONS;
+
+  const displayName = session?.user?.name || (isVolunteer ? "Prof. Faculty Volunteer" : "Dr. Faculty Coordinator");
+  const displayRole = isVolunteer ? "Faculty Volunteer" : "Faculty Coordinator";
+
   return (
     <BaseWorkspaceLayout
-      sections={FACULTY_SECTIONS}
-      user={MOCK_USER}
-      workspaceLabel="Faculty Workspace"
+      sections={sections}
+      user={{
+        name: displayName,
+        role: displayRole,
+        initials: isVolunteer ? "FV" : "FC",
+      }}
+      workspaceLabel={isVolunteer ? "Faculty Volunteer Workspace" : "Faculty Coordinator Workspace"}
       allowedRole="faculty"
     >
       {children}

@@ -29,6 +29,12 @@ const userSchema = new mongoose.Schema(
       enum: { values: ROLES, message: 'Invalid role: {VALUE}' },
       required: [true, 'Role is required'],
     },
+    // Sub-role for faculty differentiation ('coordinator' vs 'volunteer')
+    facultyRole: {
+      type: String,
+      enum: ['coordinator', 'volunteer'],
+      default: null,
+    },
     // Role-specific profile data stored as flexible sub-document
     profile: {
       type: mongoose.Schema.Types.Mixed,

@@ -6,11 +6,12 @@ import { useSession } from "next-auth/react";
 import { Shield, Eye, ArrowLeft, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const WORKSPACE_OPTIONS = [
-  { label: "Super Admin Portal", path: "/workspace/super-admin/dashboard" },
+const ALL_WORKSPACE_OPTIONS = [
+  { label: "Super Admin Portal", path: "/workspace/super-admin/dashboard", superAdminOnly: true },
   { label: "Admin Operational Workspace", path: "/workspace/admin/dashboard" },
   { label: "Student Workspace", path: "/workspace/student/dashboard" },
-  { label: "Faculty Workspace", path: "/workspace/faculty/dashboard" },
+  { label: "Faculty Coordinator Workspace", path: "/workspace/faculty/coordinator" },
+  { label: "Faculty Volunteer Workspace", path: "/workspace/faculty/volunteer" },
   { label: "Mentor Workspace", path: "/workspace/mentor/dashboard" },
   { label: "Investor Workspace", path: "/workspace/investor/dashboard" },
 ];
@@ -27,6 +28,12 @@ export default function SuperAdminBanner() {
     return null;
   }
 
+  // Filter options: Admin must never see the Super Admin Portal
+  const workspaceOptions = ALL_WORKSPACE_OPTIONS.filter((w) => {
+    if (w.superAdminOnly && !isSuperAdmin) return false;
+    return true;
+  });
+
   const isHomeWorkspace = isSuperAdmin
     ? pathname.startsWith("/workspace/super-admin")
     : pathname.startsWith("/workspace/admin");
@@ -36,6 +43,8 @@ export default function SuperAdminBanner() {
     : "/workspace/admin/dashboard";
 
   const returnLabel = isSuperAdmin ? "Return to Super Admin" : "Return to Admin Portal";
+
+  const currentOption = workspaceOptions.find((w) => pathname.startsWith(w.path))?.path || "";
 
   return (
     <div className="w-full bg-slate-900 text-slate-100 border-b border-amber-500/30 px-4 py-2 text-xs flex flex-wrap items-center justify-between gap-3 shadow-md z-50 sticky top-0">
@@ -62,16 +71,17 @@ export default function SuperAdminBanner() {
           </label>
           <select
             id="ws-switcher"
-            value={WORKSPACE_OPTIONS.find((w) => pathname.startsWith(w.path))?.path || ""}
+            value={currentOption}
             onChange={(e) => {
-              if (e.target.value) {
-                router.push(e.target.value);
+              const target = e.target.value;
+              if (target && target !== pathname) {
+                window.location.href = target;
               }
             }}
-            className="bg-slate-800 text-slate-200 border border-slate-700 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-amber-400 outline-none"
+            className="bg-slate-800 text-slate-200 border border-slate-700 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-amber-400 outline-none cursor-pointer"
           >
             <option value="" disabled>Select Workspace View...</option>
-            {WORKSPACE_OPTIONS.map((ws) => (
+            {workspaceOptions.map((ws) => (
               <option key={ws.path} value={ws.path}>
                 {ws.label}
               </option>
