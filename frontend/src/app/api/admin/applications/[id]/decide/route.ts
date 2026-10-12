@@ -53,6 +53,37 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json(data, { status: backendRes.status });
     }
 
+    // Task 1: If approved, synchronize permitted public fields to MongoDB StartupProfile
+    if (payload.decision && String(payload.decision).toLowerCase() === "approved") {
+      try {
+        const appRes = await fetch(`${AGENT_SERVICE_URL}/api/applications/${resolvedParams.id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (appRes.ok) {
+          const appDetails = await appRes.json();
+          const expressBackendUrl = process.env.BACKEND_URL || "http://localhost:5000";
+          const { createBackendToken } = await import("@/lib/backendToken");
+          const backendToken = await createBackendToken(session.user.id, session.user.role);
+
+          await fetch(`${expressBackendUrl}/api/admin/applications/${resolvedParams.id}/sync-startup`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${backendToken}`,
+            },
+            body: JSON.stringify({
+              applicationId: resolvedParams.id,
+              startup: appDetails.startup,
+              applicantId: appDetails.applicantId || session.user.id,
+              isApproved: true,
+            }),
+          });
+        }
+      } catch (syncErr) {
+        console.error("[Decide API] Non-fatal sync to MongoDB failed:", syncErr);
+      }
+    }
+
     return NextResponse.json(data, { status: 200 });
   } catch (error: unknown) {
     console.error("[Decide API] Error:", error);

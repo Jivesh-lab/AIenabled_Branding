@@ -5,6 +5,7 @@ const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const Announcement = require('../models/Announcement');
 const ModerationItem = require('../models/ModerationItem');
+const StartupProfile = require('../models/StartupProfile');
 const { authenticate, requireRole } = require('../middleware/auth');
 const { logAuditTrail } = require('../middleware/auditLogger');
 
@@ -521,11 +522,22 @@ router.post('/approvals/:id/decide', async (req, res) => {
     if (decision === 'approve') {
       user.status = 'active';
       user.rejectionReason = null;
+    } else if (decision === 'verify_investor') {
+      if (user.role !== 'investor') {
+        return res.status(400).json({ success: false, message: 'Only investor accounts can be verified as accredited investors.' });
+      }
+      if (user.status !== 'active') {
+        return res.status(400).json({ success: false, message: 'Cannot verify an inactive or rejected account. Approve the account first.' });
+      }
+      user.isInvestorVerified = true;
+      user.investorVerifiedAt = new Date();
+      user.investorVerifiedBy = req.user.id;
     } else if (decision === 'reject') {
       user.status = 'rejected';
+      user.isInvestorVerified = false;
       user.rejectionReason = reason || 'Registration rejected by Admin.';
     } else {
-      return res.status(400).json({ success: false, message: 'Decision must be approve or reject.' });
+      return res.status(400).json({ success: false, message: 'Decision must be approve, verify_investor, or reject.' });
     }
 
     await user.save();
@@ -661,6 +673,82 @@ router.post('/announcements', async (req, res) => {
   } catch (err) {
     console.error('[ADMIN API] Announcement create error:', err);
     return res.status(500).json({ success: false, message: 'Failed to create announcement.' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/admin/applications/:id/sync-startup
+// Synchronize an approved application from PostgreSQL / review flow to MongoDB StartupProfile
+// ---------------------------------------------------------------------------
+router.post('/applications/:id/sync-startup', async (req, res) => {
+  try {
+    const { startup, applicantId, isApproved } = req.body;
+    const applicationId = req.params.id;
+
+    if (!startup || !startup.name || !applicantId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required startup synchronization fields (name, applicantId).',
+      });
+    }
+
+    // Ensure founderId is a valid ObjectId (or map to a system user if needed)
+    let founderObjectId = null;
+    if (mongoose.Types.ObjectId.isValid(applicantId)) {
+      founderObjectId = new mongoose.Types.ObjectId(applicantId);
+    } else {
+      // Find user by email or string id
+      const existingUser = await User.findById(applicantId);
+      if (existingUser) {
+        founderObjectId = existingUser._id;
+      } else {
+        // Fallback to current admin if founder user is not found
+        founderObjectId = req.user.id;
+      }
+    }
+
+    // Map ONLY permitted public fields — never copy private documents, form_data, or audit records
+    const profileData = {
+      applicationId: String(applicationId),
+      startupId: startup.id ? String(startup.id) : null,
+      founderId: founderObjectId,
+      name: startup.name.trim(),
+      tagline: (startup.tagline || startup.shortDescription || 'Innovative Venture').trim(),
+      problem: (startup.problem || 'Market problem').trim(),
+      solution: (startup.solution || 'Proposed solution').trim(),
+      sector: (startup.sector || startup.domain || 'Technology').trim(),
+      stage: (startup.stage || startup.maturity || 'idea').toLowerCase(),
+      status: 'active',
+      isApproved: Boolean(isApproved),
+      approvedAt: isApproved ? new Date() : null,
+      approvedBy: isApproved ? req.user.id : null,
+      readinessScore: Number(startup.readinessScore || 0),
+      tractionSummary: startup.tractionSummary || null,
+      pitchDeckUrl: startup.pitchDeckUrl || null,
+      pitchVideoUrl: startup.pitchVideoUrl || null,
+      tags: Array.isArray(startup.tags) ? startup.tags : [startup.sector || 'General'],
+    };
+
+    // Upsert using stable applicationId association so repeated calls never duplicate
+    const profile = await StartupProfile.findOneAndUpdate(
+      { applicationId: String(applicationId) },
+      { $set: profileData },
+      { upsert: true, new: true, runValidators: true }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: 'Startup profile synchronized to MongoDB successfully.',
+      profile: {
+        id: profile._id,
+        applicationId: profile.applicationId,
+        name: profile.name,
+        isApproved: profile.isApproved,
+      },
+    });
+  } catch (err) {
+    console.error('[ADMIN API] Sync startup error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to synchronize startup profile.' });
   }
 });
 
