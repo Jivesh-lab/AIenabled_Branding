@@ -3,167 +3,275 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import PageContainer from "@/components/shared/PageContainer";
-import { Card, SectionHeading, StatusBadge, ProgressBar } from "@/components/shared/Surface";
+import { Card, StatusBadge } from "@/components/shared/Surface";
 import {
-  TrendingUp,
-  Briefcase,
-  Star,
-  Clock,
-  ArrowRight,
-  IndianRupee,
-  Target,
-  BarChart3,
+  Bookmark,
   Sparkles,
   Building2,
+  Clock,
+  Send,
+  Loader2,
+  Lock,
   CheckCircle2,
   AlertCircle,
-  ExternalLink,
 } from "lucide-react";
 
-const PORTFOLIO = [
-  { id: "1", name: "AgroVision AI", domain: "AgriTech", stage: "Series A", invested: 2500000, valuation: 18000000, growth: "+34%", status: "progress" as const },
-  { id: "2", name: "CleanWater IoT", domain: "CleanTech", stage: "Seed", invested: 800000, valuation: 4200000, growth: "+18%", status: "success" as const },
-  { id: "3", name: "MedChain", domain: "HealthTech", stage: "Pre-Seed", invested: 500000, valuation: 1800000, growth: "-5%", status: "attention" as const },
-];
+interface InvestorProfile {
+  id: string;
+  name: string;
+  email: string;
+  status: string;
+  isInvestorVerified: boolean;
+  details: {
+    firmName?: string;
+    firmType?: string;
+    investmentThesis?: string;
+  };
+}
 
-const PITCHES = [
-  { id: "1", startup: "Agri-Drone Solutions", domain: "AgriTech / Drones", stage: "Seed", ask: "₹1.2Cr", score: 87, deadline: "Jan 30, 2025", matchPct: 94 },
-  { id: "2", startup: "EduMetrics AI", domain: "EdTech / AI", stage: "Pre-Seed", ask: "₹40L", score: 81, deadline: "Feb 8, 2025", matchPct: 88 },
-  { id: "3", startup: "RuralPay", domain: "FinTech / Rural", stage: "Seed", ask: "₹80L", score: 76, deadline: "Feb 15, 2025", matchPct: 79 },
-];
-
-const ACTIVITY = [
-  { text: "AgroVision AI shared Q3 traction report", time: "2h ago" },
-  { text: "New pitch match: Agri-Drone Solutions (94% fit)", time: "Yesterday" },
-  { text: "CleanWater IoT milestone: Series A term sheet signed", time: "3 days ago" },
-  { text: "MedChain requested follow-on meeting", time: "5 days ago" },
-];
-
-function formatCrore(n: number) {
-  if (n >= 10000000) return `₹${(n / 10000000).toFixed(1)}Cr`;
-  if (n >= 100000) return `₹${(n / 100000).toFixed(1)}L`;
-  return `₹${n.toLocaleString("en-IN")}`;
+interface IntroductionItem {
+  id: string;
+  startupName: string;
+  type: string;
+  status: string;
+  createdAt: string;
 }
 
 export default function InvestorDashboardPage() {
-  const totalInvested = PORTFOLIO.reduce((a, p) => a + p.invested, 0);
-  const totalValuation = PORTFOLIO.reduce((a, p) => a + p.valuation, 0);
-  const portfolioReturn = (((totalValuation - totalInvested) / totalInvested) * 100).toFixed(1);
+  const [profile, setProfile] = useState<InvestorProfile | null>(null);
+  const [startupsCount, setStartupsCount] = useState<number>(0);
+  const [watchlistCount, setWatchlistCount] = useState<number>(0);
+  const [introductions, setIntroductions] = useState<IntroductionItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  async function fetchDashboardData() {
+    setError(null);
+    try {
+      const [profileRes, startupsRes, watchlistRes, introsRes] = await Promise.all([
+        fetch("/api/investor/profile"),
+        fetch("/api/investor/startups"),
+        fetch("/api/investor/watchlist"),
+        fetch("/api/investor/introductions"),
+      ]);
+
+      if (profileRes.ok) {
+        const data = await profileRes.json();
+        setProfile(data.profile);
+      }
+      if (startupsRes.ok) {
+        const data = await startupsRes.json();
+        setStartupsCount((data.startups || []).length);
+      }
+      if (watchlistRes.ok) {
+        const data = await watchlistRes.json();
+        setWatchlistCount((data.watchlist || []).length);
+      }
+      if (introsRes.ok) {
+        const data = await introsRes.json();
+        setIntroductions(data.introductions || []);
+      }
+    } catch {
+      setError("Failed to load dashboard data.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    let ignore = false;
+    (async () => {
+      if (!ignore) {
+        await fetchDashboardData();
+      }
+    })();
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  const isVerified = Boolean(profile?.isInvestorVerified);
+  const pendingIntros = introductions.filter((i) => i.status === "pending_admin_review").length;
+  const forwardedIntros = introductions.filter((i) => i.status === "forwarded_to_founder").length;
 
   return (
     <PageContainer
       title="Investor Dashboard"
-      description="Your curated deal flow, portfolio performance, and AI-matched pitch opportunities — all in one place."
+      description="Live deal flow metrics, watchlist overview, and introduction requests."
     >
       <div className="space-y-6">
-        {/* KPI Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            { label: "Total Deployed Capital", value: formatCrore(totalInvested), sub: "Across 3 portfolio companies", icon: IndianRupee, color: "bg-brand/10 text-brand" },
-            { label: "Portfolio Valuation", value: formatCrore(totalValuation), sub: `+${portfolioReturn}% paper gain`, icon: TrendingUp, color: "bg-emerald-50 text-emerald-700" },
-            { label: "AI-Matched Pitches", value: PITCHES.length, sub: "Pending your review", icon: Sparkles, color: "bg-brand-cyan/10 text-brand-cyan-ink" },
-            { label: "Portfolio Companies", value: PORTFOLIO.length, sub: "1 in Series A", icon: Building2, color: "bg-amber-50 text-amber-700" },
-          ].map((kpi) => (
-            <Card key={kpi.label} className="p-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-xs font-medium text-muted-ink">{kpi.label}</p>
-                  <p className="text-2xl font-bold text-ink mt-1">{kpi.value}</p>
-                  <p className="text-[11px] text-muted-ink mt-0.5">{kpi.sub}</p>
-                </div>
-                <div className={`flex size-9 items-center justify-center rounded-lg ${kpi.color}`}>
-                  <kpi.icon className="size-4" />
-                </div>
+        {/* Verification Status Banner */}
+        {profile && (
+          <div
+            className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-xl border ${
+              isVerified
+                ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                : "border-amber-200 bg-amber-50 text-amber-900"
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              {isVerified ? (
+                <CheckCircle2 className="size-5 text-emerald-600 shrink-0" />
+              ) : (
+                <Lock className="size-5 text-amber-600 shrink-0" />
+              )}
+              <div>
+                <p className="text-xs font-bold">
+                  {isVerified ? "Verified Accredited Investor" : "Account Verification Pending"}
+                </p>
+                <p className="text-[11px] opacity-80 mt-0.5">
+                  {isVerified
+                    ? "You have full access to pitch materials and direct intro request capabilities."
+                    : "Browsing in sanitized directory mode. Introductions require admin accreditation."}
+                </p>
               </div>
-            </Card>
-          ))}
-        </div>
-
-        {/* Action Banner */}
-        <div className="rounded-xl border border-brand/20 bg-gradient-to-r from-brand-deep to-brand p-5 text-white">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/10 border border-white/20 text-[11px] font-semibold uppercase tracking-wider mb-2">
-                Deal Flow
-              </span>
-              <h2 className="text-lg font-bold">3 AI-Curated Pitches Match Your Thesis</h2>
-              <p className="text-xs text-blue-200 mt-1">Based on your investment criteria: AgriTech, FinTech, CleanTech · Seed & Series A · ₹40L–₹2Cr ticket</p>
             </div>
-            <div className="flex flex-wrap gap-2.5">
-              <Link href="/workspace/investor/pitch-queue" className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-brand-cyan hover:bg-brand-cyan/90 text-brand-deep text-xs font-bold transition-colors">
-                <Sparkles className="size-3.5" /> Review Pitches
-              </Link>
-              <Link href="/workspace/investor/matchmaking" className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-semibold transition-colors">
-                <Target className="size-3.5" /> Update Criteria
-              </Link>
-            </div>
+            <span
+              className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                isVerified ? "bg-emerald-600 text-white" : "bg-amber-600 text-white"
+              }`}
+            >
+              {isVerified ? "Verified" : "Unverified"}
+            </span>
           </div>
-        </div>
+        )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Portfolio */}
-          <div className="lg:col-span-2 space-y-4">
-            <SectionHeading title="Portfolio Companies" action={{ label: "Full portfolio", href: "/workspace/investor/portfolio" }} />
-            <div className="space-y-3">
-              {PORTFOLIO.map((co) => (
-                <Card key={co.id} interactive className="p-4">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="text-sm font-bold text-ink">{co.name}</h3>
-                        <StatusBadge label={co.stage} tone={co.status} />
-                      </div>
-                      <p className="text-xs text-muted-ink">{co.domain}</p>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <p className="text-sm font-bold text-ink">{formatCrore(co.valuation)}</p>
-                      <p className="text-[11px] text-muted-ink">Invested: {formatCrore(co.invested)}</p>
-                      <p className={`text-xs font-bold mt-0.5 ${co.growth.startsWith("+") ? "text-success" : "text-danger"}`}>{co.growth}</p>
-                    </div>
+        {/* Loading state */}
+        {loading && (
+          <div className="flex flex-col items-center justify-center py-16 text-muted-ink">
+            <Loader2 className="size-6 animate-spin text-brand mb-2" />
+            <p className="text-xs">Loading investor dashboard...</p>
+          </div>
+        )}
+
+        {/* Error state */}
+        {error && !loading && (
+          <div className="p-4 rounded-xl border border-line bg-card text-center">
+            <AlertCircle className="size-6 text-danger mx-auto mb-2" />
+            <p className="text-xs font-semibold text-ink">{error}</p>
+          </div>
+        )}
+
+        {!loading && (
+          <>
+            {/* KPI Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="p-4">
+                <p className="text-xs font-medium text-muted-ink">Approved Startups</p>
+                <p className="text-2xl font-bold text-ink mt-1">{startupsCount}</p>
+                <p className="text-[11px] text-muted-ink mt-0.5">Active directory listings</p>
+              </Card>
+
+              <Card className="p-4">
+                <p className="text-xs font-medium text-muted-ink">Saved Startups</p>
+                <p className="text-2xl font-bold text-ink mt-1">{watchlistCount}</p>
+                <p className="text-[11px] text-muted-ink mt-0.5">In your pitch queue</p>
+              </Card>
+
+              <Card className="p-4">
+                <p className="text-xs font-medium text-muted-ink">Pending Review Intros</p>
+                <p className="text-2xl font-bold text-ink mt-1">{pendingIntros}</p>
+                <p className="text-[11px] text-muted-ink mt-0.5">Awaiting admin review</p>
+              </Card>
+
+              <Card className="p-4">
+                <p className="text-xs font-medium text-muted-ink">Forwarded to Founders</p>
+                <p className="text-2xl font-bold text-ink mt-1">{forwardedIntros}</p>
+                <p className="text-[11px] text-muted-ink mt-0.5">Introductions in flight</p>
+              </Card>
+            </div>
+
+            {/* Quick Actions & Recent Introductions */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Introduction tracking */}
+              <div className="lg:col-span-2 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-ink">Recent Introduction Requests</h3>
+                  <Link
+                    href="/workspace/investor/opportunities"
+                    className="text-xs font-semibold text-brand hover:underline"
+                  >
+                    Browse Directory →
+                  </Link>
+                </div>
+
+                {introductions.length === 0 ? (
+                  <Card className="p-6 text-center border-dashed">
+                    <Send className="size-8 text-muted-ink/40 mx-auto mb-2" />
+                    <p className="text-xs font-semibold text-ink">No introduction requests submitted</p>
+                    <p className="text-[11px] text-muted-ink mt-0.5">
+                      When you express interest or request a meeting with an approved startup, status updates appear here.
+                    </p>
+                  </Card>
+                ) : (
+                  <div className="space-y-2.5">
+                    {introductions.slice(0, 5).map((intro) => (
+                      <Card key={intro.id} className="p-4 flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-xs font-bold text-ink">{intro.startupName}</h4>
+                            <span className="text-[10px] text-muted-ink uppercase">
+                              {intro.type.replace("_", " ")}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-muted-ink mt-0.5">
+                            Submitted on {new Date(intro.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <StatusBadge
+                          label={
+                            intro.status === "pending_admin_review"
+                              ? "Pending Review"
+                              : intro.status === "forwarded_to_founder"
+                              ? "Forwarded"
+                              : intro.status
+                          }
+                          tone={
+                            intro.status === "forwarded_to_founder"
+                              ? "success"
+                              : intro.status === "pending_admin_review"
+                              ? "progress"
+                              : "neutral"
+                          }
+                        />
+                      </Card>
+                    ))}
                   </div>
+                )}
+              </div>
+
+              {/* Navigation Links */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-bold text-ink">Investor Workflows</h3>
+                <Card className="p-4 space-y-3">
+                  <Link
+                    href="/workspace/investor/opportunities"
+                    className="block p-3 rounded-lg border border-line bg-canvas hover:border-brand/40 transition-colors"
+                  >
+                    <p className="text-xs font-bold text-ink flex items-center gap-1.5">
+                      <Building2 className="size-3.5 text-brand" /> Approved Startups
+                    </p>
+                    <p className="text-[11px] text-muted-ink mt-0.5">
+                      Explore active student ventures and filter by industry sector.
+                    </p>
+                  </Link>
+
+                  <Link
+                    href="/workspace/investor/pitch-queue"
+                    className="block p-3 rounded-lg border border-line bg-canvas hover:border-brand/40 transition-colors"
+                  >
+                    <p className="text-xs font-bold text-ink flex items-center gap-1.5">
+                      <Bookmark className="size-3.5 text-brand-gold-ink" /> Saved Startups
+                    </p>
+                    <p className="text-[11px] text-muted-ink mt-0.5">
+                      Manage bookmarked companies and add private diligence notes.
+                    </p>
+                  </Link>
                 </Card>
-              ))}
+              </div>
             </div>
-          </div>
-
-          {/* Right column */}
-          <div className="space-y-4">
-            {/* Pitch Queue Preview */}
-            <Card className="p-4">
-              <SectionHeading title="Pitch Queue" action={{ label: "View all", href: "/workspace/investor/pitch-queue" }} />
-              <div className="space-y-3">
-                {PITCHES.map((pitch) => (
-                  <div key={pitch.id} className="p-3 rounded-lg bg-canvas border border-line">
-                    <div className="flex items-start justify-between gap-2 mb-1">
-                      <p className="text-[12px] font-bold text-ink">{pitch.startup}</p>
-                      <span className="text-[11px] font-black text-brand-cyan">{pitch.matchPct}% fit</span>
-                    </div>
-                    <p className="text-[11px] text-muted-ink">{pitch.domain} · Ask: {pitch.ask}</p>
-                    <div className="mt-2">
-                      <ProgressBar value={pitch.score} label={`AI Score: ${pitch.score}/100`} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
-
-            {/* Recent Activity */}
-            <Card className="p-4">
-              <SectionHeading title="Activity Feed" />
-              <div className="space-y-3">
-                {ACTIVITY.map((item, i) => (
-                  <div key={i} className="flex items-start gap-2.5">
-                    <div className="mt-1 size-1.5 rounded-full bg-brand shrink-0" />
-                    <div>
-                      <p className="text-[12px] text-ink leading-tight">{item.text}</p>
-                      <p className="text-[11px] text-muted-ink mt-0.5">{item.time}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          </div>
-        </div>
+          </>
+        )}
       </div>
     </PageContainer>
   );

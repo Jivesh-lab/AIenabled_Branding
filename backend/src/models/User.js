@@ -46,6 +46,20 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    // Investor Accreditation & Verification Status
+    isInvestorVerified: {
+      type: Boolean,
+      default: false,
+    },
+    investorVerifiedAt: {
+      type: Date,
+      default: null,
+    },
+    investorVerifiedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
     // Mandatory / Optional Two-Factor Authentication (TOTP)
     twoFactorEnabled: {
       type: Boolean,

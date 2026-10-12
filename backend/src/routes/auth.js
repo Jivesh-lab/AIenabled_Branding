@@ -234,6 +234,7 @@ router.post(
           role: user.role,
           emailVerified: user.emailVerified,
           twoFactorEnabled: user.twoFactorEnabled,
+          isInvestorVerified: Boolean(user.isInvestorVerified),
         },
       });
     } catch (err) {
