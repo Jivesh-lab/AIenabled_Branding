@@ -42,15 +42,6 @@ const WORKSPACES = [
     description: "Inspect assigned mentorship sessions, feedback logs, availability calendar, and guidance history.",
   },
   {
-    title: "Industry Partner Workspace",
-    role: "industry",
-    path: "/workspace/industry-partner/dashboard",
-    icon: Building2,
-    color: "from-amber-500/10 to-orange-500/10 text-amber-600 border-amber-200",
-    badgeColor: "bg-amber-100 text-amber-800",
-    description: "Inspect industry challenge statements, corporate sponsorships, co-R&D partnerships, and talent matching.",
-  },
-  {
     title: "Investor Workspace",
     role: "investor",
     path: "/workspace/investor/dashboard",
@@ -58,15 +49,6 @@ const WORKSPACES = [
     color: "from-cyan-500/10 to-blue-500/10 text-cyan-600 border-cyan-200",
     badgeColor: "bg-cyan-100 text-cyan-800",
     description: "Inspect deal flow pipeline, venture evaluation decks, funding rounds, cap tables, and pitch requests.",
-  },
-  {
-    title: "Startup / Alumni Workspace",
-    role: "startup",
-    path: "/workspace/startup/dashboard",
-    icon: Rocket,
-    color: "from-rose-500/10 to-red-500/10 text-rose-600 border-rose-200",
-    badgeColor: "bg-rose-100 text-rose-800",
-    description: "Inspect incubation progress, product metrics, grant utilization, and scaling roadmaps.",
   },
 ];
 

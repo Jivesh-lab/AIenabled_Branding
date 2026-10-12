@@ -5,6 +5,8 @@ const connectDB = require('./config/db');
 const authRouter = require('./routes/auth');
 const auditRouter = require('./routes/audit');
 const adminRouter = require('./routes/admin');
+const investorsRouter = require('./routes/investors');
+const facultyRouter = require('./routes/faculty');
 
 const app = express();
 
@@ -32,6 +34,8 @@ app.use(cookieParser()); // Parse Cookie header → req.cookies
 app.use('/api/auth', authRouter);
 app.use('/api/audit', auditRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/investors', investorsRouter);
+app.use('/api/faculty', facultyRouter);
 
 // Health check
 app.get('/api/health', (_request, response) => {

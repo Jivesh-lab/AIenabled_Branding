@@ -125,10 +125,13 @@ export default function MentorFeedbackPage() {
         {/* Feedback Cards */}
         <div className="space-y-4">
           {FEEDBACK_ENTRIES.map((fb) => (
-            <Card
+            <div
               key={fb.id}
-              className={`overflow-hidden ${!read[fb.id] ? "border-brand/30 shadow-sm" : ""}`}
+              className={`rounded-xl border bg-white overflow-hidden ${!read[fb.id] ? "border-brand/30 shadow-sm" : "border-line"}`}
               onClick={() => setRead((prev) => ({ ...prev, [fb.id]: true }))}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter') setRead((prev) => ({ ...prev, [fb.id]: true })) }}
             >
               <div className="p-5">
                 <div className="flex items-start justify-between gap-3">
@@ -207,7 +210,7 @@ export default function MentorFeedbackPage() {
                   </div>
                 )}
               </div>
-            </Card>
+            </div>
           ))}
         </div>
       </div>

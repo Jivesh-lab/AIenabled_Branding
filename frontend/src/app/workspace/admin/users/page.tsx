@@ -40,9 +40,7 @@ const MOCK_USERS: UserItem[] = [
   { _id: "u1", name: "Aarav Sharma", email: "aarav.sharma@student.edu", role: "student", status: "active", createdAt: "2026-09-01T10:00:00.000Z", profile: { department: "Computer Science" } },
   { _id: "u2", name: "Dr. Meera Nambiar", email: "meera.nambiar@dbit.edu", role: "faculty", status: "active", createdAt: "2026-08-15T10:00:00.000Z", profile: { designation: "Associate Professor" } },
   { _id: "u3", name: "Vikram Malhotra", email: "vikram@techcorp.com", role: "mentor", status: "pending", createdAt: "2026-09-18T14:30:00.000Z", profile: { organisation: "TechCorp India" } },
-  { _id: "u4", name: "Ananya Roy", email: "ananya@fintech.io", role: "industry", status: "active", createdAt: "2026-09-05T09:15:00.000Z", profile: { companyName: "FinTech Systems" } },
-  { _id: "u5", name: "Rohan Varma", email: "rohan@earlystage.vc", role: "investor", status: "active", createdAt: "2026-08-20T11:00:00.000Z", profile: { firmName: "EarlyStage VC" } },
-  { _id: "u6", name: "Kunal Shah", email: "kunal@healthflow.ai", role: "startup", status: "inactive", createdAt: "2026-07-10T16:00:00.000Z", profile: { startupName: "HealthFlow AI" } },
+  { _id: "u4", name: "Rohan Varma", email: "rohan@earlystage.vc", role: "investor", status: "active", createdAt: "2026-08-20T11:00:00.000Z", profile: { firmName: "EarlyStage VC" } },
 ];
 
 export default function UserManagementPage() {
@@ -174,7 +172,7 @@ export default function UserManagementPage() {
       const institution = parts[3] || "";
 
       const isValidEmail = /^\S+@\S+\.\S+$/.test(email);
-      const isValidRole = ["student", "faculty", "mentor", "industry", "investor", "startup"].includes(role);
+      const isValidRole = ["student", "faculty", "mentor", "investor"].includes(role);
 
       parsed.push({
         name,
@@ -422,9 +420,7 @@ export default function UserManagementPage() {
             <option value="student">Student</option>
             <option value="faculty">Faculty</option>
             <option value="mentor">Mentor</option>
-            <option value="industry">Industry Partner</option>
             <option value="investor">Investor</option>
-            <option value="startup">Startup</option>
             <option value="admin">Admin</option>
           </select>
 
@@ -598,9 +594,7 @@ export default function UserManagementPage() {
                   <option value="student">Student</option>
                   <option value="faculty">Faculty</option>
                   <option value="mentor">Mentor</option>
-                  <option value="industry">Industry Partner</option>
                   <option value="investor">Investor</option>
-                  <option value="startup">Startup</option>
                   <option value="admin">Admin</option>
                 </select>
               </div>

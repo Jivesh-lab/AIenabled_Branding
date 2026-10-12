@@ -14,7 +14,7 @@ const announcementSchema = new mongoose.Schema(
     },
     targetRole: {
       type: String,
-      enum: ['all', 'student', 'faculty', 'mentor', 'industry', 'investor', 'startup'],
+      enum: ['all', 'student', 'faculty', 'mentor', 'investor'],
       default: 'all',
     },
     priority: {

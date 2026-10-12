@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-const ROLES = ['student', 'faculty', 'mentor', 'industry', 'investor', 'startup', 'admin', 'super_admin'];
+const ROLES = ['student', 'faculty', 'mentor', 'investor', 'admin', 'super_admin'];
 
 const userSchema = new mongoose.Schema(
   {
@@ -44,6 +44,20 @@ const userSchema = new mongoose.Schema(
     },
     emailVerifyExpiry: {
       type: Date,
+      default: null,
+    },
+    // Investor Accreditation & Verification Status
+    isInvestorVerified: {
+      type: Boolean,
+      default: false,
+    },
+    investorVerifiedAt: {
+      type: Date,
+      default: null,
+    },
+    investorVerifiedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
       default: null,
     },
     // Mandatory / Optional Two-Factor Authentication (TOTP)

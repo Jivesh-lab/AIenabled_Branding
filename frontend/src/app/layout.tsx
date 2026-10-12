@@ -3,6 +3,7 @@ import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import AuthProvider from "@/components/providers/AuthProvider";
 import { Toaster } from "sonner";
+import AgentChatWidget from "@/components/AgentChatWidget";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -36,13 +37,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         <AuthProvider>
           {children}
-          <Toaster
-            position="top-right"
-            richColors
-            closeButton
-            duration={4000}
-          />
-        </AuthProvider>
+            <Toaster
+              position="top-right"
+              richColors
+              closeButton
+              duration={4000}
+            />
+            <AgentChatWidget />
+          </AuthProvider>
       </body>
     </html>
   );

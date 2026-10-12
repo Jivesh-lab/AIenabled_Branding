@@ -139,7 +139,7 @@ export const WIZARD_STEPS = [
  *         the declaration. Use this to click through the whole flow.
  * false → normal validation. SET BACK TO false BEFORE RELEASE.
  */
-export const SKIP_VALIDATION = true;
+export const SKIP_VALIDATION = false;
 
 export type StepIndex = 0 | 1 | 2 | 3;
 export const LAST_STEP: StepIndex = 3;

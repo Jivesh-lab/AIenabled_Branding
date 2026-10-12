@@ -40,9 +40,7 @@ const INITIAL_STATS: StatsData = {
     student: 84,
     faculty: 18,
     mentor: 22,
-    industry: 12,
     investor: 4,
-    startup: 2,
   },
   pendingApprovalsCount: 6,
   moderationItemsCount: 2,
@@ -201,14 +199,12 @@ export default function AdminDashboardPage() {
           <h2 className="text-base font-bold text-slate-900 tracking-tight mb-3">
             Ecosystem Stakeholder Distribution
           </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
               { role: "Student", key: "student", count: stats.roleBreakdown.student, color: "border-blue-200 bg-blue-50/50 text-blue-700" },
               { role: "Faculty", key: "faculty", count: stats.roleBreakdown.faculty, color: "border-purple-200 bg-purple-50/50 text-purple-700" },
               { role: "Mentor", key: "mentor", count: stats.roleBreakdown.mentor, color: "border-emerald-200 bg-emerald-50/50 text-emerald-700" },
-              { role: "Industry", key: "industry", count: stats.roleBreakdown.industry, color: "border-amber-200 bg-amber-50/50 text-amber-700" },
               { role: "Investor", key: "investor", count: stats.roleBreakdown.investor, color: "border-cyan-200 bg-cyan-50/50 text-cyan-700" },
-              { role: "Startup", key: "startup", count: stats.roleBreakdown.startup, color: "border-rose-200 bg-rose-50/50 text-rose-700" },
             ].map((item) => (
               <div key={item.key} className={`rounded-lg border ${item.color} p-3 text-center`}>
                 <p className="text-[11px] font-semibold uppercase tracking-wider">{item.role}</p>
