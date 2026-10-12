@@ -47,19 +47,9 @@ const ROLES = [
     description: "Industry or academic expert guiding startups",
   },
   {
-    value: "industry",
-    label: "Industry Partner",
-    description: "Company collaborating on innovation projects",
-  },
-  {
     value: "investor",
     label: "Investor",
     description: "Funding or evaluating incubated ventures",
-  },
-  {
-    value: "startup",
-    label: "Startup / Alumni",
-    description: "Incubated or graduated startup team",
   },
 ] as const;
 
@@ -96,20 +86,10 @@ const roleSpecificSchema: Record<RoleValue, z.ZodObject<z.ZodRawShape>> = {
     expertise: z.string().min(2, "Area of expertise is required"),
     linkedIn: z.string().url("Enter a valid LinkedIn URL").optional().or(z.literal("")),
   }),
-  industry: z.object({
-    companyName: z.string().min(2, "Company name is required"),
-    sector: z.string().min(2, "Industry sector is required"),
-    designation: z.string().min(2, "Your role/designation is required"),
-  }),
   investor: z.object({
     firmName: z.string().min(2, "Firm / fund name is required"),
     investmentFocus: z.string().min(2, "Investment focus area is required"),
     linkedIn: z.string().url("Enter a valid LinkedIn URL").optional().or(z.literal("")),
-  }),
-  startup: z.object({
-    startupName: z.string().min(2, "Startup / venture name is required"),
-    sector: z.string().min(2, "Sector is required"),
-    stage: z.string().min(1, "Stage is required"),
   }),
 };
 
@@ -440,20 +420,10 @@ function StepRoleSpecific({
       { id: "expertise", label: "Area of Expertise", placeholder: "e.g. Product Strategy, FinTech" },
       { id: "linkedIn", label: "LinkedIn Profile (optional)", placeholder: "https://linkedin.com/in/..." },
     ],
-    industry: [
-      { id: "companyName", label: "Company Name", placeholder: "e.g. Infosys Ltd." },
-      { id: "sector", label: "Industry Sector", placeholder: "e.g. Healthcare Technology" },
-      { id: "designation", label: "Your Designation", placeholder: "e.g. Head of Innovation" },
-    ],
     investor: [
       { id: "firmName", label: "Firm / Fund Name", placeholder: "e.g. Elevation Capital" },
       { id: "investmentFocus", label: "Investment Focus", placeholder: "e.g. Deep Tech, SaaS, B2B" },
       { id: "linkedIn", label: "LinkedIn Profile (optional)", placeholder: "https://linkedin.com/in/..." },
-    ],
-    startup: [
-      { id: "startupName", label: "Startup / Venture Name", placeholder: "e.g. HealthFlow AI" },
-      { id: "sector", label: "Sector", placeholder: "e.g. AgriTech, CleanEnergy" },
-      { id: "stage", label: "Current Stage", placeholder: "e.g. Pre-seed, MVP, Series A" },
     ],
   };
 

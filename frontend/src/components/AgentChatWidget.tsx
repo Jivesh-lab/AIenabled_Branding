@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 import { useAgentChat } from '@/hooks/useAgentChat';
 import { useSession } from 'next-auth/react';
-import ReactMarkdown from 'react-markdown';
 import cn from 'clsx';
 
 export default function AgentChatWidget() {
@@ -138,8 +137,8 @@ export default function AgentChatWidget() {
                          </div>
                       )}
                       
-                      <div className="prose prose-sm dark:prose-invert max-w-none">
-                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                      <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap leading-relaxed">
+                        {msg.content}
                       </div>
 
                       {msg.isStreaming && !msg.agentName && (

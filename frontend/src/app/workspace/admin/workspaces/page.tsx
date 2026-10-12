@@ -47,28 +47,12 @@ const WORKSPACE_TILES = [
     description: "Inspect assigned mentees, calendar slots, session logs, and guidance feedback.",
   },
   {
-    title: "Industry Partner Oversight",
-    role: "industry",
-    path: "/workspace/industry-partner/dashboard",
-    icon: Building2,
-    color: "from-amber-500/10 to-orange-500/10 text-amber-600 border-amber-200",
-    description: "Inspect corporate challenge statements, co-R&D partnerships, and talent matching.",
-  },
-  {
     title: "Investor Workspace Oversight",
     role: "investor",
     path: "/workspace/investor/dashboard",
     icon: TrendingUp,
     color: "from-cyan-500/10 to-blue-500/10 text-cyan-600 border-cyan-200",
     description: "Inspect venture pitch decks, cap tables, funding pipeline, and deal flows.",
-  },
-  {
-    title: "Startup / Alumni Oversight",
-    role: "startup",
-    path: "/workspace/startup/dashboard",
-    icon: Rocket,
-    color: "from-rose-500/10 to-red-500/10 text-rose-600 border-rose-200",
-    description: "Inspect incubation KPIs, product traction metrics, grant utilization, and scaling roadmaps.",
   },
 ];
 

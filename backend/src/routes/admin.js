@@ -60,9 +60,7 @@ router.get('/stats', async (req, res) => {
       student: 0,
       faculty: 0,
       mentor: 0,
-      industry: 0,
       investor: 0,
-      startup: 0,
       admin: 0,
       super_admin: 0,
     };
@@ -158,7 +156,7 @@ router.post(
     body('name').trim().isLength({ min: 2, max: 80 }).withMessage('Full name is required (2–80 characters)'),
     body('email').trim().isEmail().withMessage('Valid email is required').normalizeEmail(),
     body('role')
-      .isIn(['student', 'faculty', 'mentor', 'industry', 'investor', 'startup', 'admin'])
+      .isIn(['student', 'faculty', 'mentor', 'investor', 'admin'])
       .withMessage('Valid role is required'),
     body('tempPassword').optional().isLength({ min: 8 }).withMessage('Temp password must be at least 8 chars'),
   ],

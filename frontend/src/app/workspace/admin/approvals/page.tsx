@@ -48,9 +48,9 @@ const MOCK_PENDING: PendingUser[] = [
     _id: "p2",
     name: "Elena Rostova",
     email: "elena@globalventures.io",
-    role: "industry",
+    role: "investor",
     createdAt: "2026-09-19T09:15:00.000Z",
-    profile: { companyName: "GlobalVentures R&D", sector: "Clean Energy" },
+    profile: { firmName: "GlobalVentures Capital", investmentFocus: "Clean Energy & DeepTech" },
   },
 ];
 
