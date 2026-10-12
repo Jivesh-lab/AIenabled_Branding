@@ -17,6 +17,7 @@ import {
   Award,
   Microscope,
   GraduationCap,
+  Briefcase,
 } from "lucide-react";
 
 const SUPERVISED_PROJECTS = [
@@ -93,11 +94,11 @@ export default function FacultyDashboardPage() {
               <p className="text-xs text-blue-200 mt-1">3 student milestones need your review. 1 IP deadline in 7 days.</p>
             </div>
             <div className="flex flex-wrap gap-2.5">
-              <Link href="/workspace/faculty/trl-calculator" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-cyan hover:bg-brand-cyan/90 text-brand-deep text-xs font-bold transition-colors">
-                <Microscope className="size-3.5" /> TRL Calculator
+              <Link href="/workspace/faculty" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-cyan hover:bg-brand-cyan/90 text-brand-deep text-xs font-bold transition-colors shadow-xs">
+                <Briefcase className="size-3.5" /> Faculty Management Module
               </Link>
-              <Link href="/workspace/faculty/grant-drafting" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-semibold transition-colors">
-                <FileText className="size-3.5" /> Draft Grant
+              <Link href="/workspace/faculty/trl-calculator" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-semibold transition-colors">
+                <Microscope className="size-3.5" /> TRL Calculator
               </Link>
               <Link href="/workspace/faculty/ip" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-semibold transition-colors">
                 <Lightbulb className="size-3.5" /> File IP

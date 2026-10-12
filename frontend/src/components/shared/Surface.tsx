@@ -14,14 +14,17 @@ export function Card({
   children,
   className,
   interactive = false,
+  onClick,
 }: {
   children: React.ReactNode;
   className?: string;
   /** Adds the restrained hover treatment used by linked cards. */
   interactive?: boolean;
+  onClick?: () => void;
 }) {
   return (
     <div
+      onClick={onClick}
       className={cn(
         "rounded-xl border border-line bg-white shadow-sm",
         interactive && "transition-colors duration-150 hover:border-brand/40 hover:bg-nav-hover",
