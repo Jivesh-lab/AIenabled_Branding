@@ -19,6 +19,9 @@ Runs on port 8000 alongside:
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+import warnings
+
+warnings.filterwarnings("ignore", category=ResourceWarning)
 
 import structlog
 import uvicorn
