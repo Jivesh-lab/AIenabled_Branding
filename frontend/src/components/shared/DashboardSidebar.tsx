@@ -90,7 +90,7 @@ function SidebarBrand({ isExpanded }: { isExpanded: boolean }) {
           <div className="flex flex-col">
             <span className="text-[14px] font-semibold leading-none text-ink">AAI&ndash;DBITIC</span>
             <span className="mt-1 text-[11px] font-medium leading-none text-muted-ink">
-              Innovation Centre
+              DBIT Incubation
             </span>
           </div>
         )}
