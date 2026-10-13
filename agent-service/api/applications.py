@@ -84,6 +84,22 @@ async def submit_application(
     
     documents = [a.model_dump() for a in submission.attachments]
     
+    # Run Application Agent to produce summary and assessment
+    ai_summary_str = None
+    ai_feedback_str = None
+    try:
+        from agents.application_agent import assess_application
+        assessment = await assess_application(submission.model_dump())
+        ai_summary_str = json.dumps(assessment.get("summary", {}))
+        ai_feedback_str = json.dumps({
+            "preliminary_assessment": assessment.get("preliminary_assessment", {}),
+            "questions_for_reviewers": assessment.get("questions_for_reviewers", []),
+            "missing_evidence": assessment.get("missing_evidence", []),
+            "validation": assessment.get("validation", {}),
+        })
+    except Exception as exc:
+        pass
+    
     if not pool:
         application_id = standalone_submit_application(
             applicant_id=applicant_id,
@@ -95,6 +111,8 @@ async def submit_application(
             sector=sector,
             documents=documents,
             form_data=form_data,
+            ai_summary=ai_summary_str,
+            ai_feedback=ai_feedback_str,
         )
         return {
             "success": True,
@@ -129,11 +147,11 @@ async def submit_application(
                 
                 application_id = await conn.fetchval(
                     """
-                    INSERT INTO applications (startup_id, applicant_id, status, documents, form_data, submitted_at)
-                    VALUES ($1, $2, 'submitted', $3::jsonb, $4::jsonb, NOW())
+                    INSERT INTO applications (startup_id, applicant_id, status, documents, form_data, ai_summary, ai_feedback, submitted_at)
+                    VALUES ($1, $2, 'submitted', $3::jsonb, $4::jsonb, $5, $6, NOW())
                     RETURNING id
                     """,
-                    startup_id, applicant_id, json.dumps(documents), json.dumps(form_data)
+                    startup_id, applicant_id, json.dumps(documents), json.dumps(form_data), ai_summary_str, ai_feedback_str
                 )
     except HTTPException:
         raise

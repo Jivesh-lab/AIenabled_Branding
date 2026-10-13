@@ -326,9 +326,6 @@ export default function FacultyVolunteerPage() {
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-canvas border border-line text-ink uppercase">
                             {proj.domain}
                           </span>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-brand-cyan/10 text-brand-cyan-ink border border-brand-cyan/20">
-                            TRL {proj.trl}
-                          </span>
                           <span
                             className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
                               proj.health === "On Track"

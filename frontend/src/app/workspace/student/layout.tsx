@@ -4,14 +4,9 @@ import BaseWorkspaceLayout from "@/components/shared/BaseWorkspaceLayout";
 import { NavSection } from "@/components/shared/DashboardSidebar";
 import {
   LayoutDashboard,
-  Lightbulb,
   FolderKanban,
-  Sparkles,
   Route,
   CalendarDays,
-  Files,
-  Landmark,
-  CircleHelp,
 } from "lucide-react";
 
 const MOCK_USER = {
@@ -28,8 +23,6 @@ const STUDENT_SECTIONS: NavSection[] = [
   {
     label: "Innovation",
     items: [
-      { label: "Ideation Sandbox", icon: Lightbulb, href: "/workspace/student/ideation" },
-      { label: "AI Co-founder Matchmaking", icon: Sparkles, href: "/workspace/student/ai-match", isAI: true },
       { label: "My Projects", icon: FolderKanban, href: "/workspace/student/projects" },
     ],
   },
@@ -39,17 +32,6 @@ const STUDENT_SECTIONS: NavSection[] = [
       { label: "Journey Timeline", icon: Route, href: "/workspace/student/journey" },
       { label: "Meetings", icon: CalendarDays, href: "/workspace/student/meetings" },
     ],
-  },
-  {
-    label: "Resources",
-    items: [
-      { label: "Documents", icon: Files, href: "/workspace/student/documents" },
-      { label: "Funding", icon: Landmark, href: "/workspace/student/funding" },
-    ],
-  },
-  {
-    label: "Support",
-    items: [{ label: "Help & Support", icon: CircleHelp, href: "/workspace/student/support" }],
   },
 ];
 

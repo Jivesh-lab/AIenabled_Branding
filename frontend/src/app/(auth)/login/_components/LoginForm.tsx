@@ -37,18 +37,6 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 // ---------------------------------------------------------------------------
-// Role → workspace mapping (mirrors proxy.ts)
-// ---------------------------------------------------------------------------
-const ROLE_WORKSPACE: Record<string, string> = {
-  student:     "/workspace/student/dashboard",
-  faculty:     "/workspace/faculty/dashboard",
-  mentor:      "/workspace/mentor/dashboard",
-  investor:    "/workspace/investor/dashboard",
-  admin:       "/workspace/admin/dashboard",
-  super_admin: "/workspace/super-admin/dashboard",
-};
-
-// ---------------------------------------------------------------------------
 // Spinner
 // ---------------------------------------------------------------------------
 function ButtonSpinner() {
@@ -89,17 +77,6 @@ export default function LoginForm() {
     },
   });
 
-  async function redirectToWorkspace() {
-    const session = await getSession();
-    const role = (session?.user as { role?: string })?.role;
-    const callbackUrl = searchParams?.get("callbackUrl");
-    const destination =
-      callbackUrl && callbackUrl.startsWith("/workspace/")
-        ? callbackUrl
-        : (role && ROLE_WORKSPACE[role]) || "/workspace/student/dashboard";
-    router.replace(destination);
-  }
-
   async function onSubmit(values: LoginFormValues) {
     setIsSubmitting(true);
     try {
@@ -130,8 +107,54 @@ export default function LoginForm() {
         return;
       }
 
-      // Redirect to role-based workspace
-      await redirectToWorkspace();
+      // Check callbackUrl if it points to a valid specific workspace route
+      const callbackUrl = searchParams.get("callbackUrl");
+
+      // Retrieve authenticated session to determine authoritative role
+      let session = await getSession();
+      // If session isn't loaded immediately, fetch /api/auth/session
+      if (!session?.user) {
+        try {
+          const sRes = await fetch("/api/auth/session");
+          if (sRes.ok) session = await sRes.json();
+        } catch {
+          // ignore
+        }
+      }
+
+      const userRole = (session?.user as Record<string, unknown>)?.role as string;
+      const facultyRole = (session?.user as Record<string, unknown>)?.facultyRole as string | undefined;
+      const userEmail = ((session?.user as Record<string, unknown>)?.email as string || values.email || "").toLowerCase();
+
+      let facultyDestination = "/workspace/faculty/coordinator";
+      if (facultyRole === "volunteer" || userEmail.includes("volunteer")) {
+        facultyDestination = "/workspace/faculty/volunteer";
+      }
+
+      const roleWorkspaces: Record<string, string> = {
+        student: "/workspace/student/dashboard",
+        faculty: facultyDestination,
+        mentor: "/workspace/mentor/dashboard",
+        investor: "/workspace/investor/dashboard",
+        admin: "/workspace/admin/dashboard",
+        super_admin: "/workspace/super-admin/dashboard",
+      };
+
+      let destination = roleWorkspaces[userRole] || "/";
+
+      // If callbackUrl matches the user's role workspace, honor it (e.g. deep link)
+      if (
+        callbackUrl &&
+        callbackUrl.startsWith("/workspace/") &&
+        callbackUrl !== "/workspace" &&
+        !callbackUrl.startsWith("/workspace/admin") &&
+        !callbackUrl.startsWith("/workspace/super-admin")
+      ) {
+        destination = callbackUrl;
+      }
+
+      // Use window.location.replace to ensure full session cookie sync and clean page reload
+      window.location.replace(destination);
     } catch {
       toast.error("Network error. Please check your connection.");
     } finally {

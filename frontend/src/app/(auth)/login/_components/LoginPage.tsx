@@ -8,7 +8,8 @@
  */
 
 import { Suspense } from "react";
-import Link from "next/link";
+import type { Variants } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import LoginBrandPanel from "./LoginBrandPanel";
 import LoginForm from "./LoginForm";
 
@@ -57,14 +58,27 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Return to home */}
-      <div className="mt-5 text-center">
-        <Link
-          href="/"
-          className="text-xs text-slate-400 hover:text-slate-600 transition-colors inline-flex items-center gap-1.5"
-        >
-          ← Back to homepage
-        </Link>
+      {/* -- Bottom-left corner labels (on top of the blue blob) ---- */}
+      <div className="absolute bottom-6 left-8 z-30 pointer-events-none hidden lg:block">
+        <p className="text-[11px] font-bold tracking-[0.2em] uppercase text-white/90">Same Campus</p>
+        <p className="text-[11px] font-bold tracking-[0.2em] uppercase text-white/90">Bigger Possibilities</p>
+      </div>
+
+      {/* -- Bottom center labels ----------------------------------- */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 pointer-events-none hidden lg:flex gap-4">
+        {["INNOVATION", "COLLABORATION", "IMPACT"].map((t, i) => (
+          <span key={t} className="flex items-center gap-4 text-[10px] font-semibold tracking-widest text-slate-600">
+            {i > 0 && <span className="text-slate-400">|</span>}
+            {t}
+          </span>
+        ))}
+      </div>
+
+      {/* -- Bottom-right vertical labels -------------------------- */}
+      <div className="absolute bottom-8 right-8 z-30 pointer-events-none hidden lg:flex flex-col gap-1 items-end">
+        {["- IDEAS", "- PEOPLE", "- TECHNOLOGY", "- IMPACT"].map((t) => (
+          <p key={t} className="text-[10px] font-semibold tracking-widest text-white/80 uppercase">{t}</p>
+        ))}
       </div>
     </div>
   );

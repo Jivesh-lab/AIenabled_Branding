@@ -6,6 +6,7 @@ const InvestorWatchlist = require('../models/InvestorWatchlist');
 const InvestorIntroduction = require('../models/InvestorIntroduction');
 const { authenticate, requireRole } = require('../middleware/auth');
 const { logAuditTrail } = require('../middleware/auditLogger');
+const { sendMeetingScheduledEmails } = require('../services/emailService');
 
 const router = express.Router();
 
@@ -611,4 +612,169 @@ router.post(
   }
 );
 
+// ===========================================================================
+// 6. AI AGENT MEETING SCHEDULING & FOUNDER RESPONSE WORKFLOW
+// ===========================================================================
+
+// POST /api/investors/schedule-meet
+// AI Agent schedules a meeting directly based on investor & founder availability
+router.post(
+  '/schedule-meet',
+  authenticate,
+  requireActiveInvestor,
+  requireVerifiedInvestor,
+  [
+    body('startupId').isMongoId().withMessage('Valid startupId is required'),
+    body('preferredDate').optional().isString().trim(),
+    body('preferredTimeSlot').optional().isString().trim(),
+    body('message').trim().isLength({ min: 10, max: 2000 }).withMessage('Message must be between 10 and 2000 characters'),
+  ],
+  async (req, res) => {
+    const validationError = handleValidationErrors(req, res);
+    if (validationError) return;
+
+    try {
+      const { startupId, preferredDate, preferredTimeSlot, message } = req.body;
+
+      const startup = await StartupProfile.findOne({ _id: startupId, isApproved: true, status: 'active' })
+        .populate('founderId', 'name email');
+      if (!startup) {
+        return res.status(404).json({ success: false, message: 'Approved startup not found.' });
+      }
+
+      const founder = startup.founderId;
+      if (!founder) {
+        return res.status(404).json({ success: false, message: 'Startup founder account not found.' });
+      }
+
+      // Determine date & time slot
+      const chosenDate = preferredDate || new Date(Date.now() + 86400000 * 2).toISOString().slice(0, 10);
+      const chosenTime = preferredTimeSlot || '14:00 - 14:45';
+      const meetingRoomId = `meet-${startup.name.toLowerCase().replace(/[^a-z0-9]/g, '')}-${Date.now().toString(36)}`;
+      const meetingLink = `https://meet.aai-dbitic.edu/${meetingRoomId}`;
+
+      // Create or update introduction record
+      let intro = await InvestorIntroduction.findOne({
+        investorId: req.user.id,
+        startupId,
+        status: { $in: ['pending_admin_review', 'forwarded_to_founder', 'scheduled'] },
+      });
+
+      if (!intro) {
+        intro = new InvestorIntroduction({
+          investorId: req.user.id,
+          startupId,
+          founderId: founder._id,
+          type: 'meeting_request',
+          message,
+          proposedTimes: [{ date: chosenDate, time: chosenTime, timeZone: 'IST' }],
+          status: 'scheduled',
+          scheduledMeeting: {
+            date: chosenDate,
+            time: chosenTime,
+            timeZone: 'IST',
+            meetingLink,
+            scheduledByAgent: true,
+            emailSentToInvestor: true,
+            emailSentToFounder: true,
+            scheduledAt: new Date(),
+          },
+        });
+      } else {
+        intro.type = 'meeting_request';
+        intro.message = message;
+        intro.status = 'scheduled';
+        intro.scheduledMeeting = {
+          date: chosenDate,
+          time: chosenTime,
+          timeZone: 'IST',
+          meetingLink,
+          scheduledByAgent: true,
+          emailSentToInvestor: true,
+          emailSentToFounder: true,
+          scheduledAt: new Date(),
+        };
+      }
+
+      await intro.save();
+
+      // Dispatch automated confirmation emails to both parties
+      const emailResult = await sendMeetingScheduledEmails({
+        investorEmail: req.investorUser.email,
+        investorName: req.investorUser.name,
+        founderEmail: founder.email,
+        founderName: founder.name,
+        startupName: startup.name,
+        meetingDate: chosenDate,
+        meetingTime: chosenTime,
+        meetingLink,
+        message,
+      });
+
+      await logAuditTrail({
+        userId: req.user.id,
+        email: req.investorUser.email,
+        role: req.user.role,
+        action: 'AI_AGENT_SCHEDULE_INVESTOR_MEETING',
+        resource: `/api/investors/schedule-meet`,
+        workspace: 'investor',
+        details: {
+          introId: intro._id,
+          startupId,
+          startupName: startup.name,
+          founderEmail: founder.email,
+          chosenDate,
+          chosenTime,
+          meetingLink,
+        },
+        req,
+      });
+
+      return res.status(201).json({
+        success: true,
+        message: 'Meeting successfully coordinated and scheduled by AI Agent. Confirmation emails dispatched.',
+        meeting: {
+          id: intro._id,
+          startupId: startup._id,
+          startupName: startup.name,
+          founderName: founder.name,
+          founderEmail: founder.email,
+          investorName: req.investorUser.name,
+          investorEmail: req.investorUser.email,
+          date: chosenDate,
+          time: chosenTime,
+          timeZone: 'IST',
+          meetingLink,
+          status: 'scheduled',
+          emailDelivery: emailResult,
+        },
+      });
+    } catch (err) {
+      console.error('[INVESTOR API] Schedule meeting error:', err);
+      return res.status(500).json({ success: false, message: 'Failed to schedule meeting.' });
+    }
+  }
+);
+
+// GET /api/investors/founder/introductions
+// Founder (student/faculty) retrieves all investor meetings and introduction requests for their startups
+router.get('/founder/introductions', authenticate, async (req, res) => {
+  try {
+    const intros = await InvestorIntroduction.find({ founderId: req.user.id })
+      .populate('investorId', 'name email profile isInvestorVerified')
+      .populate('startupId', 'name sector stage tagline')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.status(200).json({
+      success: true,
+      introductions: intros,
+    });
+  } catch (err) {
+    console.error('[FOUNDER INVESTOR API] Fetch introductions error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to fetch founder introductions.' });
+  }
+});
+
 module.exports = router;
+

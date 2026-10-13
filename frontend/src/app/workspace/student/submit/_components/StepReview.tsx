@@ -1,7 +1,6 @@
-"use client";
-
+import { useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
-import { FileText, Pencil } from "lucide-react";
+import { FileText, Pencil, Sparkles, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FieldError } from "@/components/shared/form/FormField";
 import { MATURITY_LABEL } from "@/types/status";
@@ -60,12 +59,82 @@ export default function StepReview({ onEditStep }: { onEditStep: (step: StepInde
   } = useFormContext<IdeaFormValues>();
   const v = useWatch<IdeaFormValues>();
 
+  const [validating, setValidating] = useState(false);
+  const [validationResult, setValidationResult] = useState<any>(null);
+
   const team = v.teamMembers ?? [];
   const technologies = v.technologies ?? [];
   const attachments = v.attachments ?? [];
 
+  async function runAiCompletenessCheck() {
+    setValidating(true);
+    try {
+      const res = await fetch("/api/applications/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(v),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setValidationResult(data.validation);
+      }
+    } catch {
+      // Graceful fallback
+    } finally {
+      setValidating(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
+      {/* AI Pre-Submission Completeness Check */}
+      <div className="rounded-xl border border-indigo-100 bg-gradient-to-r from-indigo-50/60 to-purple-50/40 p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="size-4 text-indigo-600" />
+            <h4 className="text-[13px] font-semibold text-indigo-950">Application Agent Review</h4>
+          </div>
+          <button
+            type="button"
+            onClick={runAiCompletenessCheck}
+            disabled={validating}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-60 transition-all"
+          >
+            {validating ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
+            {validationResult ? "Re-check Completeness" : "Run AI Completeness Check"}
+          </button>
+        </div>
+
+        {validationResult && (
+          <div className="mt-3 pt-3 border-t border-indigo-100 text-xs space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-slate-800 flex items-center gap-1.5">
+                {validationResult.is_complete ? (
+                  <CheckCircle2 className="size-4 text-emerald-600" />
+                ) : (
+                  <AlertTriangle className="size-4 text-amber-600" />
+                )}
+                Completeness Score: {validationResult.completeness_score}/100
+              </span>
+              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${validationResult.is_complete ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                {validationResult.is_complete ? "Ready to Submit" : "Missing Details"}
+              </span>
+            </div>
+
+            {validationResult.missing_fields?.length > 0 && (
+              <div className="bg-amber-50/80 p-2.5 rounded-lg border border-amber-200/60 text-amber-900 text-[11px]">
+                <strong>Attention Required:</strong>
+                <ul className="list-disc pl-4 mt-1 space-y-0.5">
+                  {validationResult.missing_fields.map((f: string, i: number) => (
+                    <li key={i}>{f}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       <div className="flex flex-col gap-5">
         <ReviewGroup title="Idea details" step={0} onEdit={onEditStep}>
           <Item label="Idea / Project name" value={v.name} wide />
