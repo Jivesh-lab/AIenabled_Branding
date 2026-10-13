@@ -2,7 +2,7 @@
 
 /**
  * SignupForm — Multi-step registration flow
- * Minimal, product-led authentication matching the AAI-DBITIC design reference.
+ * Minimal, product-led authentication matching the DBIT Incubation Centre design reference.
  *
  * Step 0: Choose account type (vertical stack cards)
  * Step 1: Basic information (name + email)

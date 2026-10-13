@@ -177,7 +177,7 @@ export default function UserManagementPage() {
           email: createForm.email,
           role: createForm.role,
           tempPassword: createForm.tempPassword || undefined,
-          profile: { institution: createForm.institution || "AAI DBIT" },
+          profile: { institution: createForm.institution || "DBIT Incubation Centre" },
         }),
       });
 
@@ -847,7 +847,7 @@ export default function UserManagementPage() {
 
               <textarea
                 rows={5}
-                placeholder={`name, email, role, institution\nJohn Doe, john@student.edu, student, AAI DBIT\nJane Smith, jane@mentor.com, mentor, TechCorp`}
+                placeholder={`name, email, role, institution\nJohn Doe, john@student.edu, student, DBIT Incubation Centre\nJane Smith, jane@mentor.com, mentor, TechCorp`}
                 value={csvText}
                 onChange={(e) => setCsvText(e.target.value)}
                 className="w-full p-3 border border-slate-200 rounded-lg text-xs font-mono focus:ring-1 focus:ring-emerald-500"

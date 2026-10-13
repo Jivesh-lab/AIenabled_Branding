@@ -44,9 +44,9 @@ export default function SignupPage() {
         <div className="flex size-9 items-center justify-center rounded-xl bg-blue-50 border border-blue-100 text-blue-600">
           <BrandIcon className="size-4" />
         </div>
-        <div>
-          <p className="text-[13px] font-bold text-slate-900 leading-tight tracking-tight">AAI-DBITIC</p>
-          <p className="text-[11px] text-slate-500 leading-none mt-0.5">DBIT Incubation</p>
+        <div className="flex flex-col">
+          <p className="text-[14px] font-bold text-slate-900 leading-tight tracking-tight">DBIT</p>
+          <p className="text-[11px] font-medium text-slate-500 leading-none mt-0.5">Incubation Centre</p>
         </div>
       </header>
 
@@ -62,7 +62,7 @@ export default function SignupPage() {
           <div className="relative w-full rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-slate-100" style={{ aspectRatio: "16/11" }}>
             <Image
               src="/auth-bg.jpg"
-              alt="AAI-DBITIC DBIT Incubation campus"
+              alt="DBIT Incubation Centre campus"
               fill
               priority
               sizes="42vw"

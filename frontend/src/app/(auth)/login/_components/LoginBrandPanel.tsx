@@ -14,7 +14,7 @@ export default function LoginBrandPanel() {
       <div className="relative w-full aspect-[16/11] sm:aspect-[4/3] rounded-xl overflow-hidden border border-slate-200/80 shadow-sm bg-slate-100">
         <Image
           src="/auth-bg.jpg"
-          alt="AAI-DBITIC DBIT Incubation"
+          alt="DBIT Incubation Centre"
           fill
           priority
           sizes="(max-width: 1024px) 100vw, 420px"

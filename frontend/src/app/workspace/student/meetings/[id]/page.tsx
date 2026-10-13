@@ -32,7 +32,7 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { id } = await params;
   const meeting = MEETINGS.find((m) => m.id === id);
-  return { title: meeting ? `${meeting.title} | Meetings | AAI–DBITIC` : "Meeting not found | AAI–DBITIC" };
+  return { title: meeting ? `${meeting.title} | Meetings | DBIT Incubation Centre` : "Meeting not found | DBIT Incubation Centre" };
 }
 
 function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {

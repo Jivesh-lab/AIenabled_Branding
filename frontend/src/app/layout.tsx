@@ -17,12 +17,12 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "AAI–DBITIC | DBIT Incubation",
+  title: "DBIT | Incubation Centre",
   description:
-    "AAI–DBITIC is an AI-powered academic incubation platform connecting students, faculty, mentors, industry and investors.",
-  keywords: ["AAI–DBITIC", "DBIT entrepreneurship", "student innovation", "startup incubation", "Idiot's Room"],
+    "DBIT Incubation Centre is an AI-powered academic incubation platform connecting students, faculty, mentors, industry and investors.",
+  keywords: ["DBIT", "DBIT Incubation Centre", "DBIT entrepreneurship", "student innovation", "startup incubation", "Idiot's Room"],
   openGraph: {
-    title: "AAI–DBITIC | DBIT Incubation",
+    title: "DBIT | Incubation Centre",
     description: "Turn student ideas into research, prototypes, startups, and real-world impact.",
     type: "website",
   },

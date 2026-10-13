@@ -437,7 +437,7 @@ export default function FacultyManagementPage() {
   return (
     <PageContainer
       title="Faculty Management Module"
-      description="Role-aware academic oversight, incubation project governance, mentor allocation workflows, and student supervision for DBITIC."
+      description="Role-aware academic oversight, incubation project governance, mentor allocation workflows, and student supervision for DBIT Incubation Centre."
     >
       <div className="space-y-6">
         {/* ========================================================================= */}

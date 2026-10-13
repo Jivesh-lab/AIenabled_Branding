@@ -22,7 +22,7 @@ export default function SubmissionSuccess({
 
       <h2 className="mt-4 text-[22px] font-bold tracking-tight text-ink">Your idea has been submitted.</h2>
       <p className="mx-auto mt-2 max-w-md text-[14px] text-muted-ink">
-        <span className="font-medium text-ink">{ideaName}</span> is now in the AAI–DBITIC review pipeline.
+        <span className="font-medium text-ink">{ideaName}</span> is now in the DBIT Incubation Centre review pipeline.
         You&apos;ll be notified when a reviewer responds.
       </p>
 
