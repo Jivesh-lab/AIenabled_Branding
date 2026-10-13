@@ -1,0 +1,1962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AAI–DBIT Incubation Centre | Where Ideas Become Ventures</title>
+<meta name="description" content="AAI–DBIT Incubation Centre — AI-powered innovation ecosystem for students, faculty, mentors and investors at Don Bosco Institute of Technology." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400&family=Clash+Display:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+/* =====================================================================
+   RESET & BASE
+   ===================================================================== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --brand-deep:   #03045E;
+  --brand:        #023EBA;
+  --brand-hover:  #0350E0;
+  --cyan:         #00B4D8;
+  --cyan-soft:    #90E0EF;
+  --gold:         #FBB02D;
+  --ink:          #0F172A;
+  --muted:        #64748B;
+  --canvas:       #F8FAFC;
+  --white:        #FFFFFF;
+  --glass-bg:     rgba(255,255,255,0.06);
+  --glass-border: rgba(255,255,255,0.14);
+  --section-h:    100vh;
+  --nav-h:        68px;
+  --font-display: 'Clash Display', sans-serif;
+  --font-body:    'Plus Jakarta Sans', sans-serif;
+  --ease-out:     cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring:  cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+html { scroll-behavior: auto; }
+body {
+  font-family: var(--font-body);
+  background: #020818;
+  color: var(--white);
+  overflow-x: hidden;
+  overscroll-behavior: none;
+}
+
+/* =====================================================================
+   THREE.JS CANVAS — fixed, full viewport, always behind everything
+   ===================================================================== */
+#three-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* =====================================================================
+   SCROLL CONTAINER — creates the scroll height; content is fixed overlays
+   ===================================================================== */
+#scroll-container {
+  position: relative;
+  z-index: 1;
+  /* 9 acts × 100vh; extra 50vh for breathing room */
+  height: 950vh;
+}
+
+/* =====================================================================
+   NAV
+   ===================================================================== */
+#site-nav {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  padding: 0 24px;
+  height: var(--nav-h);
+  background: rgba(2,8,24,0.55);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  transition: background 0.6s var(--ease-out), box-shadow 0.6s var(--ease-out);
+  max-width: calc(100vw - 40px);
+  width: max-content;
+}
+#site-nav.scrolled {
+  background: rgba(2,8,24,0.82);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+}
+.nav-logo {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  color: var(--white);
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.nav-logo span { color: var(--cyan); }
+.nav-links {
+  display: flex;
+  gap: 24px;
+  list-style: none;
+}
+.nav-links a {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: rgba(255,255,255,0.65);
+  text-decoration: none;
+  transition: color 0.25s;
+  white-space: nowrap;
+}
+.nav-links a:hover { color: var(--white); }
+.nav-cta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 20px;
+  background: var(--brand);
+  color: var(--white);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  border-radius: 999px;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.25s, transform 0.2s var(--ease-spring);
+  flex-shrink: 0;
+}
+.nav-cta:hover { background: var(--brand-hover); transform: scale(1.03); }
+.nav-cta svg { flex-shrink: 0; }
+
+/* hamburger mobile */
+#nav-toggle {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  color: var(--white);
+}
+.nav-mobile-menu {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+  background: rgba(2,8,24,0.96);
+  backdrop-filter: blur(24px);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+}
+.nav-mobile-menu.open { display: flex; }
+.nav-mobile-menu a {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 6vw, 48px);
+  font-weight: 600;
+  color: var(--white);
+  text-decoration: none;
+  letter-spacing: 0.04em;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.4s var(--ease-out), transform 0.4s var(--ease-out);
+}
+.nav-mobile-menu.open a {
+  opacity: 1;
+  transform: translateY(0);
+}
+.nav-mobile-menu.open a:nth-child(1) { transition-delay: 0.06s; }
+.nav-mobile-menu.open a:nth-child(2) { transition-delay: 0.12s; }
+.nav-mobile-menu.open a:nth-child(3) { transition-delay: 0.18s; }
+.nav-mobile-menu.open a:nth-child(4) { transition-delay: 0.24s; }
+.nav-mobile-menu.open a:nth-child(5) { transition-delay: 0.30s; }
+.nav-mobile-menu.open a:nth-child(6) { transition-delay: 0.36s; }
+.nav-close {
+  position: absolute;
+  top: 24px; right: 24px;
+  background: none; border: none;
+  color: var(--white); cursor: pointer;
+  font-size: 28px; padding: 8px;
+}
+
+/* =====================================================================
+   SECTION OVERLAYS — fixed, fade in/out based on scroll act
+   ===================================================================== */
+.act {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.8s var(--ease-out);
+}
+.act.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* shared act layout */
+.act-inner {
+  width: 100%;
+  max-width: 1160px;
+  padding: 0 40px;
+  padding-top: var(--nav-h);
+}
+.act-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  padding: 5px 14px;
+  border: 1px solid rgba(0,180,216,0.35);
+  border-radius: 999px;
+  margin-bottom: 24px;
+  background: rgba(0,180,216,0.08);
+}
+.act-eyebrow::before {
+  content: '';
+  width: 6px; height: 6px;
+  background: var(--cyan);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.act-h1 {
+  font-family: var(--font-display);
+  font-size: clamp(42px, 7vw, 88px);
+  font-weight: 700;
+  line-height: 1.0;
+  letter-spacing: -0.02em;
+  margin-bottom: 28px;
+  max-width: 820px;
+}
+.act-h1 em {
+  font-style: normal;
+  background: linear-gradient(135deg, var(--cyan) 0%, var(--brand-hover) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.act-h2 {
+  font-family: var(--font-display);
+  font-size: clamp(32px, 5vw, 64px);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin-bottom: 20px;
+  max-width: 720px;
+}
+.act-h2 em {
+  font-style: normal;
+  background: linear-gradient(135deg, var(--gold) 0%, #FF8A00 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.act-body {
+  font-size: clamp(15px, 1.8vw, 18px);
+  font-weight: 400;
+  line-height: 1.7;
+  color: rgba(255,255,255,0.72);
+  max-width: 560px;
+  margin-bottom: 40px;
+}
+.act-buttons {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  pointer-events: auto;
+}
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 28px;
+  background: var(--brand);
+  color: var(--white);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  border-radius: 999px;
+  text-decoration: none;
+  border: none; cursor: pointer;
+  transition: background 0.25s, transform 0.25s var(--ease-spring), box-shadow 0.25s;
+}
+.btn-primary:hover {
+  background: var(--brand-hover);
+  transform: scale(1.03);
+  box-shadow: 0 8px 32px rgba(2,62,186,0.5);
+}
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 26px;
+  background: transparent;
+  color: rgba(255,255,255,0.85);
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.25s, border-color 0.25s, transform 0.25s var(--ease-spring);
+}
+.btn-secondary:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.3);
+  transform: scale(1.02);
+}
+
+/* =====================================================================
+   ACT 1 — Hero
+   ===================================================================== */
+#act-1 { align-items: flex-end; padding-bottom: 12vh; }
+#act-1 .act-inner { max-width: 1160px; }
+.hero-stats {
+  display: flex;
+  gap: 40px;
+  margin-top: 48px;
+  flex-wrap: wrap;
+}
+.hero-stat strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: clamp(28px, 4vw, 48px);
+  font-weight: 700;
+  line-height: 1;
+  background: linear-gradient(135deg, var(--white) 0%, var(--cyan-soft) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero-stat span {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.45);
+  margin-top: 4px;
+}
+.scroll-indicator {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  opacity: 1;
+  transition: opacity 0.5s;
+}
+.scroll-indicator.hidden { opacity: 0; }
+.scroll-line {
+  width: 1px;
+  height: 48px;
+  background: linear-gradient(to bottom, rgba(0,180,216,0.8), transparent);
+  animation: scrollPulse 2s ease-in-out infinite;
+}
+@keyframes scrollPulse {
+  0%, 100% { opacity: 0.4; transform: scaleY(1); }
+  50% { opacity: 1; transform: scaleY(0.7); }
+}
+.scroll-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: rgba(255,255,255,0.4);
+  text-transform: uppercase;
+}
+
+/* =====================================================================
+   ACT 2 — Leadership & Facilities
+   ===================================================================== */
+#act-2 .act-inner {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  align-items: center;
+}
+.info-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 32px;
+}
+.info-card {
+  padding: 20px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+}
+.info-card-icon {
+  font-size: 24px;
+  margin-bottom: 10px;
+  line-height: 1;
+}
+.info-card h4 {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.info-card p {
+  font-size: 12px;
+  color: rgba(255,255,255,0.5);
+  line-height: 1.5;
+}
+.leader-card {
+  padding: 28px;
+  background: rgba(2,62,186,0.12);
+  border: 1px solid rgba(2,62,186,0.3);
+  border-radius: 20px;
+  backdrop-filter: blur(12px);
+}
+.leader-avatar {
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--brand), var(--cyan));
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+.leader-card h3 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.leader-card .role {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  margin-bottom: 12px;
+}
+.leader-card blockquote {
+  font-size: 14px;
+  font-style: italic;
+  color: rgba(255,255,255,0.65);
+  line-height: 1.6;
+  border-left: 2px solid var(--cyan);
+  padding-left: 12px;
+}
+
+/* =====================================================================
+   ACT 3 — Student Projects
+   ===================================================================== */
+#act-3 .act-inner { max-width: 1100px; }
+.project-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-top: 32px;
+}
+.project-tile {
+  padding: 24px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 18px;
+  backdrop-filter: blur(10px);
+  transition: background 0.3s, border-color 0.3s, transform 0.3s var(--ease-out);
+}
+.project-tile:hover {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(0,180,216,0.35);
+  transform: translateY(-4px);
+}
+.project-domain {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 999px;
+  margin-bottom: 12px;
+}
+.domain-ai { background: rgba(0,180,216,0.15); color: var(--cyan); }
+.domain-health { background: rgba(34,197,94,0.15); color: #4ADE80; }
+.domain-iot { background: rgba(251,176,45,0.15); color: var(--gold); }
+.domain-sustain { background: rgba(168,85,247,0.15); color: #C084FC; }
+.domain-fin { background: rgba(239,68,68,0.15); color: #F87171; }
+.project-tile h4 {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  line-height: 1.3;
+}
+.project-tile p {
+  font-size: 12px;
+  color: rgba(255,255,255,0.5);
+  line-height: 1.5;
+}
+.project-tile .team {
+  font-size: 11px;
+  color: rgba(255,255,255,0.3);
+  margin-top: 12px;
+}
+
+/* =====================================================================
+   ACT 4 — AI Platform
+   ===================================================================== */
+#act-4 .act-inner { max-width: 1100px; }
+.agent-orbit-display {
+  display: flex;
+  align-items: flex-start;
+  gap: 40px;
+  margin-top: 32px;
+}
+.agent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+.agent-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  backdrop-filter: blur(8px);
+  transition: background 0.25s, border-color 0.25s, transform 0.2s;
+  cursor: default;
+}
+.agent-item:hover {
+  background: rgba(2,62,186,0.2);
+  border-color: rgba(2,62,186,0.4);
+  transform: translateX(6px);
+}
+.agent-icon {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  background: rgba(0,180,216,0.15);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.agent-item h5 {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.agent-item p { font-size: 11px; color: rgba(255,255,255,0.45); }
+.platform-visual {
+  flex: 1;
+  max-width: 280px;
+}
+.platform-core {
+  width: 120px; height: 120px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(2,62,186,0.6), rgba(0,180,216,0.4));
+  border: 2px solid rgba(0,180,216,0.4);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-size: 13px; font-weight: 700;
+  text-align: center;
+  line-height: 1.3;
+  margin: 0 auto 20px;
+  animation: corePulse 3s ease-in-out infinite;
+}
+@keyframes corePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0,180,216,0); }
+  50% { box-shadow: 0 0 0 16px rgba(0,180,216,0.08); }
+}
+.formats-ring {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+.format-chip {
+  padding: 6px 12px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+
+/* =====================================================================
+   ACT 5 — Research & Branding
+   ===================================================================== */
+#act-5 .act-inner { max-width: 1100px; }
+.journey-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 32px;
+  max-width: 600px;
+  position: relative;
+}
+.journey-steps::before {
+  content: '';
+  position: absolute;
+  left: 19px; top: 20px; bottom: 20px;
+  width: 1px;
+  background: linear-gradient(to bottom, var(--cyan), transparent);
+}
+.journey-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 16px 0;
+}
+.step-dot {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: rgba(0,180,216,0.15);
+  border: 1.5px solid rgba(0,180,216,0.4);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-size: 13px; font-weight: 700;
+  color: var(--cyan);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+.step-content h4 {
+  font-family: var(--font-display);
+  font-size: 16px; font-weight: 600;
+  margin-bottom: 4px;
+}
+.step-content p { font-size: 13px; color: rgba(255,255,255,0.5); line-height: 1.5; }
+
+/* =====================================================================
+   ACT 6 — Business Models & Pitch
+   ===================================================================== */
+#act-6 .act-inner { max-width: 1100px; }
+.output-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-top: 32px;
+}
+.output-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 18px 20px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  backdrop-filter: blur(8px);
+  transition: border-color 0.3s, background 0.3s;
+}
+.output-item:hover {
+  border-color: rgba(251,176,45,0.35);
+  background: rgba(251,176,45,0.06);
+}
+.output-icon {
+  width: 40px; height: 40px;
+  border-radius: 12px;
+  background: rgba(251,176,45,0.12);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.output-item h5 {
+  font-family: var(--font-display);
+  font-size: 14px; font-weight: 600;
+  margin-bottom: 4px;
+}
+.output-item p { font-size: 12px; color: rgba(255,255,255,0.45); line-height: 1.45; }
+
+/* =====================================================================
+   ACT 7 — Funding & Mentors
+   ===================================================================== */
+#act-7 .act-inner { max-width: 1100px; }
+.ecosystem-row {
+  display: flex;
+  gap: 16px;
+  margin-top: 32px;
+  flex-wrap: wrap;
+}
+.eco-card {
+  flex: 1;
+  min-width: 200px;
+  padding: 24px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 18px;
+  backdrop-filter: blur(10px);
+}
+.eco-card .eco-icon {
+  font-size: 32px;
+  margin-bottom: 14px;
+  line-height: 1;
+}
+.eco-card h4 {
+  font-family: var(--font-display);
+  font-size: 17px; font-weight: 600;
+  margin-bottom: 8px;
+}
+.eco-card p { font-size: 12px; color: rgba(255,255,255,0.5); line-height: 1.6; }
+.funding-track {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 28px;
+  flex-wrap: wrap;
+}
+.funding-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 16px;
+  background: rgba(2,62,186,0.18);
+  border: 1px solid rgba(2,62,186,0.35);
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.7);
+  white-space: nowrap;
+}
+.funding-node .f-icon { font-size: 18px; }
+.funding-arrow-sep {
+  color: rgba(255,255,255,0.25);
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+/* =====================================================================
+   ACT 8 — Events & CTA
+   ===================================================================== */
+#act-8 {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+#act-8 .act-inner { text-align: center; }
+#act-8 .act-h1 { max-width: 900px; margin: 0 auto 28px; }
+#act-8 .act-body { max-width: 540px; margin: 0 auto 40px; }
+#act-8 .act-buttons { justify-content: center; }
+.event-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 48px;
+}
+.event-pill {
+  padding: 8px 18px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  backdrop-filter: blur(8px);
+}
+.achievement-bar {
+  display: flex;
+  justify-content: center;
+  gap: 48px;
+  margin-top: 48px;
+  flex-wrap: wrap;
+}
+.achievement-stat {
+  text-align: center;
+}
+.achievement-stat strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: clamp(32px, 5vw, 56px);
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--white), var(--cyan-soft));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+}
+.achievement-stat span {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.4);
+  margin-top: 6px;
+}
+
+/* =====================================================================
+   PROGRESS BAR
+   ===================================================================== */
+#scroll-progress {
+  position: fixed;
+  top: 0; left: 0;
+  height: 2px;
+  background: linear-gradient(to right, var(--brand), var(--cyan));
+  z-index: 200;
+  transform-origin: left;
+  transition: width 0.1s linear;
+}
+
+/* =====================================================================
+   FOOTER
+   ===================================================================== */
+#site-footer {
+  position: fixed;
+  bottom: 20px;
+  right: 28px;
+  z-index: 50;
+  display: flex;
+  gap: 16px;
+  opacity: 0;
+  transition: opacity 0.5s;
+}
+#site-footer.visible { opacity: 1; }
+#site-footer a {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: rgba(255,255,255,0.35);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+#site-footer a:hover { color: rgba(255,255,255,0.8); }
+
+/* =====================================================================
+   ACT POSITION INDICATOR
+   ===================================================================== */
+#act-indicator {
+  position: fixed;
+  right: 28px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.act-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  transition: background 0.3s, transform 0.3s var(--ease-spring);
+  cursor: pointer;
+}
+.act-dot.active {
+  background: var(--cyan);
+  transform: scale(1.5);
+}
+
+/* =====================================================================
+   RESPONSIVE
+   ===================================================================== */
+@media (max-width: 900px) {
+  #act-2 .act-inner { grid-template-columns: 1fr; gap: 32px; }
+  .project-grid { grid-template-columns: repeat(2, 1fr); }
+  .agent-orbit-display { flex-direction: column; }
+  .platform-visual { display: none; }
+  .output-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .nav-links { display: none; }
+  #nav-toggle { display: flex; }
+  .act-inner { padding: 0 20px; padding-top: var(--nav-h); }
+  .act-h1 { font-size: clamp(32px, 8vw, 52px); }
+  .act-h2 { font-size: clamp(26px, 7vw, 40px); }
+  .project-grid { grid-template-columns: 1fr; }
+  .info-cards { grid-template-columns: 1fr; }
+  .ecosystem-row { flex-direction: column; }
+  .funding-track { justify-content: flex-start; }
+  .hero-stats { gap: 24px; }
+  #act-indicator { display: none; }
+}
+
+/* =====================================================================
+   REDUCED MOTION
+   ===================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .scroll-line, .platform-core { animation: none !important; }
+  .act { transition-duration: 0.01ms !important; }
+  * { transition-duration: 0.01ms !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- Progress bar -->
+<div id="scroll-progress"></div>
+
+<!-- Three.js canvas (fixed, behind everything) -->
+<canvas id="three-canvas"></canvas>
+
+<!-- Scroll container (just for height) -->
+<div id="scroll-container"></div>
+
+<!-- ============================================================
+     NAV
+     ============================================================ -->
+<nav id="site-nav" role="navigation" aria-label="Site navigation">
+  <a href="#" class="nav-logo">AAI–DBIT<span>IC</span></a>
+  <ul class="nav-links" role="list">
+    <li><a href="#" data-act="2">Leadership</a></li>
+    <li><a href="#" data-act="3">Projects</a></li>
+    <li><a href="#" data-act="4">AI Platform</a></li>
+    <li><a href="#" data-act="7">Funding</a></li>
+    <li><a href="#" data-act="8">Events</a></li>
+  </ul>
+  <a href="/signup" class="nav-cta">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Get Started
+  </a>
+  <button id="nav-toggle" aria-label="Open navigation" aria-expanded="false">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="7" x2="21" y2="7"/><line x1="3" y1="17" x2="21" y2="17"/></svg>
+  </button>
+</nav>
+
+<!-- Mobile menu -->
+<div id="nav-mobile-menu" class="nav-mobile-menu" role="dialog" aria-modal="true" aria-label="Mobile navigation">
+  <button id="nav-close" class="nav-close" aria-label="Close navigation">✕</button>
+  <a href="#" data-act-mobile="1">Welcome</a>
+  <a href="#" data-act-mobile="2">Leadership</a>
+  <a href="#" data-act-mobile="3">Projects</a>
+  <a href="#" data-act-mobile="4">AI Platform</a>
+  <a href="#" data-act-mobile="7">Funding</a>
+  <a href="#" data-act-mobile="8">Events</a>
+</div>
+
+<!-- ============================================================
+     ACT POSITION DOTS
+     ============================================================ -->
+<div id="act-indicator" aria-hidden="true">
+  <button class="act-dot active" data-target-act="1" title="Welcome"></button>
+  <button class="act-dot" data-target-act="2" title="Leadership"></button>
+  <button class="act-dot" data-target-act="3" title="Projects"></button>
+  <button class="act-dot" data-target-act="4" title="AI Platform"></button>
+  <button class="act-dot" data-target-act="5" title="Research"></button>
+  <button class="act-dot" data-target-act="6" title="Business"></button>
+  <button class="act-dot" data-target-act="7" title="Funding"></button>
+  <button class="act-dot" data-target-act="8" title="Events"></button>
+</div>
+
+<!-- ============================================================
+     SCROLL INDICATOR
+     ============================================================ -->
+<div class="scroll-indicator" id="scroll-indicator" aria-hidden="true">
+  <div class="scroll-line"></div>
+  <span class="scroll-label">Scroll</span>
+</div>
+
+<!-- ============================================================
+     ACT 1 — WELCOME
+     ============================================================ -->
+<section class="act visible" id="act-1" aria-label="Welcome to AAI–DBIT Incubation Centre">
+  <div class="act-inner">
+    <div class="act-eyebrow">AI-Powered Innovation Ecosystem</div>
+    <h1 class="act-h1">
+      Where Student<br>
+      Ideas Become<br>
+      <em>Real Ventures.</em>
+    </h1>
+    <p class="act-body">
+      AAI–DBIT Incubation Centre connects research, mentors, AI intelligence
+      and funding in one continuous ecosystem — so ideas move from classroom
+      to market with purpose.
+    </p>
+    <div class="act-buttons">
+      <a href="/signup" class="btn-primary">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Start Your Journey
+      </a>
+      <button class="btn-secondary" onclick="scrollToAct(2)">
+        Explore Centre
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <strong>2017</strong>
+        <span>E-Cell Founded</span>
+      </div>
+      <div class="hero-stat">
+        <strong>16+</strong>
+        <span>Events Hosted</span>
+      </div>
+      <div class="hero-stat">
+        <strong>8</strong>
+        <span>Innovation Areas</span>
+      </div>
+      <div class="hero-stat">
+        <strong>7</strong>
+        <span>AI Agents Active</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     ACT 2 — LEADERSHIP & FACILITIES
+     ============================================================ -->
+<section class="act" id="act-2" aria-label="Leadership, facilities and ecosystem">
+  <div class="act-inner">
+    <div>
+      <div class="act-eyebrow">Leadership &amp; Ecosystem</div>
+      <h2 class="act-h2">Built by People<br>Who <em>Drive Change.</em></h2>
+      <p class="act-body">
+        Guided by faculty mentors and industry experts, our incubation centre
+        provides the infrastructure, connections and know-how to move ideas forward.
+      </p>
+      <div class="leader-card">
+        <div class="leader-avatar">IC</div>
+        <h3>Incubation Leadership</h3>
+        <p class="role">Head of Incubation · AAI–DBIT</p>
+        <blockquote>
+          "We believe every student project carries the seed of a real solution.
+          Our role is to give those seeds the right soil, light and room to grow."
+        </blockquote>
+      </div>
+    </div>
+    <div>
+      <div class="info-cards">
+        <div class="info-card">
+          <div class="info-card-icon">🏛️</div>
+          <h4>Dedicated Labs</h4>
+          <p>Prototyping space, maker equipment and IoT infrastructure</p>
+        </div>
+        <div class="info-card">
+          <div class="info-card-icon">🤝</div>
+          <h4>Mentor Network</h4>
+          <p>Industry professionals, alumni and domain experts</p>
+        </div>
+        <div class="info-card">
+          <div class="info-card-icon">💡</div>
+          <h4>AI Tools</h4>
+          <p>Multi-agent platform for research, branding and pitching</p>
+        </div>
+        <div class="info-card">
+          <div class="info-card-icon">📡</div>
+          <h4>Industry Links</h4>
+          <p>AICTE, Startup India, Venture Catalysts and TiE network</p>
+        </div>
+        <div class="info-card">
+          <div class="info-card-icon">🏆</div>
+          <h4>Competitions</h4>
+          <p>Hackathons, make-a-thons and pitch challenges year-round</p>
+        </div>
+        <div class="info-card">
+          <div class="info-card-icon">📈</div>
+          <h4>Funding Access</h4>
+          <p>NIDHI, DST grants, angel networks and pre-seed programmes</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     ACT 3 — STUDENT PROJECTS
+     ============================================================ -->
+<section class="act" id="act-3" aria-label="Student projects and prototypes">
+  <div class="act-inner">
+    <div class="act-eyebrow">Student Projects</div>
+    <h2 class="act-h2">Ideas We're<br><em>Building Now.</em></h2>
+    <p class="act-body">
+      Real projects from DBIT students — spanning AI, healthcare, sustainability,
+      IoT and fintech — moving through incubation, validation and early traction.
+    </p>
+    <div class="project-grid">
+      <div class="project-tile">
+        <span class="project-domain domain-ai">AI / ML</span>
+        <h4>AgriSense — Crop Disease Detector</h4>
+        <p>Real-time leaf disease identification using multimodal vision models deployed on edge devices for rural farms.</p>
+        <div class="team">→ 4 team members · Prototype stage</div>
+      </div>
+      <div class="project-tile">
+        <span class="project-domain domain-health">Healthcare</span>
+        <h4>MedRoute — Rural Diagnostic AI</h4>
+        <p>Symptom triage assistant bridging the gap between remote patients and specialist care in underserved areas.</p>
+        <div class="team">→ 3 team members · MVP</div>
+      </div>
+      <div class="project-tile">
+        <span class="project-domain domain-sustain">Sustainability</span>
+        <h4>WattWise — Energy Monitor</h4>
+        <p>Smart campus energy monitoring that predicts consumption spikes and recommends load-balancing actions.</p>
+        <div class="team">→ 5 team members · Ideation</div>
+      </div>
+      <div class="project-tile">
+        <span class="project-domain domain-iot">IoT</span>
+        <h4>DroneReach — Last-Mile Delivery</h4>
+        <p>Autonomous UAV delivery system for medical supplies to flood-isolated villages with real-time route optimisation.</p>
+        <div class="team">→ 6 team members · Prototype</div>
+      </div>
+      <div class="project-tile">
+        <span class="project-domain domain-fin">FinTech</span>
+        <h4>MicroLend — P2P Credit Platform</h4>
+        <p>Blockchain-backed microlending for informal entrepreneurs, with AI-driven credit scoring sans traditional credit history.</p>
+        <div class="team">→ 4 team members · MVP</div>
+      </div>
+      <div class="project-tile">
+        <span class="project-domain domain-ai">AI / NLP</span>
+        <h4>LegalEase — Contract Simplifier</h4>
+        <p>Plain-language summaries of complex legal documents so first-generation founders understand what they sign.</p>
+        <div class="team">→ 3 team members · Ideation</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     ACT 4 — AI PLATFORM
+     ============================================================ -->
+<section class="act" id="act-4" aria-label="Multimodal multi-agent AI innovation platform">
+  <div class="act-inner">
+    <div class="act-eyebrow">Multi-Agent AI Platform</div>
+    <h2 class="act-h2">Don't Just Ask AI.<br><em>Let AI Act.</em></h2>
+    <p class="act-body">
+      Upload your project in any format. A coordinated team of specialised AI agents
+      analyses, validates, brands and pitches your idea — in parallel.
+    </p>
+    <div class="agent-orbit-display">
+      <div class="agent-list">
+        <div class="agent-item">
+          <div class="agent-icon">🔬</div>
+          <div>
+            <h5>Research Agent</h5>
+            <p>Finds patents, prior art, research gaps and whitespace opportunities</p>
+          </div>
+        </div>
+        <div class="agent-item">
+          <div class="agent-icon">💡</div>
+          <div>
+            <h5>Innovation Agent</h5>
+            <p>Scores uniqueness, feasibility and technical readiness level</p>
+          </div>
+        </div>
+        <div class="agent-item">
+          <div class="agent-icon">📊</div>
+          <div>
+            <h5>Market Agent</h5>
+            <p>Analyses market size, competitors, trends and entry strategy</p>
+          </div>
+        </div>
+        <div class="agent-item">
+          <div class="agent-icon">🎨</div>
+          <div>
+            <h5>Branding Agent</h5>
+            <p>Generates name, tagline, logo concept and brand identity</p>
+          </div>
+        </div>
+        <div class="agent-item">
+          <div class="agent-icon">📋</div>
+          <div>
+            <h5>Business Agent</h5>
+            <p>Builds revenue model, cost structure and financial projections</p>
+          </div>
+        </div>
+        <div class="agent-item">
+          <div class="agent-icon">🎤</div>
+          <div>
+            <h5>Pitch Agent</h5>
+            <p>Assembles investor-ready deck with narrative, data and design</p>
+          </div>
+        </div>
+        <div class="agent-item">
+          <div class="agent-icon">🤝</div>
+          <div>
+            <h5>Mentor Agent</h5>
+            <p>Matches your profile to the right mentors, investors and programmes</p>
+          </div>
+        </div>
+      </div>
+      <div class="platform-visual">
+        <div class="platform-core">YOUR<br><span style="color:var(--cyan)">PROJECT</span></div>
+        <div class="formats-ring">
+          <span class="format-chip">PDF</span>
+          <span class="format-chip">PPT</span>
+          <span class="format-chip">Video</span>
+          <span class="format-chip">GitHub</span>
+          <span class="format-chip">Research Paper</span>
+          <span class="format-chip">Images</span>
+          <span class="format-chip">Text</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     ACT 5 — RESEARCH & BRANDING
+     ============================================================ -->
+<section class="act" id="act-5" aria-label="Research, innovation assessment and startup branding">
+  <div class="act-inner">
+    <div class="act-eyebrow">Research &amp; Branding</div>
+    <h2 class="act-h2">From Raw Idea<br>to <em>Market Identity.</em></h2>
+    <p class="act-body">
+      Every incubated project gets a structured assessment — research validation,
+      novelty scoring, competitive mapping and a startup brand that's ready to present.
+    </p>
+    <div class="journey-steps">
+      <div class="journey-step">
+        <div class="step-dot">01</div>
+        <div class="step-content">
+          <h4>Upload Project Context</h4>
+          <p>Drop files in any format — our multimodal pipeline reads everything.</p>
+        </div>
+      </div>
+      <div class="journey-step">
+        <div class="step-dot">02</div>
+        <div class="step-content">
+          <h4>Research &amp; Patent Analysis</h4>
+          <p>Identify whitespace, prior art, relevant publications and novelty gaps.</p>
+        </div>
+      </div>
+      <div class="journey-step">
+        <div class="step-dot">03</div>
+        <div class="step-content">
+          <h4>Innovation Assessment</h4>
+          <p>Score feasibility, originality and Technology Readiness Level (TRL).</p>
+        </div>
+      </div>
+      <div class="journey-step">
+        <div class="step-dot">04</div>
+        <div class="step-content">
+          <h4>Startup Branding</h4>
+          <p>Name, tagline, identity system and brand story crafted by AI agents.</p>
+        </div>
+      </div>
+      <div class="journey-step">
+        <div class="step-dot">05</div>
+        <div class="step-content">
+          <h4>Competitive Positioning</h4>
+          <p>Market map, competitor grid and differentiation narrative — ready to share.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     ACT 6 — BUSINESS MODELS & PITCH
+     ============================================================ -->
+<section class="act" id="act-6" aria-label="Business models, pitch decks and startup readiness">
+  <div class="act-inner">
+    <div class="act-eyebrow">Business &amp; Pitch Readiness</div>
+    <h2 class="act-h2">From Blank Page<br>to <em>Launch Plan.</em></h2>
+    <p class="act-body">
+      Every conversation your team has with the platform becomes a real artifact —
+      reviewed, refined and presented to mentors and investors.
+    </p>
+    <div class="output-grid">
+      <div class="output-item">
+        <div class="output-icon">📄</div>
+        <div>
+          <h5>Innovation Report</h5>
+          <p>A clear read on novelty, feasibility and next steps your team can act on</p>
+        </div>
+      </div>
+      <div class="output-item">
+        <div class="output-icon">📊</div>
+        <div>
+          <h5>Competitor Analysis</h5>
+          <p>Market context, player map and differentiation strategy</p>
+        </div>
+      </div>
+      <div class="output-item">
+        <div class="output-icon">💼</div>
+        <div>
+          <h5>Business Model Canvas</h5>
+          <p>Revenue streams, cost structure and customer segment definition</p>
+        </div>
+      </div>
+      <div class="output-item">
+        <div class="output-icon">🎤</div>
+        <div>
+          <h5>Investor Pitch Deck</h5>
+          <p>A sharper, data-backed case for mentors and early-stage investors</p>
+        </div>
+      </div>
+      <div class="output-item">
+        <div class="output-icon">🚀</div>
+        <div>
+          <h5>Go-to-Market Strategy</h5>
+          <p>Channels, audiences, launch sequence and traction milestones</p>
+        </div>
+      </div>
+      <div class="output-item">
+        <div class="output-icon">🏷️</div>
+        <div>
+          <h5>Startup Brand Kit</h5>
+          <p>Name, story, visual identity and positioning for your venture</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     ACT 7 — FUNDING & MENTORS
+     ============================================================ -->
+<section class="act" id="act-7" aria-label="Funding, mentors, investors and industry connections">
+  <div class="act-inner">
+    <div class="act-eyebrow">Funding &amp; Connections</div>
+    <h2 class="act-h2">The Right People<br>at the <em>Right Moment.</em></h2>
+    <p class="act-body">
+      We connect validated ideas with the mentors, investors and industry programmes
+      that can turn student ventures into funded startups.
+    </p>
+    <div class="ecosystem-row">
+      <div class="eco-card">
+        <div class="eco-icon">🧭</div>
+        <h4>Mentors</h4>
+        <p>Domain experts from technology, finance, marketing and legal —
+        matched to your startup stage and sector.</p>
+      </div>
+      <div class="eco-card">
+        <div class="eco-icon">💰</div>
+        <h4>Investors</h4>
+        <p>Angel networks, venture catalysts, family offices and government
+        grant programmes (NIDHI, DST, AICTE).</p>
+      </div>
+      <div class="eco-card">
+        <div class="eco-icon">🏭</div>
+        <h4>Industry</h4>
+        <p>Corporate innovation arms, accelerators and ecosystem partners
+        providing pilot opportunities and market access.</p>
+      </div>
+    </div>
+    <div class="funding-track">
+      <div class="funding-node"><span class="f-icon">💡</span>Project</div>
+      <span class="funding-arrow-sep">→</span>
+      <div class="funding-node"><span class="f-icon">🏛️</span>Incubation</div>
+      <span class="funding-arrow-sep">→</span>
+      <div class="funding-node"><span class="f-icon">🔍</span>Validation</div>
+      <span class="funding-arrow-sep">→</span>
+      <div class="funding-node"><span class="f-icon">🤝</span>Investor Meet</div>
+      <span class="funding-arrow-sep">→</span>
+      <div class="funding-node"><span class="f-icon">📈</span>Funding</div>
+      <span class="funding-arrow-sep">→</span>
+      <div class="funding-node"><span class="f-icon">🚀</span>Growth</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     ACT 8 — EVENTS & CTA
+     ============================================================ -->
+<section class="act" id="act-8" aria-label="Events, achievements and project submission">
+  <div class="act-inner">
+    <div class="act-eyebrow">Events &amp; Achievements</div>
+    <h1 class="act-h1">
+      Learn by<br>Building
+      <em>Together.</em>
+    </h1>
+    <p class="act-body">
+      From Make-a-thons and Startup Forums to Investor Meets and Demo Days —
+      DBIT's ecosystem gives every student a stage, a challenge and a path forward.
+    </p>
+    <div class="act-buttons">
+      <a href="/signup" class="btn-primary">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>
+        Submit Your Project
+      </a>
+      <button class="btn-secondary" onclick="scrollToAct(1)">
+        Back to Start
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
+      </button>
+    </div>
+    <div class="achievement-bar">
+      <div class="achievement-stat">
+        <strong>2017</strong>
+        <span>Founded</span>
+      </div>
+      <div class="achievement-stat">
+        <strong>16+</strong>
+        <span>Events</span>
+      </div>
+      <div class="achievement-stat">
+        <strong>8</strong>
+        <span>Domains</span>
+      </div>
+      <div class="achievement-stat">
+        <strong>7</strong>
+        <span>AI Agents</span>
+      </div>
+    </div>
+    <div class="event-pills">
+      <span class="event-pill">🛠 Make-a-thon</span>
+      <span class="event-pill">🎤 Startup Forum</span>
+      <span class="event-pill">🏆 Brand Challenge</span>
+      <span class="event-pill">💼 Investor Meet</span>
+      <span class="event-pill">📚 Workshops</span>
+      <span class="event-pill">🎯 Demo Day</span>
+      <span class="event-pill">🤝 Mentorship Circles</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     FOOTER
+     ============================================================ -->
+<footer id="site-footer" role="contentinfo">
+  <a href="#">Privacy</a>
+  <a href="#">Contact</a>
+  <a href="#">DBIT</a>
+</footer>
+
+<!-- ============================================================
+     SCRIPTS
+     ============================================================ -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.167.1/build/three.module.js"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+/* ================================================================
+   SCENE CONSTANTS
+   ================================================================ */
+const TOTAL_ACTS  = 8;
+const ACT_HEIGHT  = window.innerHeight; // px each act occupies in scroll space
+// Total scroll container = 950vh, first act starts at 0
+// distribute 8 acts across the range
+
+const ACTS = [
+  { id: 'act-1', start: 0.000, end: 0.110 },
+  { id: 'act-2', start: 0.090, end: 0.225 },
+  { id: 'act-3', start: 0.205, end: 0.340 },
+  { id: 'act-4', start: 0.320, end: 0.455 },
+  { id: 'act-5', start: 0.435, end: 0.570 },
+  { id: 'act-6', start: 0.550, end: 0.685 },
+  { id: 'act-7', start: 0.665, end: 0.800 },
+  { id: 'act-8', start: 0.780, end: 1.000 },
+];
+
+/* ================================================================
+   CAMERA KEYFRAMES (position + target per act)
+   ================================================================ */
+const CAM_KEYFRAMES = [
+  // act 1 — wide establishing shot
+  { pos: new THREE.Vector3(0, 2, 22),   target: new THREE.Vector3(0, 1, 0) },
+  // act 2 — slow push in
+  { pos: new THREE.Vector3(-3, 3, 16),  target: new THREE.Vector3(0, 1.5, 0) },
+  // act 3 — slightly lower, mid-distance
+  { pos: new THREE.Vector3(2, 1.5, 13), target: new THREE.Vector3(0, 1, 0) },
+  // act 4 — close, centred on building
+  { pos: new THREE.Vector3(0, 2, 9),    target: new THREE.Vector3(0, 2, 0) },
+  // act 5 — left orbital arc
+  { pos: new THREE.Vector3(-8, 3, 10),  target: new THREE.Vector3(0, 1.5, 0) },
+  // act 6 — right orbital arc
+  { pos: new THREE.Vector3(8, 2.5, 10), target: new THREE.Vector3(0, 1.5, 0) },
+  // act 7 — pull back, slight upward angle
+  { pos: new THREE.Vector3(0, 6, 18),   target: new THREE.Vector3(0, 0, 0) },
+  // act 8 — overhead drift
+  { pos: new THREE.Vector3(2, 10, 20),  target: new THREE.Vector3(0, 0, 0) },
+];
+
+/* ================================================================
+   THREE.JS SETUP
+   ================================================================ */
+const canvas   = document.getElementById('three-canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = false;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+
+const scene  = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 200);
+camera.position.copy(CAM_KEYFRAMES[0].pos);
+camera.lookAt(CAM_KEYFRAMES[0].target);
+
+// Exponential fog — deep navy night
+scene.fog = new THREE.FogExp2(0x020818, 0.028);
+scene.background = new THREE.Color(0x020818);
+
+/* ================================================================
+   SKY GRADIENT SHADER (full-screen quad)
+   ================================================================ */
+const skyGeo = new THREE.PlaneGeometry(2, 2);
+const skyMat = new THREE.ShaderMaterial({
+  depthWrite: false,
+  depthTest: false,
+  uniforms: {
+    uTop:      { value: new THREE.Color(0x020818) },
+    uMid:      { value: new THREE.Color(0x04125d) },
+    uBottom:   { value: new THREE.Color(0x010510) },
+    uProgress: { value: 0.0 },
+  },
+  vertexShader: `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = vec4(position.xy, 1.0, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform vec3 uTop;
+    uniform vec3 uMid;
+    uniform vec3 uBottom;
+    uniform float uProgress;
+    varying vec2 vUv;
+    void main() {
+      float t = vUv.y;
+      vec3 col = mix(uBottom, uMid, smoothstep(0.0, 0.5, t));
+      col = mix(col, uTop, smoothstep(0.45, 1.0, t));
+      // progress-driven colour shift (later acts get warmer city glow)
+      vec3 warmShift = vec3(0.04, 0.02, 0.0) * uProgress;
+      col += warmShift * (1.0 - t);
+      gl_FragColor = vec4(col, 1.0);
+    }
+  `,
+});
+const skyMesh = new THREE.Mesh(skyGeo, skyMat);
+skyMesh.frustumCulled = false;
+skyMesh.renderOrder = -100;
+scene.add(skyMesh);
+
+/* ================================================================
+   GROUND PLANE
+   ================================================================ */
+const groundGeo = new THREE.PlaneGeometry(120, 120);
+const groundMat = new THREE.MeshStandardMaterial({
+  color: 0x010d2a,
+  roughness: 0.95,
+  metalness: 0.0,
+});
+const ground = new THREE.Mesh(groundGeo, groundMat);
+ground.rotation.x = -Math.PI / 2;
+ground.position.y = -0.5;
+scene.add(ground);
+
+// Reflective puddle overlay (glass-like)
+const puddleGeo = new THREE.PlaneGeometry(16, 8);
+const puddleMat = new THREE.MeshStandardMaterial({
+  color: 0x0a2060,
+  roughness: 0.05,
+  metalness: 0.8,
+  transparent: true,
+  opacity: 0.45,
+});
+const puddle = new THREE.Mesh(puddleGeo, puddleMat);
+puddle.rotation.x = -Math.PI / 2;
+puddle.position.set(0, -0.49, 4);
+scene.add(puddle);
+
+/* ================================================================
+   BUILDING IMAGE PLANE
+   ================================================================ */
+const texLoader  = new THREE.TextureLoader();
+let buildingReady = false;
+
+texLoader.load(
+  '/incubation-building.jpg',
+  (texture) => {
+    texture.colorSpace = THREE.SRGBColorSpace;
+    const aspect = texture.image.width / texture.image.height;
+    const buildW = 12;
+    const buildH = buildW / aspect;
+
+    const buildGeo = new THREE.PlaneGeometry(buildW, buildH, 1, 1);
+    const buildMat = new THREE.MeshStandardMaterial({
+      map: texture,
+      transparent: true,
+      alphaTest: 0.05,
+      roughness: 0.7,
+      metalness: 0.1,
+    });
+
+    const building = new THREE.Mesh(buildGeo, buildMat);
+    building.position.set(0, buildH / 2 - 0.5, 0);
+    scene.add(building);
+
+    // Edge fade alpha map (soft vignette)
+    const alphaCanvas = document.createElement('canvas');
+    alphaCanvas.width = alphaCanvas.height = 256;
+    const ctx = alphaCanvas.getContext('2d');
+    const grad = ctx.createRadialGradient(128, 140, 20, 128, 140, 130);
+    grad.addColorStop(0.0, 'rgba(255,255,255,1)');
+    grad.addColorStop(0.7, 'rgba(255,255,255,0.95)');
+    grad.addColorStop(1.0, 'rgba(255,255,255,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 256, 256);
+    const alphaTexture = new THREE.CanvasTexture(alphaCanvas);
+    buildMat.alphaMap = alphaTexture;
+    buildMat.needsUpdate = true;
+
+    buildingReady = true;
+  },
+  undefined,
+  () => {
+    // fallback if image doesn't load — draw a procedural building
+    buildingReady = true;
+  }
+);
+
+/* ================================================================
+   PROCEDURAL CITY LIGHTS (distant horizon boxes)
+   ================================================================ */
+function makeLight(x, y, z, color) {
+  const geo = new THREE.BoxGeometry(0.15, 0.25, 0.05);
+  const mat = new THREE.MeshBasicMaterial({ color });
+  const m   = new THREE.Mesh(geo, mat);
+  m.position.set(x, y, z);
+  return m;
+}
+
+const cityGroup = new THREE.Group();
+const lightColors = [0x2255bb, 0x00b4d8, 0x6699ff, 0xffffff, 0xfbb02d];
+for (let i = 0; i < 160; i++) {
+  const x = (Math.random() - 0.5) * 90;
+  const z = -Math.random() * 40 - 12;
+  const y = Math.random() * 6 + 0.1;
+  const c = lightColors[Math.floor(Math.random() * lightColors.length)];
+  cityGroup.add(makeLight(x, y, z, c));
+}
+scene.add(cityGroup);
+
+/* ================================================================
+   PARTICLE FIELD (ambient data/research metaphor)
+   ================================================================ */
+const PARTICLE_COUNT = 1800;
+const pPositions = new Float32Array(PARTICLE_COUNT * 3);
+const pColors    = new Float32Array(PARTICLE_COUNT * 3);
+const pSizes     = new Float32Array(PARTICLE_COUNT);
+
+const cyanV  = new THREE.Color(0x00b4d8);
+const blueV  = new THREE.Color(0x023eba);
+const whiteV = new THREE.Color(0xffffff);
+
+for (let i = 0; i < PARTICLE_COUNT; i++) {
+  const i3 = i * 3;
+  pPositions[i3]     = (Math.random() - 0.5) * 60;
+  pPositions[i3 + 1] = Math.random() * 18 - 1;
+  pPositions[i3 + 2] = (Math.random() - 0.5) * 50;
+
+  const pCol = Math.random() < 0.5 ? cyanV : (Math.random() < 0.5 ? blueV : whiteV);
+  pColors[i3]     = pCol.r;
+  pColors[i3 + 1] = pCol.g;
+  pColors[i3 + 2] = pCol.b;
+
+  pSizes[i] = Math.random() * 2.5 + 0.5;
+}
+
+const pGeo = new THREE.BufferGeometry();
+pGeo.setAttribute('position', new THREE.BufferAttribute(pPositions, 3));
+pGeo.setAttribute('color',    new THREE.BufferAttribute(pColors, 3));
+pGeo.setAttribute('size',     new THREE.BufferAttribute(pSizes, 1));
+
+const pMat = new THREE.ShaderMaterial({
+  uniforms: {
+    uTime:    { value: 0 },
+    uOpacity: { value: 0.55 },
+  },
+  vertexShader: `
+    attribute float size;
+    attribute vec3 color;
+    varying vec3 vColor;
+    uniform float uTime;
+    void main() {
+      vColor = color;
+      vec3 pos = position;
+      // gentle float
+      pos.y += sin(uTime * 0.3 + position.x * 0.4) * 0.18;
+      pos.x += cos(uTime * 0.2 + position.z * 0.3) * 0.10;
+      vec4 mvPos = modelViewMatrix * vec4(pos, 1.0);
+      gl_PointSize = size * (220.0 / -mvPos.z);
+      gl_Position  = projectionMatrix * mvPos;
+    }
+  `,
+  fragmentShader: `
+    varying vec3 vColor;
+    uniform float uOpacity;
+    void main() {
+      float d = length(gl_PointCoord - 0.5) * 2.0;
+      if (d > 1.0) discard;
+      float alpha = (1.0 - d * d) * uOpacity;
+      gl_FragColor = vec4(vColor, alpha);
+    }
+  `,
+  transparent: true,
+  vertexColors: false,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending,
+});
+
+const particles = new THREE.Points(pGeo, pMat);
+scene.add(particles);
+
+/* ================================================================
+   LIGHTING
+   ================================================================ */
+const ambientLight = new THREE.AmbientLight(0x0d1a3a, 2.0);
+scene.add(ambientLight);
+
+const moonLight = new THREE.DirectionalLight(0x2255bb, 2.5);
+moonLight.position.set(-10, 20, 5);
+scene.add(moonLight);
+
+const fillLight = new THREE.PointLight(0x00b4d8, 3.5, 30);
+fillLight.position.set(0, 4, 8);
+scene.add(fillLight);
+
+const warmFill = new THREE.PointLight(0xfbb02d, 1.2, 20);
+warmFill.position.set(5, 1, 3);
+scene.add(warmFill);
+
+// Dynamic progress-driven fill that intensifies over acts
+const progressLight = new THREE.PointLight(0x023eba, 0, 40);
+progressLight.position.set(-5, 6, 10);
+scene.add(progressLight);
+
+/* ================================================================
+   VIGNETTE OVERLAY (CSS — not a post-processing pass)
+   ================================================================ */
+const vignetteEl = document.createElement('div');
+vignetteEl.style.cssText = `
+  position:fixed;inset:0;z-index:2;pointer-events:none;
+  background:radial-gradient(ellipse at center, transparent 45%, rgba(1,4,14,0.75) 100%);
+`;
+document.body.appendChild(vignetteEl);
+
+/* ================================================================
+   SCROLL + CAMERA LERP STATE
+   ================================================================ */
+let scrollProgress = 0;
+let currentAct     = 0;
+
+const camPos    = new THREE.Vector3().copy(CAM_KEYFRAMES[0].pos);
+const camTarget = new THREE.Vector3().copy(CAM_KEYFRAMES[0].target);
+const targetPos = new THREE.Vector3().copy(CAM_KEYFRAMES[0].pos);
+const targetLk  = new THREE.Vector3().copy(CAM_KEYFRAMES[0].target);
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+function getScrollProgress() {
+  const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+  return maxScroll > 0 ? Math.min(1, Math.max(0, window.scrollY / maxScroll)) : 0;
+}
+
+function getActIndex(progress) {
+  // Which act's midrange does this progress fall in?
+  for (let i = ACTS.length - 1; i >= 0; i--) {
+    if (progress >= ACTS[i].start) return i;
+  }
+  return 0;
+}
+
+function lerpActs(progress) {
+  // find which pair of keyframes we're between
+  const segments = ACTS.length - 1;
+  const segSize  = 1 / segments;
+  const raw      = progress * segments;
+  const segIdx   = Math.min(segments - 1, Math.floor(raw));
+  const t        = raw - segIdx;
+  const ease     = t < 0.5 ? 2*t*t : -1+(4-2*t)*t; // smoothstep
+
+  const a = CAM_KEYFRAMES[segIdx];
+  const b = CAM_KEYFRAMES[Math.min(CAM_KEYFRAMES.length - 1, segIdx + 1)];
+
+  targetPos.lerpVectors(a.pos, b.pos, ease);
+  targetLk.lerpVectors(a.target, b.target, ease);
+}
+
+/* ================================================================
+   ACT OVERLAY LOGIC
+   ================================================================ */
+function updateActVisibility(progress) {
+  const acts = ACTS;
+  let activeIdx = -1;
+
+  // find which act's full window we're in
+  for (let i = 0; i < acts.length; i++) {
+    const { start, end } = acts[i];
+    if (progress >= start && progress <= end) {
+      // pick the most recent if multiple overlap (shouldn't but safety net)
+      activeIdx = i;
+    }
+  }
+
+  const els = document.querySelectorAll('.act');
+  els.forEach((el, idx) => {
+    const isTarget = idx === activeIdx;
+    if (isTarget) {
+      el.classList.add('visible');
+    } else {
+      el.classList.remove('visible');
+    }
+  });
+
+  // Update dot indicators
+  document.querySelectorAll('.act-dot').forEach((dot, idx) => {
+    dot.classList.toggle('active', idx === activeIdx);
+  });
+
+  return activeIdx;
+}
+
+/* ================================================================
+   NAV & UI updates
+   ================================================================ */
+const navEl      = document.getElementById('site-nav');
+const scrollInd  = document.getElementById('scroll-indicator');
+const footer     = document.getElementById('site-footer');
+const progressBar = document.getElementById('scroll-progress');
+
+function updateUI(progress, actIdx) {
+  navEl.classList.toggle('scrolled', progress > 0.02);
+  scrollInd.classList.toggle('hidden', progress > 0.05);
+  footer.classList.toggle('visible', progress > 0.8);
+  progressBar.style.width = `${progress * 100}%`;
+  skyMat.uniforms.uProgress.value = progress;
+}
+
+/* ================================================================
+   SCROLL EVENT
+   ================================================================ */
+window.addEventListener('scroll', () => {
+  scrollProgress = getScrollProgress();
+}, { passive: true });
+
+/* ================================================================
+   ANIMATION LOOP
+   ================================================================ */
+let lastTime = 0;
+const LERP_FACTOR = 0.04; // smooth camera lag
+
+function animate(time) {
+  requestAnimationFrame(animate);
+  const dt  = (time - lastTime) * 0.001;
+  lastTime  = time;
+
+  // Update uniforms
+  pMat.uniforms.uTime.value    = time * 0.001;
+  progressLight.intensity      = scrollProgress * 4.0;
+
+  // City lights gentle z-drift for depth
+  cityGroup.position.z = scrollProgress * 2.0;
+
+  // camera lerp
+  lerpActs(scrollProgress);
+  camPos.lerp(targetPos, LERP_FACTOR);
+  camTarget.lerp(targetLk, LERP_FACTOR);
+  camera.position.copy(camPos);
+  camera.lookAt(camTarget);
+
+  // Micro mouse parallax — gentle only
+  camera.position.x += Math.sin(time * 0.0003) * 0.08;
+  camera.position.y += Math.cos(time * 0.0002) * 0.04;
+
+  const actIdx = updateActVisibility(scrollProgress);
+  updateUI(scrollProgress, actIdx);
+
+  renderer.render(scene, camera);
+}
+animate(0);
+
+/* ================================================================
+   RESIZE
+   ================================================================ */
+window.addEventListener('resize', () => {
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+});
+
+/* ================================================================
+   DOT NAVIGATION
+   ================================================================ */
+window.scrollToAct = function(actNumber) {
+  const idx = actNumber - 1;
+  const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+  const mid = (ACTS[idx].start + ACTS[idx].end) / 2;
+  window.scrollTo({ top: maxScroll * mid, behavior: 'smooth' });
+};
+
+document.querySelectorAll('.act-dot').forEach((dot) => {
+  dot.addEventListener('click', () => {
+    const actNum = parseInt(dot.dataset.targetAct);
+    scrollToAct(actNum);
+  });
+});
+
+document.querySelectorAll('[data-act]').forEach((link) => {
+  link.addEventListener('click', (e) => {
+    e.preventDefault();
+    scrollToAct(parseInt(link.dataset.act));
+    navEl.classList.remove('scrolled');
+  });
+});
+
+/* ================================================================
+   MOBILE NAV
+   ================================================================ */
+const toggle  = document.getElementById('nav-toggle');
+const mobileMenu = document.getElementById('nav-mobile-menu');
+const closeBtn   = document.getElementById('nav-close');
+
+toggle.addEventListener('click', () => {
+  mobileMenu.classList.add('open');
+  toggle.setAttribute('aria-expanded', 'true');
+});
+closeBtn.addEventListener('click', () => {
+  mobileMenu.classList.remove('open');
+  toggle.setAttribute('aria-expanded', 'false');
+});
+
+document.querySelectorAll('[data-act-mobile]').forEach((link) => {
+  link.addEventListener('click', (e) => {
+    e.preventDefault();
+    mobileMenu.classList.remove('open');
+    toggle.setAttribute('aria-expanded', 'false');
+    scrollToAct(parseInt(link.dataset.actMobile));
+  });
+});
+
+/* ================================================================
+   KEYBOARD NAVIGATION
+   ================================================================ */
+document.addEventListener('keydown', (e) => {
+  const actIdx = getActIndex(scrollProgress);
+  if (e.key === 'ArrowDown' || e.key === 'PageDown') {
+    e.preventDefault();
+    scrollToAct(Math.min(TOTAL_ACTS, actIdx + 2));
+  }
+  if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+    e.preventDefault();
+    scrollToAct(Math.max(1, actIdx));
+  }
+});
+</script>
+</body>
+</html>
