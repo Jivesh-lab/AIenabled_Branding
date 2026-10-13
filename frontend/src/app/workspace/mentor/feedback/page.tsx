@@ -145,7 +145,7 @@ export default function MentorFeedbackPage() {
                       <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded border border-line bg-canvas text-muted-ink">{fb.sessionType}</span>
                       {replied[fb.id] && <StatusBadge label="Replied" tone="success" />}
                     </div>
-                    <p className="text-[12px] text-muted-ink mb-2">{fb.projectTitle} · {fb.sessionDate}</p>
+                    <p className="text-[12px] text-muted-ink mb-2">{fb.projectTitle}, {fb.sessionDate}</p>
 
                     {/* Star rating */}
                     <div className="flex items-center gap-1 mb-3">

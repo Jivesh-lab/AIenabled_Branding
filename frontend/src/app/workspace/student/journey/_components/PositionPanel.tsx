@@ -97,8 +97,7 @@ export default function PositionPanel({ project }: { project: StudentProject }) 
             href={isDraft ? "/workspace/student/submit" : `/workspace/student/projects/${project.id}`}
             className={isRevision ? secondaryLink : primaryLink}
           >
-            {isDraft ? "Continue Draft" : "Open Project"}
-            <ArrowRight className="size-3.5" aria-hidden="true" />
+            {isDraft ? "Continue Draft" : "Open Project Dossier"}
           </Link>
         </div>
       </Card>

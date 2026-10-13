@@ -60,7 +60,6 @@ export default function JourneyTimeline({ entries }: { entries: TimelineEntry[] 
                   className="group mt-2 inline-flex items-center gap-1 text-[13px] font-semibold text-brand transition-colors duration-150 hover:text-brand-hover focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
                 >
                   {entry.action.label}
-                  <ArrowRight className="size-3.5 transition-transform duration-150 group-hover:translate-x-0.5" aria-hidden="true" />
                 </Link>
               )}
             </div>

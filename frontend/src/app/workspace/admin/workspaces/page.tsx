@@ -190,9 +190,9 @@ export default function WorkspaceOversightPage() {
                     <span className="text-[11px] text-slate-500 font-medium">Read / Edit Oversight</span>
                     <Link
                       href={ws.path}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-indigo-600 transition-colors shadow-sm"
+                      className="inline-flex items-center px-3 py-1.5 rounded-md bg-brand text-white text-[12px] font-medium hover:bg-brand-hover transition-colors"
                     >
-                      Inspect <ArrowRight className="size-3.5" />
+                      Inspect Workspace
                     </Link>
                   </div>
                 </Card>

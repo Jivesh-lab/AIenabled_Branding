@@ -2,41 +2,54 @@ import { Users, CalendarDays, CheckSquare, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const KPIS = [
-  { label: "Active Mentees", value: "8", icon: Users, trend: "+2 this month", positive: true },
-  { label: "Sessions This Week", value: "3", icon: CalendarDays },
-  { label: "Pending Reviews", value: "2", icon: CheckSquare, alert: true },
-  { label: "Unread Messages", value: "5", icon: MessageSquare },
+  { label: "Active Startups Advised", value: "8", icon: Users, note: "Across 3 cohorts" },
+  { label: "Clinics This Week", value: "3", icon: CalendarDays, note: "Next today at 2 PM" },
+  { label: "Pending Milestone Reviews", value: "2", icon: CheckSquare, alert: true, note: "Action required" },
+  { label: "Founder Messages", value: "5", icon: MessageSquare, note: "2 unread queries" },
 ];
 
 export default function MentorKpiRow() {
   return (
-    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-      {KPIS.map((kpi) => (
-        <div
-          key={kpi.label}
-          className="flex flex-col rounded-[12px] border border-line bg-white p-5 shadow-sm shadow-slate-200/50"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[13px] font-semibold text-muted-ink">{kpi.label}</span>
-            <div className={cn("flex size-8 items-center justify-center rounded-full bg-slate-50", kpi.alert && "bg-amber-50 text-amber-600")}>
-              <kpi.icon className="size-4" strokeWidth={2} />
-            </div>
-          </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl font-bold tracking-tight text-ink">{kpi.value}</span>
-            {kpi.trend && (
-              <span
+    <section aria-label="Advisor metrics ledger">
+      <div className="grid grid-cols-2 divide-y divide-line rounded-lg border border-line bg-white sm:grid-cols-4 sm:divide-x sm:divide-y-0">
+        {KPIS.map((kpi) => (
+          <div
+            key={kpi.label}
+            className={cn(
+              "flex flex-col justify-between p-4 sm:p-5 transition-colors",
+              kpi.alert ? "bg-amber-50/40" : "bg-white"
+            )}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[13px] font-medium text-muted-ink">
+                {kpi.label}
+              </span>
+              <div
                 className={cn(
-                  "text-[11px] font-medium",
-                  kpi.positive ? "text-emerald-600" : "text-muted-ink"
+                  "flex size-6 items-center justify-center rounded",
+                  kpi.alert ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-500"
                 )}
               >
-                {kpi.trend}
+                <kpi.icon className="size-3.5" strokeWidth={2} />
+              </div>
+            </div>
+
+            <div className="mt-3">
+              <span className="tabular-nums text-[26px] font-semibold tracking-tight text-ink">
+                {kpi.value}
               </span>
-            )}
+              <p
+                className={cn(
+                  "mt-0.5 text-[12px]",
+                  kpi.alert ? "font-medium text-amber-800" : "text-slate-500"
+                )}
+              >
+                {kpi.note}
+              </p>
+            </div>
           </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+    </section>
   );
 }

@@ -110,24 +110,24 @@ export default function PitchQueuePage() {
       description="Startups saved to your personal deal flow and due diligence queue."
     >
       <div className="space-y-6">
-        {/* Header stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-          <Card className="p-4">
-            <p className="text-xs font-medium text-muted-ink">Saved Startups</p>
-            <p className="text-2xl font-bold text-ink mt-1">{items.length}</p>
-          </Card>
-          <Card className="p-4">
-            <p className="text-xs font-medium text-muted-ink">High Interest</p>
-            <p className="text-2xl font-bold text-ink mt-1">
+        {/* Header metrics strip */}
+        <div className="grid grid-cols-3 divide-x divide-line rounded-lg border border-line bg-white">
+          <div className="p-4 sm:p-5">
+            <p className="text-[13px] font-medium text-muted-ink">Saved Startups</p>
+            <p className="text-[26px] font-semibold text-ink mt-1 tabular-nums">{items.length}</p>
+          </div>
+          <div className="p-4 sm:p-5">
+            <p className="text-[13px] font-medium text-muted-ink">High Interest Ventures</p>
+            <p className="text-[26px] font-semibold text-amber-800 mt-1 tabular-nums">
               {items.filter((i) => i.interestLevel === "high_interest").length}
             </p>
-          </Card>
-          <Card className="p-4">
-            <p className="text-xs font-medium text-muted-ink">Queue Status</p>
-            <p className="text-sm font-semibold text-brand mt-1.5">
-              {items.length > 0 ? "Active Diligence" : "Empty"}
+          </div>
+          <div className="p-4 sm:p-5">
+            <p className="text-[13px] font-medium text-muted-ink">Queue Status</p>
+            <p className="text-[14px] font-medium text-brand mt-2">
+              {items.length > 0 ? "Active Diligence In Progress" : "Queue Empty"}
             </p>
-          </Card>
+          </div>
         </div>
 
         {/* Loading state */}
@@ -174,8 +174,8 @@ export default function PitchQueuePage() {
                       <div className="flex flex-wrap items-center gap-2 mb-1.5">
                         <h3 className="text-sm font-bold text-ink">{item.startupName}</h3>
                         <StatusBadge label={item.sector} tone="info" />
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-canvas border border-line text-muted-ink uppercase">
-                          {item.stage}
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-canvas border border-line text-muted-ink">
+                          Stage: {item.stage}
                         </span>
                         {item.readinessScore > 0 && (
                           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">

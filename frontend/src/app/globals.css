@@ -11,28 +11,33 @@
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-inter);
 
-  /* --- OCEAN ROYALE BRAND TOKENS (single source of truth) ---------------
-     Generates utilities: bg-brand, text-brand-deep, border-line, ring-brand/50 ...
-     Do NOT hardcode brand hex values in components; use these tokens. */
-  --color-brand-deep: #03045E;       /* PRIMARY_DEEP  - logo mark, auth brand panels */
-  --color-brand: #023EBA;            /* PRIMARY       - CTAs, links, active, focus */
-  --color-brand-hover: #023399;
-  --color-brand-active: #01287A;
-  --color-brand-cyan: #00B4D8;       /* ACCENT_CYAN   - AI features, charts */
-  --color-brand-cyan-soft: #CAF0F8;  /* LIGHT_CYAN    - soft backgrounds */
-  --color-brand-cyan-ink: #0E7490;   /* readable cyan TEXT on a cyan tint */
-  --color-brand-gold: #FBB02D;       /* ACCENT_GOLD   - warm emphasis */
-  --color-brand-gold-ink: #A16207;   /* readable gold TEXT on a gold tint */
-  --color-ink: #0F172A;              /* TEXT */
-  --color-muted-ink: #64748B;        /* MUTED_TEXT */
-  --color-line: #D8EAF0;             /* BORDER */
-  --color-canvas: #F8FAFC;           /* BACKGROUND */
-  --color-icon: #475569;             /* resting navigation / control icons */
-  --color-nav-hover: #F1FAFC;        /* navigation row hover on a light surface */
+  /* --- DELIBERATE INCUBATION STUDIO TOKENS ---------------
+     Grounded architectural palette for DBIT Innovation Centre. */
+  --color-brand-deep: #072F5F;       /* Institutional Deep Navy */
+  --color-brand: #0B4F9C;            /* Institutional Incubation Cobalt */
+  --color-brand-hover: #093F7D;
+  --color-brand-active: #072F5F;
+  --color-brand-cyan: #087E8B;       /* Studio Teal - creation & prototyping */
+  --color-brand-cyan-soft: #E6F4F6;  /* Soft Teal tint */
+  --color-brand-cyan-ink: #065B64;   /* High-contrast Teal text */
+  --color-brand-gold: #D97706;       /* Warm Amber - attention */
+  --color-brand-gold-ink: #92400E;   /* High-contrast Amber text */
+  --color-ink: #121826;              /* Architectural Charcoal-Navy */
+  --color-muted-ink: #596579;        /* Legible Slate */
+  --color-line: #E2E6EC;             /* Crisp 1px Hairline */
+  --color-canvas: #FBFBFA;           /* Warm Architectural Linen */
+  --color-icon: #4B5565;             /* Secondary icons */
+  --color-nav-hover: #F4F6F8;        /* Subtle row hover */
+
+  /* Role-Specific Identifiers */
+  --color-role-student: #087E8B;     /* Studio Teal */
+  --color-role-mentor: #2D6A4F;      /* Cedar Sage */
+  --color-role-investor: #92400E;    /* Bronze Umber */
+  --color-role-admin: #3730A3;       /* Imperial Indigo */
 
   /* Semantic state colours - state only, never decoration */
-  --color-success: #16A34A;          /* APPROVED */
-  --color-danger: #DC2626;           /* REJECTED, validation errors */
+  --color-success: #15803D;          /* APPROVED / ON TRACK */
+  --color-danger: #B91C1C;           /* REJECTED / FLAGGED */
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);

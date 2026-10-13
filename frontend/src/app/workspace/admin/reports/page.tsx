@@ -56,36 +56,36 @@ export default function ReportsPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card className="p-5 border border-slate-200 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">User Retention & Activity</span>
+              <span className="text-[13px] font-medium text-slate-600">User Retention & Activity</span>
               <Users className="size-4 text-indigo-600" />
             </div>
-            <div className="text-3xl font-extrabold text-slate-900">90.1%</div>
-            <p className="text-xs text-emerald-600 font-semibold">128 Active Users / 142 Total Accounts</p>
-            <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+            <div className="text-[26px] font-semibold text-slate-900 tabular-nums">90.1%</div>
+            <p className="text-[12px] text-emerald-700 font-medium">128 active users out of 142 total accounts</p>
+            <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
               <div className="bg-indigo-600 h-full rounded-full" style={{ width: "90%" }} />
             </div>
           </Card>
 
           <Card className="p-5 border border-slate-200 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Mentorship Coverage</span>
+              <span className="text-[13px] font-medium text-slate-600">Mentorship Coverage</span>
               <Briefcase className="size-4 text-emerald-600" />
             </div>
-            <div className="text-3xl font-extrabold text-slate-900">1 : 3.8</div>
-            <p className="text-xs text-blue-600 font-semibold">22 Active Mentors guiding 84 Student projects</p>
-            <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-              <div className="bg-emerald-500 h-full rounded-full" style={{ width: "78%" }} />
+            <div className="text-[26px] font-semibold text-slate-900 tabular-nums">1 : 3.8</div>
+            <p className="text-[12px] text-blue-700 font-medium">22 active mentors guiding 84 student projects</p>
+            <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+              <div className="bg-emerald-600 h-full rounded-full" style={{ width: "78%" }} />
             </div>
           </Card>
 
           <Card className="p-5 border border-slate-200 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Opportunity Conversion</span>
+              <span className="text-[13px] font-medium text-slate-600">Opportunity Conversion</span>
               <TrendingUp className="size-4 text-purple-600" />
             </div>
-            <div className="text-3xl font-extrabold text-slate-900">4.2 Apps / Opportunity</div>
-            <p className="text-xs text-purple-600 font-semibold">18 Opportunities posted • 76 Applications</p>
-            <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+            <div className="text-[26px] font-semibold text-slate-900 tabular-nums">4.2 Apps / Opportunity</div>
+            <p className="text-[12px] text-purple-700 font-medium">18 opportunities posted, 76 applications received</p>
+            <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
               <div className="bg-purple-600 h-full rounded-full" style={{ width: "85%" }} />
             </div>
           </Card>

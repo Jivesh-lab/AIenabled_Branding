@@ -84,7 +84,7 @@ export default function JourneyView({
       */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_18.5rem] lg:grid-rows-[auto_1fr] lg:items-start">
         <Card className="p-5 sm:p-6">
-          <p className="text-[12px] font-semibold uppercase tracking-[0.06em] text-muted-ink">Current stage</p>
+          <p className="text-[13px] font-medium text-slate-500">Current cohort stage</p>
           <h2
             className={cn(
               "mt-1 text-[20px] font-semibold tracking-tight",

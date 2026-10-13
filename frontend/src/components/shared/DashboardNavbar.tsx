@@ -273,13 +273,42 @@ export default function DashboardNavbar({
 
         {/* Brand appears here only on mobile; on desktop the sidebar owns it. */}
         <span className="text-[14px] font-semibold tracking-tight text-ink md:hidden">
-          AAI&ndash;DBITIC
+          DBIT Innovation Centre
         </span>
 
         {workspaceLabel && (
-          <span className="hidden truncate text-[13px] font-medium text-muted-ink md:inline-block">
-            {workspaceLabel}
-          </span>
+          <div className="hidden items-center gap-2 md:flex">
+            <span className="truncate text-[13px] font-medium text-ink">
+              {workspaceLabel}
+            </span>
+            <span
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded border border-line/80 px-2 py-0.5 text-[11px] font-medium",
+                workspaceLabel.includes("Student") && "bg-teal-50 text-teal-800 border-teal-200/60",
+                workspaceLabel.includes("Mentor") && "bg-emerald-50 text-emerald-800 border-emerald-200/60",
+                (workspaceLabel.includes("Investor") || workspaceLabel.includes("Partner")) && "bg-amber-50 text-amber-900 border-amber-200/60",
+                workspaceLabel.includes("Admin") && "bg-indigo-50 text-indigo-900 border-indigo-200/60"
+              )}
+            >
+              <span
+                className={cn(
+                  "size-1.5 rounded-full",
+                  workspaceLabel.includes("Student") && "bg-teal-600",
+                  workspaceLabel.includes("Mentor") && "bg-emerald-600",
+                  (workspaceLabel.includes("Investor") || workspaceLabel.includes("Partner")) && "bg-amber-600",
+                  workspaceLabel.includes("Admin") && "bg-indigo-600"
+                )}
+                aria-hidden="true"
+              />
+              {workspaceLabel.includes("Student")
+                ? "Founder"
+                : workspaceLabel.includes("Mentor")
+                ? "Advisor"
+                : workspaceLabel.includes("Investor")
+                ? "Capital"
+                : "Governance"}
+            </span>
+          </div>
         )}
       </div>
 

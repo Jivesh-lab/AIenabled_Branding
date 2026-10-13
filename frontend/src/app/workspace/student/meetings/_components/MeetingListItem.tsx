@@ -59,9 +59,8 @@ export default function MeetingListItem({ meeting }: { meeting: Meeting }) {
           <span className="tabular-nums">
             {formatClock(meeting.startTime)} – {formatClock(meeting.endTime)}
           </span>
-          <span className="text-muted-ink">
-            {" · "}
-            {MEETING_TYPE_LABEL[meeting.type]} · {meeting.host.name}
+          <span className="text-muted-ink ml-1.5">
+            ({MEETING_TYPE_LABEL[meeting.type]}, {meeting.host.name})
           </span>
         </p>
 
@@ -83,7 +82,7 @@ export default function MeetingListItem({ meeting }: { meeting: Meeting }) {
         ) : (
           meeting.agenda.length > 0 && (
             <p className="mt-2 line-clamp-1 text-[13px] text-muted-ink">
-              <span className="font-medium text-ink">Agenda:</span> {meeting.agenda.join(" · ")}
+              <span className="font-medium text-ink">Agenda:</span> {meeting.agenda.join(", ")}
             </p>
           )
         )}

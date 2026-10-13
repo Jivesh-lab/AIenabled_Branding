@@ -1,13 +1,6 @@
 /**
- * PageContainer
- * The single horizontal alignment system for every authenticated page.
- *
- * All role pages (Student / Faculty / Mentor / …) must render their content
- * inside this component so titles, sections, cards, tables and forms share one
- * content grid. Do not add ad-hoc page padding or max-widths elsewhere.
- *
- * Spacing: 24px padding on mobile, 32px from `lg` up (4px system).
- * Width:   fluid, capped at 1440px so wide viewports do not stretch cards.
+ * PageContainer — Deliberate incubation studio layout frame.
+ * Single horizontal alignment across Student, Mentor, Investor, and Admin roles.
  */
 import { cn } from "@/lib/utils";
 
@@ -23,11 +16,17 @@ export default function PageContainer({
   className?: string;
 }) {
   return (
-    <div className={cn("mx-auto w-full max-w-[1440px] px-6 py-6 lg:px-8 lg:py-8 space-y-6", className)}>
+    <div className={cn("mx-auto w-full max-w-[1400px] px-5 py-6 sm:px-8 sm:py-8 space-y-6", className)}>
       {title && (
-        <div className="space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">{title}</h1>
-          {description && <p className="text-xs text-slate-500">{description}</p>}
+        <div className="space-y-1 pb-2 border-b border-line/60 max-w-2xl">
+          <h1 className="font-heading text-[24px] sm:text-[26px] font-semibold tracking-[-0.02em] text-ink">
+            {title}
+          </h1>
+          {description && (
+            <p className="text-[13px] leading-relaxed text-muted-ink">
+              {description}
+            </p>
+          )}
         </div>
       )}
       {children}

@@ -243,7 +243,7 @@ export default function DashboardSidebar({
           {sections.map((section) => (
             <div key={section.label} className="flex flex-col gap-1">
               {expanded && (
-                <h3 className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-ink">
+                <h3 className="mb-1 px-3 text-[12px] font-medium text-slate-500">
                   {section.label}
                 </h3>
               )}

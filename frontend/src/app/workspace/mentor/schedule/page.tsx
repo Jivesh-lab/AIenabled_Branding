@@ -192,7 +192,7 @@ export default function MentorSchedulePage() {
                     <p className="text-[12px] text-muted-ink mb-1">{session.projectTitle}</p>
                     <p className="text-[12px] text-ink font-medium italic">"{session.agenda}"</p>
                     <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5 text-[11px] text-muted-ink">
-                      <span className="flex items-center gap-1"><Clock className="size-3" /> {session.time} · {session.duration}</span>
+                      <span className="flex items-center gap-1"><Clock className="size-3" /> {session.time} ({session.duration})</span>
                       <span className="flex items-center gap-1">{session.format === "Video Call" ? <Video className="size-3" /> : <MapPin className="size-3" />} {session.format}</span>
                     </div>
                   </div>

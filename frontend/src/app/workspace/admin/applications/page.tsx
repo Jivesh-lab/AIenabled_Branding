@@ -162,16 +162,16 @@ export default function ApplicationsReviewPage() {
                   tabIndex={0}
                   onKeyDown={(e) => { if (e.key === 'Enter') viewDetails(app.id); }}
                 >
-                  <div className="flex justify-between items-start">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 uppercase mb-2">
+                  <div className="flex justify-between items-start gap-2">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-amber-50 text-amber-900 border border-amber-200/60 mb-2 capitalize">
                       {app.status.replace("_", " ")}
                     </span>
-                    <span suppressHydrationWarning className="text-[10px] text-slate-400">
+                    <span suppressHydrationWarning className="text-[11px] text-slate-400 tabular-nums">
                       {isMounted && app.submittedAt ? new Date(app.submittedAt).toLocaleDateString() : 'Unknown date'}
                     </span>
                   </div>
-                  <h3 className="font-bold text-slate-900 text-sm truncate">{app.startupName}</h3>
-                  <p className="text-xs text-slate-500 truncate">{app.domain} • {app.maturity}</p>
+                  <h3 className="font-semibold text-slate-900 text-[14px] truncate">{app.startupName}</h3>
+                  <p className="text-[12px] text-slate-500 truncate mt-0.5">{app.domain}, {app.maturity}</p>
                 </div>
               ))}
             </div>

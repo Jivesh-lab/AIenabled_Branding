@@ -234,10 +234,10 @@ export default function AdminIntroductionsPage() {
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
                     <div className="flex items-center gap-2">
                       <span
-                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wider ${
+                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[11px] font-medium ${
                           item.type === "meeting_request"
-                            ? "bg-purple-100 text-purple-800"
-                            : "bg-blue-100 text-blue-800"
+                            ? "bg-purple-50 text-purple-800 border border-purple-200/50"
+                            : "bg-blue-50 text-blue-800 border border-blue-200/50"
                         }`}
                       >
                         {item.type === "meeting_request" ? (
@@ -252,12 +252,12 @@ export default function AdminIntroductionsPage() {
                       </span>
 
                       <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                        className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium ${
                           isPending
-                            ? "bg-amber-100 text-amber-800"
+                            ? "bg-amber-50 text-amber-900 border border-amber-200/60"
                             : isForwarded
-                            ? "bg-emerald-100 text-emerald-800"
-                            : "bg-red-100 text-red-800"
+                            ? "bg-emerald-50 text-emerald-800 border border-emerald-200/60"
+                            : "bg-red-50 text-red-800 border border-red-200/60"
                         }`}
                       >
                         {isPending ? "Pending Admin Review" : isForwarded ? "Forwarded to Founder" : "Declined"}
@@ -274,15 +274,15 @@ export default function AdminIntroductionsPage() {
                     {/* Investor Context */}
                     <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-100 space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                        <span className="text-[12px] font-medium text-slate-600 flex items-center gap-1.5">
                           <User className="size-3.5 text-indigo-600" /> Investor
                         </span>
                         {item.investorId?.isInvestorVerified ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                             <ShieldCheck className="size-3" /> Verified
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
                             <ShieldAlert className="size-3" /> Unverified
                           </span>
                         )}
@@ -303,7 +303,7 @@ export default function AdminIntroductionsPage() {
 
                     {/* Startup Target Context */}
                     <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-100 space-y-2">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                      <span className="text-[12px] font-medium text-slate-600 flex items-center gap-1.5">
                         <Building2 className="size-3.5 text-blue-600" /> Target Startup
                       </span>
 
@@ -327,7 +327,7 @@ export default function AdminIntroductionsPage() {
 
                   {/* Message & Proposal */}
                   <div className="p-3 rounded-lg bg-white border border-slate-200 space-y-2">
-                    <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Investor Message</p>
+                    <p className="text-[12px] font-medium text-slate-600">Investor Message</p>
                     <p className="text-xs text-slate-800 leading-relaxed italic bg-slate-50/50 p-2.5 rounded border border-slate-100">
                       &quot;{item.message}&quot;
                     </p>

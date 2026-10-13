@@ -24,8 +24,8 @@ function MeetingSection({ title, meetings, empty }: { title: string; meetings: M
   if (meetings.length === 0 && !empty) return null;
   return (
     <section aria-label={title}>
-      <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-[0.06em] text-muted-ink">
-        {title} <span className="font-medium tabular-nums">({meetings.length})</span>
+      <h2 className="mb-3 text-[14px] font-semibold text-ink">
+        {title} <span className="font-medium text-muted-ink tabular-nums">({meetings.length})</span>
       </h2>
       {meetings.length === 0 ? (
         <p className="rounded-xl border border-dashed border-line bg-white px-4 py-6 text-center text-[13px] text-muted-ink">
@@ -138,7 +138,7 @@ export default function MeetingsWorkspace({
               <div key={item._id} className="p-4 rounded-xl bg-white border border-line shadow-sm space-y-2">
                 <div className="flex items-start justify-between">
                   <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-brand px-2 py-0.5 rounded bg-brand/10">
+                    <span className="text-[11px] font-medium text-teal-800 px-2 py-0.5 rounded bg-teal-50 border border-teal-200/60">
                       {item.startupId?.name || "Startup"}
                     </span>
                     <h4 className="text-sm font-bold text-ink mt-1">

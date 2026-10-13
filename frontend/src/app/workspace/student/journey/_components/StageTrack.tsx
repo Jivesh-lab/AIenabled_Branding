@@ -24,7 +24,7 @@ function isReached(state: TrackStage["state"]) {
 export default function StageTrack({ title, stages }: { title: string; stages: TrackStage[] }) {
   return (
     <div>
-      <h3 className="mb-3 text-[12px] font-semibold uppercase tracking-[0.06em] text-muted-ink">{title}</h3>
+      <h3 className="mb-3 text-[13px] font-medium text-slate-600">{title}</h3>
 
       {/* md+ — horizontal */}
       <ol className="hidden items-start md:flex">

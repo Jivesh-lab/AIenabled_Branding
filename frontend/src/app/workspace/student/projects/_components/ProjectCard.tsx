@@ -47,7 +47,7 @@ function NextStep({ project }: { project: StudentProject }) {
         <span className="text-ink">{next.label}</span>
         {due && (
           <span className={cn("ml-1.5 whitespace-nowrap", needsAttention ? "font-medium text-brand-gold-ink" : "text-muted-ink")}>
-            · {due}
+            ({due})
           </span>
         )}
       </span>
@@ -101,7 +101,7 @@ export default function ProjectCard({ project }: { project: StudentProject }) {
               <div className="text-muted-ink">
                 <dt className="sr-only">Team and last update</dt>
                 <dd>
-                  {project.teamSize} team {project.teamSize === 1 ? "member" : "members"} · Updated{" "}
+                  {project.teamSize} team {project.teamSize === 1 ? "member" : "members"}, updated{" "}
                   {formatUpdated(project.updatedAt, MOCK_TODAY)}
                 </dd>
               </div>
@@ -115,10 +115,9 @@ export default function ProjectCard({ project }: { project: StudentProject }) {
           <Link
             href={primaryHref}
             aria-label={`${isDraft ? "Continue draft" : "Open project"}: ${project.name}`}
-            className="group inline-flex h-9 shrink-0 items-center justify-center gap-1.5 self-start rounded-lg border border-line bg-white px-3.5 text-[13px] font-semibold text-brand transition-colors duration-150 hover:border-brand/40 hover:bg-nav-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 sm:self-auto"
+            className="inline-flex h-9 shrink-0 items-center justify-center rounded-md border border-line bg-white px-3.5 text-[13px] font-medium text-brand transition-colors duration-150 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 sm:self-auto"
           >
-            {isDraft ? "Continue Draft" : "Open Project"}
-            <ArrowRight className="size-3.5 transition-transform duration-150 group-hover:translate-x-0.5" aria-hidden="true" />
+            {isDraft ? "Continue Draft" : "Open Project Dossier"}
           </Link>
         </div>
       </article>

@@ -1,66 +1,71 @@
 import Link from "next/link";
-import { ArrowRight, CalendarClock, UserRound } from "lucide-react";
-import { Card, ProgressBar, SectionHeading, StatusBadge } from "@/components/shared/Surface";
+import { CalendarClock, UserRound } from "lucide-react";
+import { ProgressBar, SectionHeading, StatusBadge } from "@/components/shared/Surface";
 import { PROJECTS } from "@/mock/student-dashboard";
 
 /**
- * The primary section of the dashboard. Each card answers the four questions a
- * student actually has: where am I, what stage, what is next, when is it due.
- *
- * The section heading sits outside the cards so projects are not cards nested
- * inside another card.
+ * Student Dashboard — Active Project Ledger.
+ * Clear architectural roster with milestone timelines, plain language, and zero trailing arrows.
  */
 export default function MyProjects() {
   return (
-    <section aria-label="My projects">
-      <SectionHeading title="My Projects" action={{ label: "View all", href: "/workspace/student/projects" }} />
+    <section aria-label="Active projects ledger">
+      <SectionHeading
+        title="Active Projects"
+        action={{ label: "View all projects", href: "/workspace/student/projects" }}
+      />
 
-      <div className="flex flex-col gap-4">
+      <div className="divide-y divide-line rounded-lg border border-line bg-white">
         {PROJECTS.map((project) => (
-          <Card key={project.id} interactive className="p-5">
-            {/* Identity */}
-            <div className="flex items-start justify-between gap-4">
+          <article
+            key={project.id}
+            className="p-5 transition-colors hover:bg-[#FAFBFB]"
+          >
+            {/* Identity and Stage */}
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
-                <h3 className="truncate text-[16px] font-semibold text-ink">{project.name}</h3>
-                <p className="mt-1 text-[13px] text-muted-ink">{project.domain}</p>
-              </div>
-              <StatusBadge label={project.stage} tone={project.stageTone} />
-            </div>
-
-            <p className="mt-2 flex items-center gap-1.5 text-[13px] text-muted-ink">
-              <UserRound className="size-3.5 shrink-0 text-brand-cyan" aria-hidden="true" />
-              Mentor: <span className="font-medium text-ink">{project.mentor}</span>
-            </p>
-
-            {/* Progress */}
-            <div className="mt-4">
-              <ProgressBar value={project.progress} label="Progress" />
-            </div>
-
-            {/* What is next */}
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-line pt-4">
-              <div className="min-w-0">
-                <p className="truncate text-[13px] text-ink">
-                  <span className="font-medium text-muted-ink">Next:</span> {project.nextMilestone}
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <h3 className="text-[16px] font-semibold text-ink">
+                    {project.name}
+                  </h3>
+                  <StatusBadge label={project.stage} tone={project.stageTone} />
+                </div>
+                <p className="mt-1 text-[13px] text-muted-ink">
+                  {project.domain}
                 </p>
-                <p className="mt-0.5 flex items-center gap-1.5 text-[12px] text-muted-ink">
+              </div>
+
+              <div className="flex items-center gap-1.5 text-[13px] text-muted-ink">
+                <UserRound className="size-3.5 shrink-0 text-slate-400" aria-hidden="true" />
+                <span>Advisor: <strong className="font-medium text-ink">{project.mentor}</strong></span>
+              </div>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="mt-4">
+              <ProgressBar value={project.progress} label="Incubation Progress" />
+            </div>
+
+            {/* Next Milestone & Action */}
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-line/60 pt-3">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px]">
+                <span className="text-muted-ink">
+                  Upcoming deliverable: <span className="font-medium text-ink">{project.nextMilestone}</span>
+                </span>
+                <span className="flex items-center gap-1.5 text-[12px] text-muted-ink">
                   <CalendarClock className="size-3.5 shrink-0" aria-hidden="true" />
                   Due {project.dueDate}
-                </p>
+                </span>
               </div>
 
               <Link
                 href={project.href}
-                className="group inline-flex shrink-0 items-center gap-1 text-[13px] font-semibold text-brand transition-colors duration-150 hover:text-brand-cyan"
+                className="text-[13px] font-medium text-brand hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
               >
-                View
-                <ArrowRight
-                  className="size-3.5 transition-transform duration-150 group-hover:translate-x-0.5"
-                  aria-hidden="true"
-                />
+                Open project details
               </Link>
             </div>
-          </Card>
+          </article>
         ))}
       </div>
     </section>
