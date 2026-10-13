@@ -1,27 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import PageContainer from "@/components/shared/PageContainer";
-import { Card } from "@/components/shared/Surface";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import {
-  Users,
   Search,
   UserPlus,
   FileSpreadsheet,
   Trash2,
-  Lock,
   Edit,
-  UserCheck,
-  UserX,
   X,
-  Upload,
-  CheckCircle,
   AlertTriangle,
-  RefreshCw,
-  Eye,
   Key,
+  ShieldCheck,
+  Check,
+  XCircle,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
 } from "lucide-react";
 
 type UserItem = {
@@ -30,18 +27,12 @@ type UserItem = {
   email: string;
   role: string;
   status: "active" | "inactive" | "pending" | "rejected";
+  isInvestorVerified?: boolean;
   mustChangePassword?: boolean;
   createdAt: string;
   lastLogin?: string;
   profile?: Record<string, string>;
 };
-
-const MOCK_USERS: UserItem[] = [
-  { _id: "u1", name: "Aarav Sharma", email: "aarav.sharma@student.edu", role: "student", status: "active", createdAt: "2026-09-01T10:00:00.000Z", profile: { department: "Computer Science" } },
-  { _id: "u2", name: "Dr. Meera Nambiar", email: "meera.nambiar@dbit.edu", role: "faculty", status: "active", createdAt: "2026-08-15T10:00:00.000Z", profile: { designation: "Associate Professor" } },
-  { _id: "u3", name: "Vikram Malhotra", email: "vikram@techcorp.com", role: "mentor", status: "pending", createdAt: "2026-09-18T14:30:00.000Z", profile: { organisation: "TechCorp India" } },
-  { _id: "u4", name: "Rohan Varma", email: "rohan@earlystage.vc", role: "investor", status: "active", createdAt: "2026-08-20T11:00:00.000Z", profile: { firmName: "EarlyStage VC" } },
-];
 
 export default function UserManagementPage() {
   const [users, setUsers] = useState<UserItem[]>([]);
@@ -51,6 +42,9 @@ export default function UserManagementPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [isMounted, setIsMounted] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalUsers, setTotalUsers] = useState(0);
 
   // Modals
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -63,6 +57,10 @@ export default function UserManagementPage() {
   const [passwordModalUser, setPasswordModalUser] = useState<UserItem | null>(null);
   const [newPasswordInput, setNewPasswordInput] = useState("");
   const [forceChangePassword, setForceChangePassword] = useState(true);
+
+  // Reject / Reason state
+  const [rejectModalUser, setRejectModalUser] = useState<UserItem | null>(null);
+  const [rejectionReasonInput, setRejectionReasonInput] = useState("");
 
   // Create Form state
   const [createForm, setCreateForm] = useState({
@@ -78,35 +76,89 @@ export default function UserManagementPage() {
   const [parsedCsvUsers, setParsedCsvUsers] = useState<Array<{ name: string; email: string; role: string; institution?: string; valid: boolean; reason?: string }>>([]);
 
   useEffect(() => {
-    setIsMounted(true);
-    fetchUsers();
-  }, [roleFilter, statusFilter]);
+    let active = true;
+    const run = async () => {
+      setLoading(true);
+      try {
+        const queryParams = new URLSearchParams();
+        if (search) queryParams.set("search", search);
+        if (roleFilter !== "all") queryParams.set("role", roleFilter);
+        if (statusFilter !== "all") queryParams.set("status", statusFilter);
+        queryParams.set("page", page.toString());
+        queryParams.set("limit", "20");
 
-  async function fetchUsers() {
+        const res = await fetch(
+          `/api/admin/users?${queryParams.toString()}`
+        );
+
+        if (res.ok) {
+          const data = await res.json();
+          if (active && Array.isArray(data.users)) {
+            setUsers(data.users);
+            if (data.pagination) {
+              setTotalPages(data.pagination.totalPages || 1);
+              setTotalUsers(data.pagination.total || data.users.length);
+            }
+          }
+        } else {
+          const err = await res.json();
+          if (active) toast.error(err.message || "Failed to fetch users from database.");
+        }
+      } catch (err) {
+        console.error("Failed to fetch users from database:", err);
+        if (active) toast.error("Network error while connecting to user directory.");
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    const timer = setTimeout(() => {
+      void run();
+    }, 0);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [search, roleFilter, statusFilter, page]);
+
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
       const queryParams = new URLSearchParams();
       if (search) queryParams.set("search", search);
       if (roleFilter !== "all") queryParams.set("role", roleFilter);
       if (statusFilter !== "all") queryParams.set("status", statusFilter);
+      queryParams.set("page", page.toString());
+      queryParams.set("limit", "20");
 
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/admin/users?${queryParams.toString()}`,
-        { credentials: "include" }
-      );
+      const res = await fetch(`/api/admin/users?${queryParams.toString()}`);
 
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data.users)) {
           setUsers(data.users);
+          if (data.pagination) {
+            setTotalPages(data.pagination.totalPages || 1);
+            setTotalUsers(data.pagination.total || data.users.length);
+          }
         }
+      } else {
+        const err = await res.json();
+        toast.error(err.message || "Failed to fetch users from database.");
       }
     } catch (err) {
       console.error("Failed to fetch users from database:", err);
+      toast.error("Network error while connecting to user directory.");
     } finally {
       setLoading(false);
     }
-  }
+  }, [search, roleFilter, statusFilter, page]);
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setIsMounted(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   // Handle single user creation
   async function handleCreateUser(e: React.FormEvent) {
@@ -117,21 +169,17 @@ export default function UserManagementPage() {
     }
 
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/admin/users`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            name: createForm.name,
-            email: createForm.email,
-            role: createForm.role,
-            tempPassword: createForm.tempPassword || undefined,
-            profile: { institution: createForm.institution || "AAI DBIT" },
-          }),
-        }
-      );
+      const res = await fetch(`/api/admin/users`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: createForm.name,
+          email: createForm.email,
+          role: createForm.role,
+          tempPassword: createForm.tempPassword || undefined,
+          profile: { institution: createForm.institution || "AAI DBIT" },
+        }),
+      });
 
       const data = await res.json();
       if (!res.ok) {
@@ -201,15 +249,11 @@ export default function UserManagementPage() {
     }
 
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/admin/users/bulk`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ users: validRows }),
-        }
-      );
+      const res = await fetch(`/api/admin/users/bulk`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ users: validRows }),
+      });
 
       const data = await res.json();
       if (!res.ok) {
@@ -233,18 +277,14 @@ export default function UserManagementPage() {
     if (!passwordModalUser) return;
 
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/admin/users/${passwordModalUser._id}/reset-password`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            newPassword: newPasswordInput || undefined,
-            mustChangePassword: forceChangePassword,
-          }),
-        }
-      );
+      const res = await fetch(`/api/admin/users/${passwordModalUser._id}/reset-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          newPassword: newPasswordInput || undefined,
+          mustChangePassword: forceChangePassword,
+        }),
+      });
       const data = await res.json();
       if (res.ok) {
         toast.success(`Password updated for ${passwordModalUser.name}! New Password: ${data.tempPassword}`);
@@ -275,15 +315,11 @@ export default function UserManagementPage() {
   async function handleToggleStatus(user: UserItem) {
     const newStatus = user.status === "active" ? "inactive" : "active";
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/admin/users/${user._id}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ status: newStatus }),
-        }
-      );
+      const res = await fetch(`/api/admin/users/${user._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
       if (res.ok) {
         toast.success(`User ${user.name} is now ${newStatus}.`);
         fetchUsers();
@@ -291,6 +327,89 @@ export default function UserManagementPage() {
       }
     } catch {
       toast.error("Failed to update user status.");
+    }
+  }
+
+  // Handle Account Approval
+  async function handleApproveUser(user: UserItem) {
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/admin/approvals/${user._id}/decide`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ decision: "approve" }),
+        }
+      );
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(`User ${user.name} approved successfully.`);
+        fetchUsers();
+        if (selectedUser && selectedUser._id === user._id) {
+          setSelectedUser({ ...selectedUser, status: "active" });
+        }
+      } else {
+        toast.error(data.message || "Failed to approve user.");
+      }
+    } catch {
+      toast.error("Network error while approving user.");
+    }
+  }
+
+  // Handle Account Rejection
+  async function handleRejectUser(user: UserItem, reason?: string) {
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/admin/approvals/${user._id}/decide`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ decision: "reject", reason: reason || "Registration rejected by Admin." }),
+        }
+      );
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(`User ${user.name} rejected.`);
+        setRejectModalUser(null);
+        setRejectionReasonInput("");
+        fetchUsers();
+        if (selectedUser && selectedUser._id === user._id) {
+          setSelectedUser({ ...selectedUser, status: "rejected", isInvestorVerified: false });
+        }
+      } else {
+        toast.error(data.message || "Failed to reject user.");
+      }
+    } catch {
+      toast.error("Network error while rejecting user.");
+    }
+  }
+
+  // Handle Investor Accreditation Verification
+  async function handleVerifyInvestor(user: UserItem) {
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/admin/approvals/${user._id}/decide`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ decision: "verify_investor" }),
+        }
+      );
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(`Investor ${user.name} verified as accredited investor.`);
+        fetchUsers();
+        if (selectedUser && selectedUser._id === user._id) {
+          setSelectedUser({ ...selectedUser, isInvestorVerified: true });
+        }
+      } else {
+        toast.error(data.message || "Failed to verify investor.");
+      }
+    } catch {
+      toast.error("Network error while verifying investor.");
     }
   }
 
@@ -303,10 +422,9 @@ export default function UserManagementPage() {
     }
 
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/admin/users/${showDeleteModal._id}?hard=true`,
-        { method: "DELETE", credentials: "include" }
-      );
+      const res = await fetch(`/api/admin/users/${showDeleteModal._id}?hard=true`, {
+        method: "DELETE",
+      });
       if (res.ok) {
         toast.success(`User ${showDeleteModal.name} permanently removed from database.`);
         setUsers((prev) => prev.filter((u) => u._id !== showDeleteModal._id));
@@ -327,15 +445,11 @@ export default function UserManagementPage() {
   async function handleBulkAction(action: "deactivate" | "delete") {
     if (selectedUserIds.length === 0) return;
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/admin/users/bulk-action`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ userIds: selectedUserIds, action }),
-        }
-      );
+      const res = await fetch(`/api/admin/users/bulk-action`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userIds: selectedUserIds, action }),
+      });
       if (res.ok) {
         toast.success(`Bulk ${action} executed for ${selectedUserIds.length} users.`);
         setSelectedUserIds([]);
@@ -462,7 +576,16 @@ export default function UserManagementPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredUsers.length === 0 ? (
+                {loading ? (
+                  <tr>
+                    <td colSpan={6} className="p-8 text-center text-slate-500">
+                      <div className="flex items-center justify-center gap-2">
+                        <Loader2 className="size-4 animate-spin text-indigo-600" />
+                        <span>Loading user accounts from database...</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : filteredUsers.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="p-8 text-center text-slate-400">
                       No user accounts found matching your filters.
@@ -492,27 +615,75 @@ export default function UserManagementPage() {
                         </span>
                       </td>
                       <td className="p-3.5">
-                        {user.status === "active" && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold text-[10px]">
-                            ACTIVE
-                          </span>
-                        )}
-                        {user.status === "inactive" && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 font-semibold text-[10px]">
-                            INACTIVE
-                          </span>
-                        )}
-                        {user.status === "pending" && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-semibold text-[10px]">
-                            PENDING
-                          </span>
-                        )}
+                        <div className="flex flex-col gap-1 items-start">
+                          {user.status === "active" && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold text-[10px]">
+                              ACTIVE
+                            </span>
+                          )}
+                          {user.status === "inactive" && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 font-semibold text-[10px]">
+                              INACTIVE
+                            </span>
+                          )}
+                          {user.status === "pending" && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-semibold text-[10px]">
+                              PENDING APPROVAL
+                            </span>
+                          )}
+                          {user.status === "rejected" && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200 font-semibold text-[10px]">
+                              REJECTED
+                            </span>
+                          )}
+                          {user.role === "investor" && (
+                            user.isInvestorVerified ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 font-semibold text-[9px]">
+                                <ShieldCheck className="size-3 text-indigo-600" /> VERIFIED
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-50 text-slate-600 border border-slate-200 font-semibold text-[9px]">
+                                UNVERIFIED ACCREDITATION
+                              </span>
+                            )
+                          )}
+                        </div>
                       </td>
                       <td suppressHydrationWarning className="p-3.5 text-slate-500 text-[11px]">
                         {isMounted ? new Date(user.createdAt).toLocaleDateString() : user.createdAt}
                       </td>
                       <td className="p-3.5 text-right">
                         <div className="flex items-center justify-end gap-1.5">
+                          {user.status === "pending" && (
+                            <>
+                              <button
+                                onClick={() => handleApproveUser(user)}
+                                className="p-1.5 rounded hover:bg-emerald-50 text-emerald-600 transition-colors"
+                                title="Approve Registration"
+                              >
+                                <Check className="size-3.5" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setRejectModalUser(user);
+                                  setRejectionReasonInput("");
+                                }}
+                                className="p-1.5 rounded hover:bg-red-50 text-red-600 transition-colors"
+                                title="Reject Registration"
+                              >
+                                <XCircle className="size-3.5" />
+                              </button>
+                            </>
+                          )}
+                          {user.role === "investor" && user.status === "active" && !user.isInvestorVerified && (
+                            <button
+                              onClick={() => handleVerifyInvestor(user)}
+                              className="p-1.5 rounded hover:bg-indigo-50 text-indigo-600 transition-colors"
+                              title="Verify Accredited Investor"
+                            >
+                              <ShieldCheck className="size-3.5" />
+                            </button>
+                          )}
                           <button
                             onClick={() => setSelectedUser(user)}
                             className="p-1.5 rounded hover:bg-slate-100 text-slate-600 transition-colors"
@@ -545,6 +716,30 @@ export default function UserManagementPage() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Pagination bar */}
+          <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200 bg-slate-50/50 text-xs text-slate-600">
+            <div>
+              Showing <span className="font-semibold text-slate-900">{users.length}</span> of{" "}
+              <span className="font-semibold text-slate-900">{totalUsers}</span> users (Page {page} of {totalPages})
+            </div>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page <= 1}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed font-medium shadow-sm transition-colors"
+              >
+                <ChevronLeft className="size-3.5" /> Previous
+              </button>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed font-medium shadow-sm transition-colors"
+              >
+                Next <ChevronRight className="size-3.5" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -748,6 +943,48 @@ export default function UserManagementPage() {
                 </div>
               </div>
 
+              {/* Approval & Accreditation Controls */}
+              <div className="space-y-2 p-3 bg-indigo-50/50 rounded-xl border border-indigo-100">
+                <label className="block text-indigo-950 font-bold text-xs">Vetting & Accreditation Controls</label>
+                
+                {selectedUser.status !== "active" && (
+                  <button
+                    onClick={() => handleApproveUser(selectedUser)}
+                    className="w-full py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+                  >
+                    <Check className="size-4" /> Approve User Account
+                  </button>
+                )}
+
+                {selectedUser.status !== "rejected" && (
+                  <button
+                    onClick={() => {
+                      setRejectModalUser(selectedUser);
+                      setRejectionReasonInput("");
+                    }}
+                    className="w-full py-2 px-3 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <XCircle className="size-4" /> Reject Registration
+                  </button>
+                )}
+
+                {selectedUser.role === "investor" && selectedUser.status === "active" && (
+                  selectedUser.isInvestorVerified ? (
+                    <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-semibold flex items-center gap-2">
+                      <ShieldCheck className="size-4 text-emerald-600" />
+                      Accredited Investor Verified
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => handleVerifyInvestor(selectedUser)}
+                      className="w-full py-2 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+                    >
+                      <ShieldCheck className="size-4" /> Verify as Accredited Investor
+                    </button>
+                  )
+                )}
+              </div>
+
               <div className="space-y-2">
                 <label className="block text-slate-700 font-semibold">Account Status</label>
                 <button
@@ -789,6 +1026,52 @@ export default function UserManagementPage() {
                   Delete Account
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* REJECT USER REGISTRATION MODAL */}
+      {rejectModalUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md bg-white rounded-xl shadow-xl border border-red-200 p-6 space-y-4 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between border-b pb-3">
+              <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2 text-red-600">
+                <XCircle className="size-5" /> Reject Registration
+              </h3>
+              <button onClick={() => setRejectModalUser(null)} className="text-slate-400 hover:text-slate-600">
+                <X className="size-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs text-slate-700">
+              <p>
+                Provide a reason for rejecting the registration for <strong>{rejectModalUser.name}</strong> ({rejectModalUser.email}):
+              </p>
+              <textarea
+                rows={3}
+                placeholder="Reason for rejection (e.g., Incomplete credentials, unauthorized role request)..."
+                value={rejectionReasonInput}
+                onChange={(e) => setRejectionReasonInput(e.target.value)}
+                className="w-full p-2.5 rounded-lg border border-slate-300 text-xs focus:ring-1 focus:ring-red-500 focus:border-red-500"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t">
+              <button
+                type="button"
+                onClick={() => setRejectModalUser(null)}
+                className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold text-xs"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleRejectUser(rejectModalUser, rejectionReasonInput)}
+                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold text-xs shadow-sm"
+              >
+                Confirm Rejection
+              </button>
             </div>
           </div>
         </div>

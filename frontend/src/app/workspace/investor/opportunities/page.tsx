@@ -16,6 +16,9 @@ import {
   Clock,
   Loader2,
   AlertCircle,
+  Calendar,
+  CheckCircle2,
+  Bot,
 } from "lucide-react";
 
 interface Startup {
@@ -54,6 +57,11 @@ export default function OpportunitiesPage() {
   const [requestType, setRequestType] = useState<"expression_of_interest" | "meeting_request">("expression_of_interest");
   const [introMessage, setIntroMessage] = useState("");
   const [submittingIntro, setSubmittingIntro] = useState(false);
+
+  // AI Scheduling fields
+  const [preferredDate, setPreferredDate] = useState("");
+  const [preferredSlot, setPreferredSlot] = useState("14:00 - 14:45 IST");
+  const [scheduledResult, setScheduledResult] = useState<Record<string, any> | null>(null);
 
   useEffect(() => {
     fetchStartups();
@@ -128,8 +136,50 @@ export default function OpportunitiesPage() {
     }
     setTargetStartup(startup);
     setRequestType(type);
-    setIntroMessage("");
+    setIntroMessage(
+      type === "meeting_request"
+        ? "We have reviewed your startup profile and would like to schedule a 30-minute founder introduction call to explore potential synergy and seed investment."
+        : "We are impressed with your milestones and would like to formally register our interest in your upcoming funding round."
+    );
+    // Default to 2 days from today in YYYY-MM-DD
+    const d = new Date(Date.now() + 86400000 * 2);
+    setPreferredDate(d.toISOString().slice(0, 10));
+    setScheduledResult(null);
     setModalOpen(true);
+  }
+
+  async function handleScheduleMeet() {
+    if (!targetStartup) return;
+    if (introMessage.trim().length < 10) {
+      toast.error("Message must be at least 10 characters.");
+      return;
+    }
+
+    setSubmittingIntro(true);
+    try {
+      const res = await fetch("/api/investor/schedule-meet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          startupId: targetStartup.id,
+          preferredDate: preferredDate || undefined,
+          preferredTimeSlot: preferredSlot,
+          message: introMessage.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setScheduledResult(data.meeting);
+        toast.success("Meeting scheduled! Confirmation emails dispatched to founder and investor.");
+      } else {
+        toast.error(data.message || "Failed to coordinate meeting schedule.");
+      }
+    } catch {
+      toast.error("Network error while connecting to AI scheduling agent.");
+    } finally {
+      setSubmittingIntro(false);
+    }
   }
 
   async function submitIntroduction() {
@@ -152,7 +202,7 @@ export default function OpportunitiesPage() {
 
       const data = await res.json();
       if (res.ok) {
-        toast.success("Introduction submitted for admin review.");
+        toast.success("Interest submitted! Admin oversight notified.");
         setModalOpen(false);
       } else {
         toast.error(data.message || "Failed to submit request.");
@@ -374,58 +424,193 @@ export default function OpportunitiesPage() {
           </div>
         )}
 
-        {/* Modal for Expression of Interest or Meeting Request */}
+        {/* Modal for Expression of Interest or AI-Scheduled Founder Meeting */}
         {modalOpen && targetStartup && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="w-full max-w-md rounded-xl bg-card border border-line p-5 shadow-xl space-y-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="w-full max-w-lg rounded-2xl bg-card border border-line p-6 shadow-2xl space-y-4">
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="text-sm font-bold text-ink">
-                    {requestType === "expression_of_interest" ? "Express Interest" : "Request Founder Meeting"}
-                  </h3>
-                  <p className="text-xs text-muted-ink mt-0.5">{targetStartup.name}</p>
+                  <div className="flex items-center gap-2">
+                    <span className="p-1 rounded-md bg-brand/10 text-brand">
+                      {requestType === "meeting_request" ? <Bot className="size-4" /> : <Sparkles className="size-4" />}
+                    </span>
+                    <h3 className="text-base font-bold text-ink">
+                      {requestType === "expression_of_interest"
+                        ? "Express Investor Interest"
+                        : "AI Agent: Schedule Founder Meet"}
+                    </h3>
+                  </div>
+                  <p className="text-xs text-muted-ink mt-1 font-medium">
+                    Target Startup: <span className="text-ink font-semibold">{targetStartup.name}</span> ({targetStartup.sector})
+                  </p>
                 </div>
                 <button
-                  onClick={() => setModalOpen(false)}
-                  className="text-muted-ink hover:text-ink text-xs font-semibold"
+                  onClick={() => {
+                    setModalOpen(false);
+                    setScheduledResult(null);
+                  }}
+                  className="size-7 rounded-lg hover:bg-canvas flex items-center justify-center text-muted-ink hover:text-ink text-sm font-semibold transition-colors"
                 >
                   ✕
                 </button>
               </div>
 
-              <div className="text-xs text-muted-ink bg-canvas/60 p-3 rounded-lg border border-line leading-relaxed">
-                <Clock className="size-3.5 inline mr-1 text-brand-gold" />
-                Requests are reviewed by the Incubation Centre admin team before forwarding to the founder.
-              </div>
+              {scheduledResult ? (
+                /* Success View After Meeting is Scheduled */
+                <div className="space-y-4 py-2">
+                  <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-950 space-y-2">
+                    <div className="flex items-center gap-2 text-emerald-700 font-bold text-sm">
+                      <CheckCircle2 className="size-5 shrink-0" />
+                      <span>Meeting Confirmed & Dispatched by AI Agent!</span>
+                    </div>
+                    <p className="text-xs text-emerald-800 leading-relaxed">
+                      The Incubation AI Agent has coordinated mutual availability between you and founder{" "}
+                      <strong>{scheduledResult.founderName}</strong>. Official calendar invites & email notifications have been sent to both parties.
+                    </p>
+                  </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-ink mb-1.5">
-                  Message to Admin & Founders (minimum 20 characters)
-                </label>
-                <textarea
-                  rows={4}
-                  value={introMessage}
-                  onChange={(e) => setIntroMessage(e.target.value)}
-                  placeholder="Introduce yourself, mention your investment thesis, or specify your proposed meeting agenda..."
-                  className="w-full px-3 py-2 text-xs border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/30 resize-none bg-card text-ink"
-                />
-              </div>
+                  <div className="p-3.5 rounded-xl border border-line bg-canvas/50 text-xs space-y-2">
+                    <div className="flex justify-between py-1 border-b border-line/60">
+                      <span className="text-muted-ink">Scheduled Time:</span>
+                      <span className="font-semibold text-ink">
+                        {scheduledResult.date} at {scheduledResult.time} ({scheduledResult.timeZone})
+                      </span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-line/60">
+                      <span className="text-muted-ink">Founder Email:</span>
+                      <span className="font-semibold text-ink">{scheduledResult.founderEmail}</span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-line/60">
+                      <span className="text-muted-ink">Your Email:</span>
+                      <span className="font-semibold text-ink">{scheduledResult.investorEmail}</span>
+                    </div>
+                    <div className="flex justify-between py-1">
+                      <span className="text-muted-ink">Secure Room URL:</span>
+                      <a
+                        href={scheduledResult.meetingLink}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-semibold text-brand hover:underline flex items-center gap-1"
+                      >
+                        {scheduledResult.meetingLink}
+                        <ExternalLink className="size-3" />
+                      </a>
+                    </div>
+                  </div>
 
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  onClick={() => setModalOpen(false)}
-                  className="px-3 py-1.5 rounded-lg border border-line text-xs font-semibold text-muted-ink hover:bg-canvas"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={submitIntroduction}
-                  disabled={submittingIntro || introMessage.trim().length < 20}
-                  className="px-4 py-1.5 rounded-lg bg-brand text-white text-xs font-semibold hover:bg-brand-hover disabled:opacity-50"
-                >
-                  {submittingIntro ? "Submitting..." : "Submit for Review"}
-                </button>
-              </div>
+                  <div className="flex justify-end pt-2">
+                    <button
+                      onClick={() => {
+                        setModalOpen(false);
+                        setScheduledResult(null);
+                      }}
+                      className="px-5 py-2 rounded-xl bg-brand text-white text-xs font-semibold hover:bg-brand-hover shadow-sm"
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* Form View */
+                <>
+                  <div className="text-xs text-muted-ink bg-canvas/60 p-3 rounded-xl border border-line leading-relaxed flex items-start gap-2">
+                    <Bot className="size-4 shrink-0 text-brand mt-0.5" />
+                    <div>
+                      {requestType === "meeting_request" ? (
+                        <span>
+                          <strong>Autonomous Scheduling:</strong> The AI Agent will match founder availability, create a secure room link, and dispatch meet emails to both you and the founder.
+                        </span>
+                      ) : (
+                        <span>
+                          <strong>Express Interest:</strong> Alerts the incubation center and startup founders regarding your interest in their funding pipeline.
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {requestType === "meeting_request" && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                      <div>
+                        <label className="block text-xs font-semibold text-ink mb-1.5 flex items-center gap-1.5">
+                          <Calendar className="size-3.5 text-brand" />
+                          Preferred Date
+                        </label>
+                        <input
+                          type="date"
+                          value={preferredDate}
+                          onChange={(e) => setPreferredDate(e.target.value)}
+                          className="w-full px-3 py-2 text-xs border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/30 bg-card text-ink"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-ink mb-1.5 flex items-center gap-1.5">
+                          <Clock className="size-3.5 text-brand" />
+                          Preferred Time Window
+                        </label>
+                        <select
+                          value={preferredSlot}
+                          onChange={(e) => setPreferredSlot(e.target.value)}
+                          className="w-full px-3 py-2 text-xs border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/30 bg-card text-ink"
+                        >
+                          <option value="11:00 - 11:45 IST">Morning (11:00 AM - 11:45 AM IST)</option>
+                          <option value="14:00 - 14:45 IST">Afternoon (02:00 PM - 02:45 PM IST)</option>
+                          <option value="16:30 - 17:15 IST">Evening (04:30 PM - 05:15 PM IST)</option>
+                          <option value="18:00 - 18:45 IST">Late Evening (06:00 PM - 06:45 PM IST)</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-xs font-semibold text-ink mb-1.5">
+                      Message / Meeting Agenda (min 10 characters)
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={introMessage}
+                      onChange={(e) => setIntroMessage(e.target.value)}
+                      placeholder="Introduce your fund, specify investment thesis or questions for the founders..."
+                      className="w-full px-3 py-2 text-xs border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/30 resize-none bg-card text-ink"
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-2">
+                    <button
+                      onClick={() => setModalOpen(false)}
+                      className="px-4 py-2 rounded-xl border border-line text-xs font-semibold text-muted-ink hover:bg-canvas transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    {requestType === "meeting_request" ? (
+                      <button
+                        onClick={handleScheduleMeet}
+                        disabled={submittingIntro || introMessage.trim().length < 10}
+                        className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-brand text-white text-xs font-semibold hover:bg-brand-hover disabled:opacity-50 transition-colors shadow-sm"
+                      >
+                        {submittingIntro ? (
+                          <>
+                            <Loader2 className="size-3.5 animate-spin" />
+                            AI Scheduling...
+                          </>
+                        ) : (
+                          <>
+                            <Bot className="size-3.5" />
+                            AI Schedule Meet & Send Emails
+                          </>
+                        )}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={submitIntroduction}
+                        disabled={submittingIntro || introMessage.trim().length < 20}
+                        className="px-5 py-2 rounded-xl bg-brand text-white text-xs font-semibold hover:bg-brand-hover disabled:opacity-50 transition-colors shadow-sm"
+                      >
+                        {submittingIntro ? "Submitting..." : "Submit Interest"}
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}

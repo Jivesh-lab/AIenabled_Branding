@@ -33,8 +33,8 @@ async function seedSuperAdmin() {
       user.role = 'super_admin';
       user.emailVerified = true;
 
-      // Keep existing secret or generate new if absent
-      if (!user.twoFactorSecret) {
+      // Ensure secret exists and satisfies >= 16 bytes (32 base32 chars)
+      if (!user.twoFactorSecret || user.twoFactorSecret.length < 32) {
         secret = generateSecret();
         user.twoFactorSecret = secret;
         user.twoFactorEnabled = true;

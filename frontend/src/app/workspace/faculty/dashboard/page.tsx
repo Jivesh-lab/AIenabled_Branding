@@ -108,9 +108,14 @@ export default function FacultyDashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Supervised Projects */}
+          {/* Supervised Projects with Monitoring Agent Health & Exceptions */}
           <div className="lg:col-span-2 space-y-4">
-            <SectionHeading title="Supervised Student Projects" action={{ label: "View all", href: "/workspace/faculty/student-projects" }} />
+            <div className="flex items-center justify-between">
+              <SectionHeading title="Supervised Student Projects & AI Health Tracking" action={{ label: "View all", href: "/workspace/faculty/student-projects" }} />
+              <span className="text-[11px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-full">
+                Monitoring Agent Active
+              </span>
+            </div>
             <div className="space-y-3">
               {SUPERVISED_PROJECTS.map((proj) => (
                 <Card key={proj.id} interactive className="p-4">
@@ -124,9 +129,32 @@ export default function FacultyDashboardPage() {
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded bg-canvas border border-line text-muted-ink">TRL {proj.trl}</span>
                       <StatusBadge label={proj.stage} tone={proj.status} />
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          proj.progress >= 70
+                            ? "bg-emerald-100 text-emerald-800"
+                            : proj.progress >= 40
+                            ? "bg-amber-100 text-amber-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {proj.progress >= 70 ? "On Track" : proj.progress >= 40 ? "Needs Attention" : "At Risk"}
+                      </span>
                     </div>
                   </div>
                   <ProgressBar value={proj.progress} label={`Completion: ${proj.progress}%`} />
+                  
+                  {proj.progress < 70 && (
+                    <div className="mt-3 p-2.5 rounded-lg bg-amber-50/70 border border-amber-200/60 text-[11px] text-amber-900 flex items-start gap-2">
+                      <AlertCircle className="size-3.5 text-amber-700 shrink-0 mt-0.5" />
+                      <div>
+                        <strong>Monitoring Agent Intervention:</strong>{" "}
+                        {proj.progress < 40 
+                          ? "Progress reports overdue > 14 days. Coordinator check-in recommended to review laboratory bottlenecks."
+                          : "1 milestone overdue. Review sprint task deadlines with student founder."}
+                      </div>
+                    </div>
+                  )}
                 </Card>
               ))}
             </div>

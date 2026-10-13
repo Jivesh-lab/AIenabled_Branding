@@ -7,8 +7,8 @@
  * the selected date. Status, grouping and counts are derived from props on
  * every render; nothing is copied into state.
  */
-import { useRef, useState } from "react";
-import { CalendarPlus } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { CalendarPlus, Bot, Video, Mail, CheckCircle, ExternalLink } from "lucide-react";
 import { formatDayLabel } from "@/lib/dates";
 import { Card } from "@/components/shared/Surface";
 import PageHeader from "@/components/shared/PageHeader";
@@ -76,11 +76,28 @@ export default function MeetingsWorkspace({
     setView({ year: d.getUTCFullYear(), month: d.getUTCMonth() });
   }
 
+  const [investorMeetings, setInvestorMeetings] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function loadInvestorIntros() {
+      try {
+        const res = await fetch("/api/founder/introductions");
+        if (res.ok) {
+          const data = await res.json();
+          setInvestorMeetings(data.introductions || []);
+        }
+      } catch (err) {
+        console.error("Failed to load investor intros", err);
+      }
+    }
+    loadInvestorIntros();
+  }, []);
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Meetings"
-        description="Manage your mentor, faculty and incubation meetings."
+        description="Manage your mentor, faculty, and investor discovery meetings."
         actions={
           <button
             type="button"
@@ -93,6 +110,75 @@ export default function MeetingsWorkspace({
           </button>
         }
       />
+
+      {/* AI Scheduled Investor Meetings Banner */}
+      {investorMeetings.length > 0 && (
+        <div className="rounded-2xl border border-brand/20 bg-gradient-to-r from-brand/5 via-brand/10 to-transparent p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="p-1.5 rounded-lg bg-brand text-white">
+                <Bot className="size-4" />
+              </span>
+              <div>
+                <h3 className="text-sm font-bold text-ink">
+                  AI-Scheduled Investor Discovery Meetings ({investorMeetings.length})
+                </h3>
+                <p className="text-xs text-muted-ink">
+                  Meetings coordinated automatically by the AI Agent upon accredited investor interest.
+                </p>
+              </div>
+            </div>
+            <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-100 border border-emerald-300 px-2.5 py-1 rounded-full flex items-center gap-1">
+              <CheckCircle className="size-3" /> Confirmed
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+            {investorMeetings.map((item) => (
+              <div key={item._id} className="p-4 rounded-xl bg-white border border-line shadow-sm space-y-2">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-brand px-2 py-0.5 rounded bg-brand/10">
+                      {item.startupId?.name || "Startup"}
+                    </span>
+                    <h4 className="text-sm font-bold text-ink mt-1">
+                      {item.investorId?.name || "Accredited Investor"}
+                    </h4>
+                    <p className="text-xs text-muted-ink flex items-center gap-1 mt-0.5">
+                      <Mail className="size-3" /> {item.investorId?.email}
+                    </p>
+                  </div>
+                </div>
+
+                {item.scheduledMeeting && (
+                  <div className="text-xs text-ink bg-canvas/60 p-2.5 rounded-lg border border-line space-y-1">
+                    <p className="font-semibold text-brand flex items-center gap-1.5">
+                      <CalendarPlus className="size-3.5" />
+                      {item.scheduledMeeting.date} &bull; {item.scheduledMeeting.time} ({item.scheduledMeeting.timeZone})
+                    </p>
+                    {item.scheduledMeeting.meetingLink && (
+                      <a
+                        href={item.scheduledMeeting.meetingLink}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-brand hover:underline mt-1"
+                      >
+                        <Video className="size-3" /> Join AI Meeting Room <ExternalLink className="size-2.5" />
+                      </a>
+                    )}
+                  </div>
+                )}
+
+                {item.message && (
+                  <p className="text-xs text-slate-600 italic line-clamp-2">
+                    &ldquo;{item.message}&rdquo;
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {requestOpen && (
         <div ref={panelRef} className="scroll-mt-24">

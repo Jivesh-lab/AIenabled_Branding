@@ -21,11 +21,6 @@ const SUPER_ADMIN_NAV: NavSection[] = [
         icon: LayoutDashboard,
         label: "Super Admin Portal",
       },
-      {
-        href: "/workspace/student/dashboard",
-        icon: Layers,
-        label: "Workspace Switcher",
-      },
     ],
   },
   {

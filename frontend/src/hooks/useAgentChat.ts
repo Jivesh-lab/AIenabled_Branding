@@ -114,7 +114,7 @@ export function useAgentChat(userId: string, userRole: string = 'student', start
         }
       };
 
-      eventSource.onerror = (err) => {
+      eventSource.onerror = () => {
         eventSource.close();
         setState((prev) => ({ ...prev, isLoading: false, error: 'Connection lost to agent service.' }));
       };
@@ -125,8 +125,9 @@ export function useAgentChat(userId: string, userRole: string = 'student', start
         setState((prev) => ({ ...prev, isLoading: false }));
       });
 
-    } catch (error: any) {
-      setState((prev) => ({ ...prev, isLoading: false, error: error.message }));
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "An error occurred";
+      setState((prev) => ({ ...prev, isLoading: false, error: msg }));
     }
   }, [state.sessionId, userId, userRole, startupId]);
 

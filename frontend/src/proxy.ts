@@ -47,18 +47,20 @@ export async function proxy(req: NextRequest) {
 
     const userRole = token.role as string;
 
-    // Super Admin & Admin have access to oversight/inspect workspace segments
-    if (userRole === "super_admin" || userRole === "admin") {
-      return NextResponse.next();
-    }
-
     // Extract workspace segment: /workspace/[segment]/...
     const segments = pathname.split("/"); // ['', 'workspace', 'student', ...]
     const workspaceSegment = segments[2];
 
     const allowedRole = WORKSPACE_ROLE_SEGMENT[workspaceSegment];
 
-    if (allowedRole && userRole !== allowedRole) {
+    // super_admin has full system-wide access to inspect any workspace
+    // admin can inspect other operational workspaces (student, faculty, mentor, investor)
+    const canAccess =
+      userRole === "super_admin" ||
+      userRole === allowedRole ||
+      (userRole === "admin" && allowedRole !== "super_admin");
+
+    if (allowedRole && !canAccess) {
       const ownWorkspace = ROLE_WORKSPACE[userRole];
       if (ownWorkspace) {
         return NextResponse.redirect(new URL(ownWorkspace, req.url));
@@ -69,15 +71,8 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // --- Guard: auth pages → redirect if already logged in --------------------
-  if (isLoggedIn && (pathname === "/login" || pathname === "/signup")) {
-    const userRole = token.role as string;
-    const workspace = ROLE_WORKSPACE[userRole];
-    if (workspace) {
-      return NextResponse.redirect(new URL(workspace, req.url));
-    }
-  }
-
+  // --- Public auth pages: /login and /signup are freely accessible at all times
+  // so users can register, sign in, switch accounts, or onboard new roles without being bounced.
   return NextResponse.next();
 }
 
