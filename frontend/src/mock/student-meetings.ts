@@ -211,10 +211,10 @@ export const MEETINGS: Meeting[] = [
     date: "2026-09-02",
     startTime: "16:00",
     endTime: "17:00",
-    host: { name: "Incubation Committee", role: "AAI–DBITIC" },
+    host: { name: "Incubation Committee", role: "DBIT Incubation Centre" },
     participants: [RIYA, { name: "Dr. Rohan Mehta", role: "Faculty Guide" }],
     agenda: ["Project pitch", "Committee questions", "Incubation decision"],
-    location: "AAI–DBITIC Innovation Centre, Board Room",
+    location: "DBIT Incubation Centre, Board Room",
     minutes: "Approved for incubation. Pilot deployment in Hostel B agreed as the first milestone.",
     actionItems: [
       { id: "a5-1", title: "Sign the incubation agreement", assignee: "Riya Patel", dueDate: "2026-09-09", status: "DONE", studentEditable: true },

@@ -1,6 +1,6 @@
 /**
  * IncubationPipeline
- * Restrained visual showing the AAI–DBITIC innovation lifecycle:
+ * Restrained visual showing the DBIT Incubation Centre lifecycle:
  * Idea → Research → Prototype → Incubation → Impact
  *
  * Lives at the bottom of the LoginBrandPanel.

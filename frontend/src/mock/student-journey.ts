@@ -44,7 +44,7 @@ export const JOURNEY_EVENTS: JourneyEvent[] = [
     type: "SUBMITTED",
     date: "2026-09-12",
     title: "Idea submitted",
-    description: "Your idea was submitted and entered the AAI–DBITIC review pipeline.",
+    description: "Your idea was submitted and entered the DBIT Incubation Centre review pipeline.",
   },
   {
     id: "e1-2",
@@ -63,7 +63,7 @@ export const JOURNEY_EVENTS: JourneyEvent[] = [
     type: "SUBMITTED",
     date: "2026-08-25",
     title: "Idea submitted",
-    description: "Your idea was submitted and entered the AAI–DBITIC review pipeline.",
+    description: "Your idea was submitted and entered the DBIT Incubation Centre review pipeline.",
   },
   {
     id: "e2-2",
@@ -103,7 +103,7 @@ export const JOURNEY_EVENTS: JourneyEvent[] = [
     type: "SUBMITTED",
     date: "2026-08-20",
     title: "Idea submitted",
-    description: "Your idea was submitted and entered the AAI–DBITIC review pipeline.",
+    description: "Your idea was submitted and entered the DBIT Incubation Centre review pipeline.",
   },
   {
     id: "e3-2",
@@ -133,7 +133,7 @@ export const JOURNEY_EVENTS: JourneyEvent[] = [
     type: "SUBMITTED",
     date: "2026-07-15",
     title: "Idea submitted",
-    description: "Your idea was submitted and entered the AAI–DBITIC review pipeline.",
+    description: "Your idea was submitted and entered the DBIT Incubation Centre review pipeline.",
   },
   {
     id: "e4-2",
@@ -184,7 +184,7 @@ export const JOURNEY_EVENTS: JourneyEvent[] = [
     type: "SUBMITTED",
     date: "2026-09-12",
     title: "Idea submitted",
-    description: "Your idea was submitted and entered the AAI–DBITIC review pipeline.",
+    description: "Your idea was submitted and entered the DBIT Incubation Centre review pipeline.",
   },
 
   // 7 — Rural Tele-Pharmacy · REJECTED · DEPARTMENT_REVIEW · IDEA
@@ -194,7 +194,7 @@ export const JOURNEY_EVENTS: JourneyEvent[] = [
     type: "SUBMITTED",
     date: "2026-08-01",
     title: "Idea submitted",
-    description: "Your idea was submitted and entered the AAI–DBITIC review pipeline.",
+    description: "Your idea was submitted and entered the DBIT Incubation Centre review pipeline.",
   },
   {
     id: "e7-2",

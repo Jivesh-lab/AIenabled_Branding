@@ -253,7 +253,7 @@ export default function FacultyCoordinatorPage() {
   return (
     <PageContainer
       title="Faculty Coordinator Control Center"
-      description="Executive governance, mentor allocation authorizations, volunteer assignments, and cohort milestone compliance for DBITIC Incubation."
+      description="Executive governance, mentor allocation authorizations, volunteer assignments, and cohort milestone compliance for DBIT Incubation Centre."
     >
       <div className="space-y-6">
         {/* Coordinator Identity Banner */}
@@ -273,7 +273,7 @@ export default function FacultyCoordinatorPage() {
               </div>
               <h1 className="text-xl font-bold text-white mt-0.5">Dr. K. R. Raman</h1>
               <p className="text-xs text-blue-100/80">
-                Institutional Lead · Don Bosco Institute of Technology Incubation Centre (DBITIC)
+                Institutional Lead · Don Bosco Institute of Technology Incubation Centre (DBIT)
               </p>
             </div>
           </div>

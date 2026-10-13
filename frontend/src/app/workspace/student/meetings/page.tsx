@@ -5,7 +5,7 @@ import { STUDENT_PROJECTS } from "@/mock/student-projects";
 import MeetingsWorkspace from "./_components/MeetingsWorkspace";
 
 export const metadata: Metadata = {
-  title: "Meetings | AAI–DBITIC",
+  title: "Meetings | DBIT Incubation Centre",
 };
 
 /**

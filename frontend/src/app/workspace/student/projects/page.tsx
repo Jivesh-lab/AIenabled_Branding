@@ -7,7 +7,7 @@ import { authOptions } from "@/lib/auth";
 import { SignJWT } from "jose";
 
 export const metadata: Metadata = {
-  title: "My Projects | AAI–DBITIC",
+  title: "My Projects | DBIT Incubation Centre",
 };
 
 const AGENT_SERVICE_URL = process.env.AGENT_SERVICE_URL || "http://127.0.0.1:8000";

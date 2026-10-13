@@ -226,7 +226,7 @@ export default function OpportunitiesPage() {
   return (
     <PageContainer
       title="Investment Opportunities"
-      description="Curated directory of approved startups actively incubated at AAI–DBITIC."
+      description="Curated directory of approved startups actively incubated at DBIT Incubation Centre."
     >
       <div className="space-y-6">
         {/* Verification Alert Banner if unverified */}

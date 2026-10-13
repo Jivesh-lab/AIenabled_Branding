@@ -212,7 +212,7 @@ export default function FacultyVolunteerPage() {
               </div>
               <h1 className="text-xl font-bold text-white mt-0.5">Prof. Ananya Sen</h1>
               <p className="text-xs text-blue-100/80">
-                Department of Computer Science & Artificial Intelligence · DBITIC
+                Department of Computer Science & Artificial Intelligence · DBIT Incubation Centre
               </p>
             </div>
           </div>

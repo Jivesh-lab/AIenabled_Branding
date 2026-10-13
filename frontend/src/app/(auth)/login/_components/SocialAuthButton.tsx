@@ -50,7 +50,7 @@ export default function SocialAuthButton({ provider, onClick }: SocialAuthButton
       onClick(provider);
     } else {
       console.info(
-        `[AAI-DBITIC] Social auth for "${provider}" is not yet configured. ` +
+        `[DBIT Incubation Centre] Social auth for "${provider}" is not yet configured. ` +
           `This will be connected during the OAuth/backend integration phase.`
       );
     }

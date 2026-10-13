@@ -1,5 +1,5 @@
 /**
- * Form field primitives shared by every AAI–DBITIC form.
+ * Form field primitives shared by every DBIT Incubation Centre form.
  *
  * FormField renders the label, required marker, hint and error around any
  * control, and wires the ids so the control can reference them through

@@ -1,5 +1,5 @@
 /**
- * AAI–DBITIC project status model — the single definition in code.
+ * DBIT Incubation Centre project status model — the single definition in code.
  *
  * A project carries THREE independent fields. They are never merged into one
  * enum, and one is never displayed as another (docs/ai-agents/ui-design-system.md §15.2).
