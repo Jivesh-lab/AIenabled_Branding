@@ -62,7 +62,7 @@ async function sendEmail({ to, subject, html, text }) {
     const transporter = await getTransporter();
     if (transporter) {
       const info = await transporter.sendMail({
-        from: `"AAI-DBITIC Incubation Centre" <${fromAddress}>`,
+        from: `"DBIT Incubation Centre" <${fromAddress}>`,
         to,
         subject,
         text: text || '',
@@ -115,7 +115,7 @@ async function sendMeetingScheduledEmails({
   const investorSubject = `Confirmed: Founder Introduction Meeting with ${startupName}`;
   const investorHtml = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 10px;">
-      <h2 style="color: #1e3a8a;">AAI-DBITIC Incubation Centre</h2>
+      <h2 style="color: #1e3a8a;">DBIT Incubation Centre</h2>
       <p>Dear <strong>${investorName}</strong>,</p>
       <p>Your meeting with <strong>${founderName}</strong>, founder of <strong>${startupName}</strong>, has been scheduled by the Incubation AI Agent.</p>
       
@@ -129,7 +129,7 @@ async function sendMeetingScheduledEmails({
       <p style="color: #64748b; font-size: 13px;"><em>Agenda & Notes:</em> ${message || 'Pitch discussion, synergy discovery, and milestone review.'}</p>
       
       <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
-      <p style="font-size: 12px; color: #94a3b8;">Incubation Office | Don Bosco Institute of Technology Innovation Centre</p>
+      <p style="font-size: 12px; color: #94a3b8;">Incubation Office | Don Bosco Institute of Technology Incubation Centre (DBIT)</p>
     </div>
   `;
 
@@ -137,7 +137,7 @@ async function sendMeetingScheduledEmails({
   const founderSubject = `New Investor Meeting Scheduled: ${investorName} with ${startupName}`;
   const founderHtml = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 10px;">
-      <h2 style="color: #1e3a8a;">AAI-DBITIC Incubation Centre</h2>
+      <h2 style="color: #1e3a8a;">DBIT Incubation Centre</h2>
       <p>Dear <strong>${founderName}</strong>,</p>
       <p>Great news! Verified investor <strong>${investorName}</strong> expressed interest in <strong>${startupName}</strong>. The Incubation AI Agent has coordinated mutual availability and confirmed your introduction meeting.</p>
       
@@ -152,7 +152,7 @@ async function sendMeetingScheduledEmails({
       
       <p style="font-size: 13px; color: #334155;">Please have your pitch deck and traction metrics ready before the call.</p>
       <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
-      <p style="font-size: 12px; color: #94a3b8;">Incubation Office | Don Bosco Institute of Technology Innovation Centre</p>
+      <p style="font-size: 12px; color: #94a3b8;">Incubation Office | Don Bosco Institute of Technology Incubation Centre (DBIT)</p>
     </div>
   `;
 

@@ -4,7 +4,7 @@ import PageContainer from "@/components/shared/PageContainer";
 import IdeaSubmissionWizard from "./_components/IdeaSubmissionWizard";
 
 export const metadata: Metadata = {
-  title: "Submit a New Idea | AAI–DBITIC",
+  title: "Submit a New Idea | DBIT Incubation Centre",
 };
 
 const REVIEW_STEPS = [
@@ -59,7 +59,7 @@ export default function SubmitIdeaPage() {
         <header>
           <h1 className="text-[28px] font-bold leading-tight tracking-tight text-ink">Submit a New Idea</h1>
           <p className="mt-1.5 text-[14px] text-muted-ink">
-            Tell us about the idea you want to develop through AAI–DBITIC.
+            Tell us about the idea you want to develop through DBIT Incubation Centre.
           </p>
         </header>
 

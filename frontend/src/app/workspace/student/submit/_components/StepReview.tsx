@@ -9,7 +9,7 @@ import type { IdeaFormValues, StepIndex } from "../_lib/idea-schema";
 import { formatBytes } from "@/lib/format";
 
 const DECLARATION =
-  "I confirm that the information provided is accurate and that this work is my original work or that I have the necessary rights to submit it. I agree to the applicable AAI–DBITIC institutional and intellectual-property policies.";
+  "I confirm that the information provided is accurate and that this work is my original work or that I have the necessary rights to submit it. I agree to the applicable DBIT Incubation Centre institutional and intellectual-property policies.";
 
 function ReviewGroup({
   title,

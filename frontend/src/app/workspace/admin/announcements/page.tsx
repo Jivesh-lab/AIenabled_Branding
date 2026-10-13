@@ -52,20 +52,20 @@ const EMAIL_TEMPLATES = [
   {
     id: "welcome",
     name: "Onboarding Welcome & Credentials",
-    subject: "Welcome to AAI-DBITIC Incubation Platform",
+    subject: "Welcome to DBIT Incubation Centre Platform",
     body: "Dear {{name}},\n\nYour user account has been provisioned under the role {{role}}. Please log in using your temporary password:\nTemp Password: {{tempPassword}}\n\nLog in at: http://localhost:3000/login",
   },
   {
     id: "password_reset",
     name: "Admin Password Reset Notice",
-    subject: "Password Reset for Your AAI-DBITIC Account",
+    subject: "Password Reset for Your DBIT Incubation Centre Account",
     body: "Dear {{name}},\n\nYour account password has been reset by an administrator.\nNew Temporary Password: {{tempPassword}}\n\nYou will be required to set a new password upon first sign-in.",
   },
   {
     id: "approval_accepted",
     name: "Registration Approved Notice",
     subject: "Your Registration Application Has Been Approved",
-    body: "Dear {{name}},\n\nYour application to join the AAI-DBITIC ecosystem as a {{role}} has been reviewed and approved! You may now sign in to your workspace.",
+    body: "Dear {{name}},\n\nYour application to join the DBIT Incubation Centre ecosystem as a {{role}} has been reviewed and approved! You may now sign in to your workspace.",
   },
 ];
 

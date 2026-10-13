@@ -1,5 +1,5 @@
 /**
- * Thin fetch wrapper for AAI–DBITIC API calls.
+ * Thin fetch wrapper for DBIT Incubation Centre API calls.
  *
  * - Always includes credentials (so the httpOnly aai_token cookie travels with requests)
  * - Sets JSON Content-Type by default

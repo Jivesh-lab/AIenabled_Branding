@@ -2,14 +2,15 @@
 
 /**
  * LoginForm
- * Glassmorphism card form for the new full-bleed photo login page.
- * Logic unchanged; only the container and field styling updated to
- * match the AAI-DBITIC template (white frosted glass card on photo bg).
+ * Clean, focused form for the split-screen login page.
+ * All auth logic (NextAuth, 2FA, role-based redirect) is preserved exactly.
+ * Visual redesign only: no glass card container (page handles the white bg),
+ * clean inputs, consistent spacing, no decorative noise.
  */
 
 import Link from "next/link";
 import { useState } from "react";
-import { Eye, EyeOff, ArrowRight, Mail, Lock, ShieldAlert } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -54,35 +55,26 @@ function ButtonSpinner() {
 }
 
 // ---------------------------------------------------------------------------
-// Small sparkle icon next to heading (from template)
-// ---------------------------------------------------------------------------
-function SparkleIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="size-6 text-blue-500" fill="currentColor" aria-hidden="true">
-      <path d="M12 2l1.5 5.5L19 9l-5.5 1.5L12 16l-1.5-5.5L5 9l5.5-1.5L12 2z" />
-    </svg>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Main LoginForm
+// LoginForm
 // ---------------------------------------------------------------------------
 export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [require2FA, setRequire2FA] = useState(false);
+  const [require2FA, setRequire2FA]   = useState(false);
   const [twoFactorCode, setTwoFactorCode] = useState("");
   const router = useRouter();
-
   const searchParams = useSearchParams();
 
   const {
     register,
     handleSubmit,
     formState: { errors },
-    getValues,
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: searchParams?.get("email") || "",
+      password: "",
+    },
   });
 
   async function onSubmit(values: LoginFormValues) {
@@ -92,7 +84,7 @@ export default function LoginForm() {
         redirect: false,
         email: values.email,
         password: values.password,
-        ...(require2FA && twoFactorCode ? { twoFactorCode: twoFactorCode } : {}),
+        ...(require2FA && twoFactorCode ? { twoFactorCode } : {}),
       });
 
       if (!result) {
@@ -171,63 +163,50 @@ export default function LoginForm() {
   }
 
   async function handleSocialAuth(provider: string) {
-    await signIn(provider, { callbackUrl: "/" });
+    await signIn(provider, { callbackUrl: "/login" });
   }
 
-  // Shared input classes for glass card inputs
+  // Input base styles
   const inputCls = (hasError?: boolean) =>
     cn(
-      "h-10 pl-9 border border-slate-200 bg-white/80 text-slate-900 placeholder:text-slate-400 rounded-lg",
-      "focus-visible:ring-2 focus-visible:ring-blue-500/30 focus-visible:border-blue-500",
-      "backdrop-blur-sm transition-all",
-      hasError && "border-red-400 focus-visible:ring-red-400/30 focus-visible:border-red-400"
+      "h-11 border border-slate-200 bg-white text-slate-900 rounded-xl text-sm",
+      "placeholder:text-slate-400 transition-all duration-150",
+      "focus-visible:ring-2 focus-visible:ring-blue-600/20 focus-visible:border-blue-600",
+      hasError && "border-red-400 bg-red-50/20 focus-visible:ring-red-400/20 focus-visible:border-red-400"
     );
 
   return (
-    /* -- Glass card ---------------------------------------------------- */
-    <div
-      className={cn(
-        "w-full rounded-2xl p-8",
-        "bg-white/85 backdrop-blur-xl",
-        "border border-white/60",
-        "shadow-[0_8px_48px_rgba(0,0,0,0.12)]",
-      )}
-    >
-      {/* Heading */}
-      <div className="mb-7 flex items-start gap-2">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            Welcome back <SparkleIcon />
-          </h2>
-          <p className="mt-1 text-sm text-slate-500">
-            Sign in to your AAI-DBITIC account
-          </p>
-        </div>
+    <div className="w-full">
+      {/* ── Heading ─────────────────────────────────────────────── */}
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
+          Welcome back
+        </h2>
+        <p className="mt-1 text-sm text-slate-500">
+          Sign in to continue to your workspace.
+        </p>
       </div>
 
-      {/* Form */}
+      {/* ── Form ────────────────────────────────────────────────── */}
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
 
         {/* Email */}
         <div className="space-y-1.5">
           <Label htmlFor="login-email" className="text-sm font-medium text-slate-700">
-            Work email
+            Email address
           </Label>
-          <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400 pointer-events-none" aria-hidden="true" />
-            <Input
-              id="login-email"
-              type="email"
-              autoComplete="email"
-              placeholder="you@example.com"
-              aria-invalid={!!errors.email}
-              aria-describedby={errors.email ? "login-email-error" : undefined}
-              className={inputCls(!!errors.email)}
-              {...register("email")}
-            />
-          </div>
+          <Input
+            id="login-email"
+            type="email"
+            autoComplete="email"
+            placeholder="you@college.edu"
+            aria-invalid={!!errors.email}
+            aria-describedby={errors.email ? "login-email-error" : undefined}
+            className={inputCls(!!errors.email)}
+            {...register("email")}
+          />
           {errors.email && (
-            <p id="login-email-error" role="alert" className="text-xs text-red-500">
+            <p id="login-email-error" role="alert" className="text-xs text-red-500 mt-1">
               {errors.email.message}
             </p>
           )}
@@ -239,29 +218,22 @@ export default function LoginForm() {
             <Label htmlFor="login-password" className="text-sm font-medium text-slate-700">
               Password
             </Label>
-            <Link
-              href="/forgot-password"
-              className="text-xs text-blue-600 hover:text-blue-700 hover:underline transition-colors"
-            >
-              Forgot password?
-            </Link>
           </div>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400 pointer-events-none" aria-hidden="true" />
             <Input
               id="login-password"
               type={showPassword ? "text" : "password"}
               autoComplete="current-password"
-              placeholder="Enter your password"
+              placeholder="Your password"
               aria-invalid={!!errors.password}
               aria-describedby={errors.password ? "login-password-error" : undefined}
-              className={cn(inputCls(!!errors.password), "pr-10")}
+              className={cn(inputCls(!!errors.password), "pr-11")}
               {...register("password")}
             />
             <button
               type="button"
               aria-label={showPassword ? "Hide password" : "Show password"}
-              onClick={() => setShowPassword((prev) => !prev)}
+              onClick={() => setShowPassword((p) => !p)}
               className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 hover:text-slate-600 transition-colors focus-visible:outline-none"
             >
               {showPassword ? (
@@ -272,34 +244,44 @@ export default function LoginForm() {
             </button>
           </div>
           {errors.password && (
-            <p id="login-password-error" role="alert" className="text-xs text-red-500">
+            <p id="login-password-error" role="alert" className="text-xs text-red-500 mt-1">
               {errors.password.message}
             </p>
           )}
+          {/* Forgot password */}
+          <div className="flex justify-end pt-0.5">
+            <Link
+              href="/forgot-password"
+              className="text-xs text-blue-600 hover:text-blue-700 hover:underline transition-colors"
+            >
+              Forgot password?
+            </Link>
+          </div>
         </div>
 
-        {/* 2FA */}
+        {/* 2FA block */}
         {require2FA && (
-          <div className="space-y-1.5 p-3.5 rounded-xl border border-amber-200 bg-amber-50/80 animate-in fade-in duration-200">
-            <div className="flex items-center gap-2 mb-1 text-amber-900 font-semibold text-xs uppercase tracking-wider">
+          <div className="space-y-2 p-4 rounded-xl border border-amber-200 bg-amber-50">
+            <div className="flex items-center gap-2 text-amber-800 text-xs font-semibold uppercase tracking-wide">
               <ShieldAlert className="size-4 text-amber-600" aria-hidden="true" />
-              Two-Factor Security Code Required
+              Two-factor code required
             </div>
             <Label htmlFor="login-2fa" className="text-xs text-slate-700 font-medium">
-              Authenticator 6-Digit Code
+              6-digit authenticator code
             </Label>
             <Input
               id="login-2fa"
               type="text"
+              inputMode="numeric"
               maxLength={6}
-              placeholder="123456"
+              placeholder="123 456"
               value={twoFactorCode}
               onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, ""))}
-              className="h-10 text-center text-lg tracking-widest font-mono border-amber-300 bg-white focus-visible:ring-amber-500"
+              className="h-11 text-center text-xl tracking-[0.3em] font-mono border-amber-300 bg-white focus-visible:ring-amber-400/30 focus-visible:border-amber-400"
               autoFocus
             />
             <p className="text-[11px] text-slate-500">
-              Open your authenticator app and enter the 6-digit passcode.
+              Open your authenticator app and enter the current 6-digit code.
             </p>
           </div>
         )}
@@ -309,50 +291,49 @@ export default function LoginForm() {
           type="submit"
           disabled={isSubmitting}
           className={cn(
-            "w-full flex items-center justify-center gap-2 mt-2",
-            "h-11 rounded-xl px-4 text-sm font-semibold text-white",
-            "bg-blue-700 hover:bg-blue-800 active:bg-blue-900",
-            "transition-colors duration-150 shadow-md shadow-blue-700/20",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/50",
+            "w-full h-11 flex items-center justify-center gap-2",
+            "rounded-xl px-4 text-sm font-medium text-white",
+            "bg-blue-600 hover:bg-blue-700 active:bg-blue-800",
+            "transition-colors",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/40 focus-visible:ring-offset-2",
             "disabled:opacity-60 disabled:cursor-not-allowed"
           )}
         >
           {isSubmitting ? (
             <>
               <ButtonSpinner />
-              Signing in.....
+              Signing in…
             </>
           ) : (
             <>
-              Sign In
+              Sign in
               <ArrowRight className="size-4" aria-hidden="true" />
             </>
           )}
         </button>
       </form>
 
-      {/* Divider */}
+      {/* ── Divider + Social ─────────────────────────────────────── */}
       <div className="my-5 flex items-center gap-3">
         <Separator className="flex-1 bg-slate-200" />
-        <span className="text-xs text-slate-400 font-medium">or continue with</span>
+        <span className="text-xs text-slate-400 font-medium px-1">or continue with</span>
         <Separator className="flex-1 bg-slate-200" />
       </div>
 
-      {/* Social auth */}
       <div className="flex gap-2.5">
-        <SocialAuthButton provider="google" onClick={handleSocialAuth} />
-        <SocialAuthButton provider="github" onClick={handleSocialAuth} />
+        <SocialAuthButton provider="google"   onClick={handleSocialAuth} />
+        <SocialAuthButton provider="github"   onClick={handleSocialAuth} />
         <SocialAuthButton provider="facebook" onClick={handleSocialAuth} />
       </div>
 
-      {/* Sign up link */}
-      <p className="mt-6 text-center text-sm text-slate-500">
+      {/* ── Sign up link ─────────────────────────────────────────── */}
+      <p className="mt-6 text-center text-xs text-slate-500">
         Don&apos;t have an account?{" "}
         <Link
           href="/signup"
-          className="font-semibold text-blue-600 hover:text-blue-700 hover:underline transition-colors"
+          className="font-medium text-blue-600 hover:text-blue-700 hover:underline transition-colors"
         >
-          Contact Admin
+          Create account
         </Link>
       </p>
     </div>
