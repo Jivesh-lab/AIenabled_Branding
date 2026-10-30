@@ -10,7 +10,8 @@ const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/aai_dbitic
 const USERS_TO_SEED = [
   {
     name: 'Aarav Patel (Student Founder)',
-    email: 'student@aai-dbitic.edu',
+    email: process.env.STUDENT_EMAIL || 'omkargotawade05@gmail.com',
+    previousEmails: ['student@aai-dbitic.edu'],
     password: process.env.STUDENT_PASSWORD || 'Student#2026!Pass',
     role: 'student',
     emailVerified: true,
@@ -86,7 +87,8 @@ const USERS_TO_SEED = [
   },
   {
     name: 'Rohit Singhania (Angel Investor)',
-    email: 'investor@aai-dbitic.edu',
+    email: process.env.INVESTOR_EMAIL || 'jp13boss@gmail.com',
+    previousEmails: ['investor@aai-dbitic.edu'],
     password: process.env.INVESTOR_PASSWORD || 'Investor#2026!Pass',
     role: 'investor',
     emailVerified: true,
@@ -146,8 +148,12 @@ async function seedAllUsers() {
       const passwordHash = await User.hashPassword(password);
 
       let user = await User.findOne({ email: normalizedEmail });
+      if (!user && (userData.previousEmails || []).length > 0) {
+        user = await User.findOne({ email: { $in: userData.previousEmails } });
+      }
 
       if (user) {
+        user.email = normalizedEmail;
         user.name = name;
         user.passwordHash = passwordHash;
         user.role = role;

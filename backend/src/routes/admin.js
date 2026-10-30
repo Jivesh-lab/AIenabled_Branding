@@ -6,6 +6,7 @@ const User = require('../models/User');
 const Announcement = require('../models/Announcement');
 const ModerationItem = require('../models/ModerationItem');
 const StartupProfile = require('../models/StartupProfile');
+const FacultyProject = require('../models/FacultyProject');
 const { authenticate, requireRole } = require('../middleware/auth');
 const { logAuditTrail } = require('../middleware/auditLogger');
 
@@ -812,6 +813,37 @@ router.post('/applications/:id/sync-startup', async (req, res) => {
       { $set: profileData },
       { upsert: true, new: true, runValidators: true }
     );
+
+    // If approved, also synchronize to FacultyProject for Faculty Coordinator Control Center
+    if (Boolean(isApproved)) {
+      const stageRaw = startup.stage || startup.maturity || 'Prototype';
+      const stageCap = stageRaw.charAt(0).toUpperCase() + stageRaw.slice(1).toLowerCase();
+      await FacultyProject.findOneAndUpdate(
+        { id: String(applicationId) },
+        {
+          $set: {
+            id: String(applicationId),
+            title: startup.name.trim(),
+            domain: (startup.sector || startup.domain || 'Technology').trim(),
+            stage: stageCap,
+            leadStudent: applicantId && String(applicantId).includes('@') ? String(applicantId).split('@')[0] : 'Student Founder',
+            rollNumber: 'DBIT-2026',
+            department: startup.department || 'Information Technology',
+            teamMembers: startup.teamMembers || [{ name: 'Lead Founder', role: 'Student Lead', email: applicantId }],
+            assignedCoordinatorName: 'Dr. K. R. Raman',
+            assignedVolunteerName: 'Prof. Ananya Sen',
+            allocatedMentorName: null,
+            trl: stageCap.toLowerCase().includes('mvp') ? 5 : 4,
+            progress: 50,
+            health: 'On Track',
+            description: (startup.tagline || startup.problem || '').trim(),
+            nextMilestone: 'Cohort Induction & Guide Allocation',
+            nextMilestoneDate: '2026-11-15',
+          }
+        },
+        { upsert: true }
+      );
+    }
 
     return res.status(200).json({
       success: true,

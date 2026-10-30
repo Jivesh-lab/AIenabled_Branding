@@ -6,20 +6,34 @@ import {
   Shield,
   FileText,
   Users,
-  Settings,
-  Activity,
   Layers,
+  Megaphone,
 } from "lucide-react";
 import { NavSection } from "@/components/shared/DashboardSidebar";
 
 const SUPER_ADMIN_NAV: NavSection[] = [
   {
-    label: "Main",
+    label: "Super Admin Controls",
     items: [
       {
-        href: "/workspace/super-admin/dashboard",
+        href: "/workspace/super-admin/dashboard?tab=overview",
         icon: LayoutDashboard,
-        label: "Super Admin Portal",
+        label: "Control Center",
+      },
+      {
+        href: "/workspace/super-admin/dashboard?tab=users",
+        icon: Users,
+        label: "User Management",
+      },
+      {
+        href: "/workspace/super-admin/dashboard?tab=workspaces",
+        icon: Layers,
+        label: "Workspace Inspector",
+      },
+      {
+        href: "/workspace/super-admin/dashboard?tab=announce",
+        icon: Megaphone,
+        label: "Broadcast Center",
       },
     ],
   },
@@ -27,12 +41,12 @@ const SUPER_ADMIN_NAV: NavSection[] = [
     label: "Governance & Security",
     items: [
       {
-        href: "/workspace/super-admin/dashboard#audit-logs",
+        href: "/workspace/super-admin/dashboard?tab=audit",
         icon: FileText,
         label: "System Audit Logs",
       },
       {
-        href: "/workspace/super-admin/dashboard#security-policy",
+        href: "/workspace/super-admin/dashboard?tab=security",
         icon: Shield,
         label: "Security & MFA Policy",
       },
@@ -41,8 +55,8 @@ const SUPER_ADMIN_NAV: NavSection[] = [
 ];
 
 const mockSuperAdminUser = {
-  name: "System Owner",
-  role: "Super Admin",
+  name: "Super Admin",
+  role: "System Owner",
   initials: "SA",
 };
 

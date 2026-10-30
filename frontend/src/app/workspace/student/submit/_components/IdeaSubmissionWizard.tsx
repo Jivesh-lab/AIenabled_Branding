@@ -47,6 +47,7 @@ import StepProblemSolution from "./StepProblemSolution";
 import StepTeamTechnology from "./StepTeamTechnology";
 import StepReview from "./StepReview";
 import SubmissionSuccess from "./SubmissionSuccess";
+import AgentExecutionPipeline from "./AgentExecutionPipeline";
 
 const btn = {
   primary:
@@ -73,7 +74,17 @@ export default function IdeaSubmissionWizard() {
   const [saveState, setSaveState] = useState<SaveState>({ kind: "idle" });
   const [draftDecided, setDraftDecided] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState<{ name: string; referenceId: string } | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [evaluatingValues, setEvaluatingValues] = useState<IdeaFormValues | null>(null);
+  const [isPipelineComplete, setIsPipelineComplete] = useState(false);
+  const [pipelineResult, setPipelineResult] = useState<any | null>(null);
+  const [submitted, setSubmitted] = useState<{
+    name: string;
+    referenceId: string;
+    agentEvaluation?: any;
+    documentsCount?: number;
+    submittedValues?: Record<string, unknown>;
+  } | null>(null);
 
   const rawDraft = useSyncExternalStore(subscribeToDraft, readRawDraft, getDraftServerSnapshot);
   const pendingDraft = draftDecided ? null : parseDraft(rawDraft);
@@ -149,6 +160,12 @@ export default function IdeaSubmissionWizard() {
   // -------------------------------------------------------------------------
   async function onValid(values: IdeaFormValues) {
     setIsSubmitting(true);
+    setEvaluatingValues(values);
+    setIsPipelineComplete(false);
+    setPipelineResult(null);
+    setSubmitError(null);
+    scrollToTop();
+
     try {
       const response = await fetch("/api/applications/submit", {
         method: "POST",
@@ -163,16 +180,21 @@ export default function IdeaSubmissionWizard() {
       }
 
       clearDraft();
+      setPipelineResult(data);
+      setIsPipelineComplete(true);
       setSubmitted({
         name: values.name.trim() || "Untitled idea",
         referenceId: data.application_id || `IDEA-${new Date().getFullYear()}`,
+        agentEvaluation: data.agent_evaluation || null,
+        documentsCount: values.attachments?.length || 0,
+        submittedValues: values,
       });
-      scrollToTop();
     } catch (error: any) {
       console.error("Submission error:", error);
-      alert(error.message || "An error occurred during submission");
-    } finally {
       setIsSubmitting(false);
+      setEvaluatingValues(null);
+      setSubmitError(error.message || "An error occurred during submission");
+      scrollToTop();
     }
   }
 
@@ -190,18 +212,43 @@ export default function IdeaSubmissionWizard() {
     setFurthest(0);
     setSaveState({ kind: "idle" });
     setSubmitted(null);
+    setSubmitError(null);
+    setIsSubmitting(false);
+    setEvaluatingValues(null);
+    setIsPipelineComplete(false);
+    setPipelineResult(null);
     scrollToTop();
   }
 
   // -------------------------------------------------------------------------
   // Render
   // -------------------------------------------------------------------------
+  // Active Agent Execution Pipeline while submitting or viewing intermediate outputs
+  if (isSubmitting && evaluatingValues) {
+    return (
+      <div ref={topRef} className="scroll-mt-24">
+        <AgentExecutionPipeline
+          ideaValues={evaluatingValues}
+          isComplete={isPipelineComplete}
+          agentResult={pipelineResult}
+          onContinue={() => {
+            setIsSubmitting(false);
+            scrollToTop();
+          }}
+        />
+      </div>
+    );
+  }
+
   if (submitted) {
     return (
       <div ref={topRef} className="scroll-mt-24">
         <SubmissionSuccess
           ideaName={submitted.name}
           referenceId={submitted.referenceId}
+          agentEvaluation={submitted.agentEvaluation}
+          documentsCount={submitted.documentsCount}
+          submittedValues={submitted.submittedValues}
           onSubmitAnother={startOver}
         />
       </div>
@@ -213,6 +260,28 @@ export default function IdeaSubmissionWizard() {
   return (
     <FormProvider {...form}>
       <div ref={topRef} className="flex scroll-mt-24 flex-col gap-4">
+        {/* Submission error alert banner */}
+        {submitError && (
+          <div
+            role="alert"
+            className="flex items-start justify-between rounded-lg border border-red-200 bg-red-50 p-4 text-[13px] text-red-800 shadow-sm"
+          >
+            <div className="flex items-start gap-2.5">
+              <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full bg-red-200 text-[10px] font-bold text-red-700">!</span>
+              <div>
+                <strong className="font-semibold">Submission Error:</strong> {submitError}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSubmitError(null)}
+              className="text-xs font-semibold text-red-600 hover:text-red-900 ml-4"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
         {/* Resume an existing draft — offered, never silently applied */}
         {pendingDraft && (
           <div

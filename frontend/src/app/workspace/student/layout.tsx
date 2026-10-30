@@ -7,6 +7,7 @@ import {
   FolderKanban,
   Route,
   CalendarDays,
+  Coins,
 } from "lucide-react";
 
 const MOCK_USER = {
@@ -24,6 +25,7 @@ const STUDENT_SECTIONS: NavSection[] = [
     label: "Innovation",
     items: [
       { label: "My Projects", icon: FolderKanban, href: "/workspace/student/projects" },
+      { label: "Funding & Grants", icon: Coins, href: "/workspace/student/funding" },
     ],
   },
   {

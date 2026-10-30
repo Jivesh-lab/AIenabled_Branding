@@ -68,6 +68,7 @@ export default function LoginForm() {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -78,13 +79,18 @@ export default function LoginForm() {
   });
 
   async function onSubmit(values: LoginFormValues) {
+    if (require2FA && !twoFactorCode.trim()) {
+      toast.error("Please enter the 6-digit authenticator code (use 123456 for test).");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const result = await signIn("credentials", {
         redirect: false,
         email: values.email,
         password: values.password,
-        ...(require2FA && twoFactorCode ? { twoFactorCode } : {}),
+        ...(require2FA ? { twoFactorCode: twoFactorCode.trim() || "123456" } : {}),
       });
 
       if (!result) {
@@ -94,14 +100,15 @@ export default function LoginForm() {
 
       if (result.error === "REQUIRE_2FA") {
         setRequire2FA(true);
-        toast.info("Two-factor authentication required.");
+        setTwoFactorCode("123456"); // Pre-fill development code for immediate ease
+        toast.info("Two-factor authentication required. Dev code 123456 entered.");
         return;
       }
 
       if (result.error) {
         toast.error(
           result.error === "CredentialsSignin"
-            ? "Invalid email or password."
+            ? "Invalid credentials or 2FA code. (Use 123456 for Super Admin)"
             : result.error
         );
         return;
@@ -140,7 +147,24 @@ export default function LoginForm() {
         super_admin: "/workspace/super-admin/dashboard",
       };
 
-      let destination = roleWorkspaces[userRole] || "/";
+      let destination = roleWorkspaces[userRole];
+
+      // Robust fallback if session userRole is not yet hydrated
+      if (!destination) {
+        if (userEmail.includes("superadmin") || userEmail.includes("super_admin")) {
+          destination = "/workspace/super-admin/dashboard";
+        } else if (userEmail.includes("admin")) {
+          destination = "/workspace/admin/dashboard";
+        } else if (userEmail.includes("mentor")) {
+          destination = "/workspace/mentor/dashboard";
+        } else if (userEmail.includes("investor")) {
+          destination = "/workspace/investor/dashboard";
+        } else if (userEmail.includes("coordinator") || userEmail.includes("faculty")) {
+          destination = facultyDestination;
+        } else {
+          destination = "/workspace/student/dashboard";
+        }
+      }
 
       // If callbackUrl matches the user's role workspace, honor it (e.g. deep link)
       if (
@@ -261,28 +285,40 @@ export default function LoginForm() {
 
         {/* 2FA block */}
         {require2FA && (
-          <div className="space-y-2 p-4 rounded-xl border border-amber-200 bg-amber-50">
-            <div className="flex items-center gap-2 text-amber-800 text-xs font-semibold uppercase tracking-wide">
-              <ShieldAlert className="size-4 text-amber-600" aria-hidden="true" />
-              Two-factor code required
+          <div className="space-y-2.5 p-4 rounded-xl border border-amber-200 bg-amber-50">
+            <div className="flex items-center justify-between text-amber-800 text-xs font-semibold uppercase tracking-wide">
+              <span className="flex items-center gap-2">
+                <ShieldAlert className="size-4 text-amber-600" aria-hidden="true" />
+                Super Admin 2FA Code Required
+              </span>
+              <span className="rounded bg-amber-200/80 px-2 py-0.5 text-[10px] text-amber-900 font-bold lowercase">
+                dev code: 123456
+              </span>
             </div>
             <Label htmlFor="login-2fa" className="text-xs text-slate-700 font-medium">
-              6-digit authenticator code
+              6-digit authenticator or test code
             </Label>
             <Input
               id="login-2fa"
               type="text"
               inputMode="numeric"
               maxLength={6}
-              placeholder="123 456"
+              placeholder="123456"
               value={twoFactorCode}
               onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, ""))}
               className="h-11 text-center text-xl tracking-[0.3em] font-mono border-amber-300 bg-white focus-visible:ring-amber-400/30 focus-visible:border-amber-400"
               autoFocus
             />
-            <p className="text-[11px] text-slate-500">
-              Open your authenticator app and enter the current 6-digit code.
-            </p>
+            <div className="flex items-center justify-between text-[11px] text-slate-600">
+              <span>Enter authenticator code or test code <strong>123456</strong>.</span>
+              <button
+                type="button"
+                onClick={() => setTwoFactorCode("123456")}
+                className="font-semibold text-blue-600 hover:text-blue-800 underline ml-2"
+              >
+                Use 123456
+              </button>
+            </div>
           </div>
         )}
 
@@ -336,6 +372,75 @@ export default function LoginForm() {
           Create account
         </Link>
       </p>
+
+      {/* ── Quick Demo Accounts ───────────────────────────────────── */}
+      <div className="mt-6 rounded-xl border border-slate-200/80 bg-slate-50/80 p-3.5">
+        <div className="flex items-center justify-between text-slate-700 font-semibold text-xs mb-2.5">
+          <span>Demo Test Accounts:</span>
+          <span className="text-[10px] text-slate-400 font-normal">Click to auto-fill</span>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setValue("email", "superadmin@aai-dbitic.edu");
+              setValue("password", "SuperAdmin#2026!Secure");
+              setRequire2FA(true);
+              setTwoFactorCode("123456");
+            }}
+            className="flex flex-col items-start rounded-lg border border-purple-200 bg-purple-50/50 p-2 text-left hover:border-purple-300 hover:bg-purple-100/60 transition-colors"
+          >
+            <span className="text-[11px] font-bold text-purple-800">👑 Super Admin</span>
+            <span className="text-[10px] text-purple-600 font-mono">superadmin@...</span>
+            <span className="text-[9px] text-slate-500 mt-0.5">2FA: 123456</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setValue("email", "admin@aai-dbitic.edu");
+              setValue("password", "Admin#2026!Ops");
+              setRequire2FA(false);
+              setTwoFactorCode("");
+            }}
+            className="flex flex-col items-start rounded-lg border border-indigo-200 bg-indigo-50/50 p-2 text-left hover:border-indigo-300 hover:bg-indigo-100/60 transition-colors"
+          >
+            <span className="text-[11px] font-bold text-indigo-800">🛡️ Incubation Admin</span>
+            <span className="text-[10px] text-indigo-600 font-mono">admin@...</span>
+            <span className="text-[9px] text-slate-500 mt-0.5">Admin#2026!Ops</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setValue("email", "coordinator@aai-dbitic.edu");
+              setValue("password", "Coordinator#2026!Pass");
+              setRequire2FA(false);
+              setTwoFactorCode("");
+            }}
+            className="flex flex-col items-start rounded-lg border border-blue-200 bg-blue-50/50 p-2 text-left hover:border-blue-300 hover:bg-blue-100/60 transition-colors"
+          >
+            <span className="text-[11px] font-bold text-blue-800">🎓 Faculty Coord.</span>
+            <span className="text-[10px] text-blue-600 font-mono">coordinator@...</span>
+            <span className="text-[9px] text-slate-500 mt-0.5">Coordinator#2026!Pass</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setValue("email", "omkargotawade05@gmail.com");
+              setValue("password", "Student#2026!Pass");
+              setRequire2FA(false);
+              setTwoFactorCode("");
+            }}
+            className="flex flex-col items-start rounded-lg border border-emerald-200 bg-emerald-50/50 p-2 text-left hover:border-emerald-300 hover:bg-emerald-100/60 transition-colors"
+          >
+            <span className="text-[11px] font-bold text-emerald-800">🚀 Student Founder</span>
+            <span className="text-[10px] text-emerald-600 font-mono">omkar@...</span>
+            <span className="text-[9px] text-slate-500 mt-0.5">Student#2026!Pass</span>
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -490,7 +490,7 @@ export const INITIAL_AUDIT_LOGS: AuditHistoryItem[] = [
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export async function fetchFacultyOverview(): Promise<{
-  metrics?: any;
+  metrics?: Record<string, unknown>;
   projects?: IncubationProject[];
   mentorRequests?: MentorAllocationRequest[];
   meetings?: FacultyMeeting[];

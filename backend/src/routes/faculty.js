@@ -169,6 +169,41 @@ async function ensureSeedData() {
       ]);
     }
 
+    // Automatically bridge any approved startups into the active Faculty Coordinator cohort
+    try {
+      const StartupProfile = require('../models/StartupProfile');
+      const approvedProfiles = await StartupProfile.find({ isApproved: true, applicationId: { $ne: null } }).lean();
+      for (const p of approvedProfiles) {
+        const exists = await FacultyProject.findOne({ id: p.applicationId });
+        if (!exists) {
+          const stageRaw = p.stage || 'Prototype';
+          const stageCap = stageRaw.charAt(0).toUpperCase() + stageRaw.slice(1).toLowerCase();
+          await FacultyProject.create({
+            id: p.applicationId,
+            title: p.name,
+            domain: p.sector || 'Technology',
+            stage: stageCap,
+            leadStudent: 'Student Founder',
+            rollNumber: 'DBIT-2026',
+            department: 'Information Technology',
+            teamMembers: [{ name: 'Student Founder', email: 'founder@dbit.ac.in', role: 'Founder' }],
+            assignedCoordinatorName: 'Dr. K. R. Raman',
+            assignedVolunteerName: 'Prof. Ananya Sen',
+            allocatedMentorName: null,
+            trl: stageCap.toLowerCase().includes('mvp') ? 5 : 4,
+            progress: 50,
+            health: 'On Track',
+            overdueMilestonesCount: 0,
+            nextMilestone: 'Cohort Induction & Guide Allocation',
+            nextMilestoneDate: '15 Nov 2026',
+            description: p.tagline || p.problem || '',
+          });
+        }
+      }
+    } catch (syncErr) {
+      console.warn('[Faculty API] Auto-sync approved startups notice:', syncErr.message);
+    }
+
     const mentorCount = await MentorAllocation.countDocuments();
     if (mentorCount === 0) {
       await MentorAllocation.insertMany([

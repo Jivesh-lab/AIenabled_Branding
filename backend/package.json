@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
+    "seed:all": "node src/scripts/seedAllUsers.js",
     "seed:superadmin": "node src/scripts/seedSuperAdmin.js",
     "seed:admin": "node src/scripts/seedAdmin.js"
   },
