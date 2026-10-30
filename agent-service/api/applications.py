@@ -87,6 +87,7 @@ async def submit_application(
     # Run Application Agent to produce summary and assessment
     ai_summary_str = None
     ai_feedback_str = None
+    agent_evaluation_result = {}
     try:
         from agents.application_agent import assess_application
         assessment = await assess_application(submission.model_dump())
@@ -97,8 +98,16 @@ async def submit_application(
             "missing_evidence": assessment.get("missing_evidence", []),
             "validation": assessment.get("validation", {}),
         })
+        agent_evaluation_result = {
+            "summary": assessment.get("summary", {}),
+            "assessment": assessment.get("preliminary_assessment", {}),
+            "questions": assessment.get("questions_for_reviewers", []),
+            "missing_evidence": assessment.get("missing_evidence", []),
+            "validation": assessment.get("validation", {}),
+            "recommendation_summary": assessment.get("recommendation_summary", "")
+        }
     except Exception as exc:
-        pass
+        logger.warning("application_agent_assessment_skipped", error=str(exc))
     
     if not pool:
         application_id = standalone_submit_application(
@@ -117,24 +126,15 @@ async def submit_application(
         return {
             "success": True,
             "application_id": str(application_id),
-            "status": "submitted"
+            "status": "submitted",
+            "agent_evaluation": agent_evaluation_result
         }
 
     try:
         # Single transaction to insert startup + application safely
         async with pool.acquire() as conn:
             async with conn.transaction():
-                # Prevent duplicate submissions
-                existing_app = await conn.fetchval(
-                    """
-                    SELECT id FROM applications 
-                    WHERE applicant_id = $1 AND status IN ('draft', 'submitted', 'pending', 'under_review')
-                    """,
-                    applicant_id
-                )
-                
-                if existing_app:
-                    raise HTTPException(status_code=409, detail="You already have an active application.")
+                # Multiple applications allowed per student founder
 
                 startup_id = await conn.fetchval(
                     """
@@ -161,7 +161,8 @@ async def submit_application(
     return {
         "success": True,
         "application_id": str(application_id),
-        "status": "submitted"
+        "status": "submitted",
+        "agent_evaluation": agent_evaluation_result
     }
 
 @router.get("/")
@@ -179,7 +180,7 @@ async def get_applications(
             records = await conn.fetch(
                 """
                 SELECT 
-                    a.id as app_id, a.status as review_status, a.form_data, a.submitted_at,
+                    a.id as app_id, a.status as review_status, a.form_data, a.ai_summary, a.ai_feedback, a.submitted_at,
                     s.id as startup_id, s.name, s.tagline as short_description, s.sector as domain, s.stage as maturity,
                     s.status as pipeline_position
                 FROM applications a
@@ -209,6 +210,8 @@ async def get_applications(
                     "progress": 100 if r['review_status'] == 'submitted' else 50,
                     "facultyGuide": None,
                     "teamSize": team_size,
+                    "aiSummary": r['ai_summary'],
+                    "aiFeedback": r['ai_feedback'],
                     "updatedAt": str(r['submitted_at'].date()) if r['submitted_at'] else "2026-09-15",
                     "next": {"kind": "action", "label": "Awaiting review"} if r['review_status'] == 'submitted' else None
                 })
@@ -221,8 +224,8 @@ async def get_application_queue(
     current_user: AuthenticatedUser = Depends(get_internal_service),
     pool=Depends(get_db)
 ):
-    if "review_applications" not in current_user.permissions:
-        raise HTTPException(status_code=403, detail="Missing review_applications permission")
+    if "review_applications" not in current_user.permissions and "view_applications" not in current_user.permissions:
+        raise HTTPException(status_code=403, detail="Missing permission to view application")
         
     if not pool:
         queue = standalone_get_application_queue()
@@ -263,8 +266,8 @@ async def get_application_details(
     current_user: AuthenticatedUser = Depends(get_internal_service),
     pool=Depends(get_db)
 ):
-    if "review_applications" not in current_user.permissions:
-        raise HTTPException(status_code=403, detail="Missing review_applications permission")
+    if "review_applications" not in current_user.permissions and "view_applications" not in current_user.permissions:
+        raise HTTPException(status_code=403, detail="Missing permission to view application")
         
     if not pool:
         return standalone_get_application_details(application_id)
@@ -327,8 +330,8 @@ async def decide_application(
     current_user: AuthenticatedUser = Depends(get_internal_service),
     pool=Depends(get_db)
 ):
-    if "review_applications" not in current_user.permissions:
-        raise HTTPException(status_code=403, detail="Missing review_applications permission")
+    if "review_applications" not in current_user.permissions and "view_applications" not in current_user.permissions:
+        raise HTTPException(status_code=403, detail="Missing permission to view application")
         
     decision = payload.decision.lower()
     if decision not in ["approved", "rejected", "revision_requested"]:

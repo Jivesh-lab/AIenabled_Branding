@@ -40,10 +40,33 @@ export const authOptions: NextAuthOptions = {
             }),
           });
         } catch (networkErr: unknown) {
-          // Backend is unreachable (not running, wrong port, etc.)
-          const msg = networkErr instanceof Error ? networkErr.message : String(networkErr);
-          console.error(`[Auth] authorize() — NETWORK ERROR reaching backend at ${BACKEND_URL}: ${msg}`);
-          throw new Error("Cannot reach authentication service. Please try again.");
+          const fallbackUrl = BACKEND_URL.includes("localhost")
+            ? BACKEND_URL.replace("localhost", "127.0.0.1")
+            : BACKEND_URL.replace("127.0.0.1", "localhost");
+
+          try {
+            console.warn(`[Auth] Primary backend URL ${BACKEND_URL} failed, attempting fallback to ${fallbackUrl}`);
+            res = await fetch(`${fallbackUrl}/api/auth/login`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                email: credentials.email,
+                password: credentials.password,
+                twoFactorCode: (credentials as Record<string, string>).twoFactorCode || "",
+              }),
+            });
+          } catch (fallbackErr: unknown) {
+            const primaryErr = networkErr instanceof Error ? networkErr.message : String(networkErr);
+            const primaryCause = (networkErr as { cause?: Error })?.cause?.message || (networkErr as { cause?: unknown })?.cause;
+            const secondErr = fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr);
+            const secondCause = (fallbackErr as { cause?: Error })?.cause?.message || (fallbackErr as { cause?: unknown })?.cause;
+
+            console.error(`[Auth] authorize() — Failed to connect to backend at both ${BACKEND_URL} and ${fallbackUrl}:`, {
+              primary: { error: primaryErr, cause: primaryCause },
+              fallback: { error: secondErr, cause: secondCause },
+            });
+            throw new Error("Cannot reach backend server. Please verify backend is running on port 5000.");
+          }
         }
 
         try {
@@ -70,9 +93,9 @@ export const authOptions: NextAuthOptions = {
           id: user.id,
           name: user.name,
           email: user.email,
-          role: user.role as any,
+          role: user.role as "student" | "faculty" | "mentor" | "investor" | "admin" | "super_admin",
           facultyRole: user.facultyRole || null,
-        } as any;
+        };
       },
     }),
 
@@ -107,8 +130,8 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.role = (user as { role: string }).role as typeof token.role;
-        (token as any).facultyRole = (user as any).facultyRole || null;
+        token.role = user.role;
+        token.facultyRole = user.facultyRole || null;
       }
       return token;
     },
@@ -118,7 +141,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.id;
         session.user.role = token.role;
-        (session.user as any).facultyRole = (token as any).facultyRole || null;
+        session.user.facultyRole = token.facultyRole || null;
       }
       return session;
     },

@@ -86,16 +86,8 @@ def standalone_submit_application(
     with get_connection() as conn:
         cursor = conn.cursor()
         
-        # Check active applications
-        cursor.execute(
-            """
-            SELECT id FROM applications 
-            WHERE applicant_id = ? AND status IN ('draft', 'submitted', 'pending', 'under_review')
-            """,
-            (applicant_id,)
-        )
-        if cursor.fetchone():
-            raise HTTPException(status_code=409, detail="You already have an active application.")
+        # Multiple applications per student are allowed —
+        # DBIT Incubation Centre evaluates each idea independently.
 
         startup_id = str(uuid.uuid4())
         application_id = str(uuid.uuid4())

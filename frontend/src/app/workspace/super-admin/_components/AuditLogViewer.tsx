@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   FileText,
   Search,
@@ -76,17 +76,12 @@ const MOCK_AUDIT_LOGS: AuditLogItem[] = [
 ];
 
 export default function AuditLogViewer() {
-  const [logs, setLogs] = useState<AuditLogItem[]>([]);
+  const [logs, setLogs] = useState<AuditLogItem[]>(MOCK_AUDIT_LOGS);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
-  const [isMounted, setIsMounted] = useState(false);
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  async function fetchAuditLogs() {
+  const fetchAuditLogs = useCallback(async () => {
     setLoading(true);
     try {
       const queryParams = new URLSearchParams();
@@ -112,10 +107,34 @@ export default function AuditLogViewer() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [search, statusFilter]);
 
   useEffect(() => {
-    fetchAuditLogs();
+    let ignore = false;
+    async function load() {
+      try {
+        const queryParams = new URLSearchParams();
+        if (statusFilter !== "ALL") queryParams.set("status", statusFilter);
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/audit?${queryParams.toString()}`,
+          { headers: { "Content-Type": "application/json" }, credentials: "include" }
+        );
+        if (!ignore && res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.logs)) {
+            setLogs(data.logs);
+          }
+        }
+      } catch (err) {
+        if (!ignore) {
+          console.error("Failed to fetch audit logs:", err);
+        }
+      }
+    }
+    load();
+    return () => {
+      ignore = true;
+    };
   }, [statusFilter]);
 
   const filteredLogs = logs.filter((log) => {
@@ -204,7 +223,7 @@ export default function AuditLogViewer() {
                 <tr key={log._id} className="hover:bg-slate-50/70 transition-colors">
                   <td suppressHydrationWarning className="px-4 py-3 text-slate-500 whitespace-nowrap flex items-center gap-1.5 font-sans">
                     <Clock className="size-3.5 text-slate-400" />
-                    {isMounted ? new Date(log.createdAt).toLocaleString() : log.createdAt}
+                    {log.createdAt}
                   </td>
                   <td className="px-4 py-3 font-sans">
                     <div className="font-semibold text-slate-900 flex items-center gap-1">
