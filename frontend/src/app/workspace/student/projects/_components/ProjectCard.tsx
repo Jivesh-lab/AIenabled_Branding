@@ -11,6 +11,9 @@ import {
   type ReviewStatus,
 } from "@/types/status";
 import type { StudentProject } from "@/types/student-application";
+import type { MentorResult } from "@/lib/mentorState";
+import { MentorLine } from "../../_components/MentorCard";
+import MilestoneProgress from "../../_components/MilestoneProgress";
 
 /** How the pipeline position reads next to each review status. */
 const PIPELINE_PREFIX: Partial<Record<ReviewStatus, string>> = {
@@ -56,7 +59,7 @@ function NextStep({ project }: { project: StudentProject }) {
   );
 }
 
-export default function ProjectCard({ project }: { project: StudentProject }) {
+export default function ProjectCard({ project, mentor }: { project: StudentProject; mentor?: MentorResult }) {
   const isDraft = project.reviewStatus === "DRAFT";
   const prefix = PIPELINE_PREFIX[project.reviewStatus];
   const primaryHref = isDraft ? `/workspace/student/submit?applicationId=${encodeURIComponent(project.id)}` : `/workspace/student/projects/${project.id}`;
@@ -92,12 +95,16 @@ export default function ProjectCard({ project }: { project: StudentProject }) {
 
           {/* Progress & people */}
           <div className="flex flex-col gap-3 lg:border-l lg:border-line lg:pl-5">
-            <ProgressBar value={project.progress} label={isDraft ? "Submission complete" : "Progress"} />
+            {isDraft ? (
+              <ProgressBar value={project.progress} label="Submission complete" />
+            ) : (
+              <MilestoneProgress summary={project.milestones} status={project.reviewStatus} />
+            )}
             <dl className="flex flex-col gap-1 text-[13px]">
               <div className="flex gap-1.5">
-                <dt className="shrink-0 text-muted-ink">Faculty guide:</dt>
-                <dd className={cn("min-w-0 truncate", project.facultyGuide ? "font-medium text-ink" : "text-muted-ink")}>
-                  {project.facultyGuide ?? "Not yet assigned"}
+                <dt className="sr-only">Mentor</dt>
+                <dd className="min-w-0">
+                  <MentorLine result={mentor} />
                 </dd>
               </div>
               <div className="text-muted-ink">

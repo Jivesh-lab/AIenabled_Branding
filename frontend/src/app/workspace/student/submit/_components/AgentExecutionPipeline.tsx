@@ -3,16 +3,11 @@
 import { useEffect, useState } from "react";
 import {
   Sparkles,
-  ShieldCheck,
   Cpu,
-  FileText,
   Terminal,
   Activity,
-  Layers,
-  Search,
   Check,
   ArrowRight,
-  HelpCircle,
 } from "lucide-react";
 import { Card } from "@/components/shared/Surface";
 import type { AgentEvaluationData } from "@/types/student-application";
@@ -211,7 +206,6 @@ export default function AgentExecutionPipeline({
               {EXECUTION_STEPS.map((step, idx) => {
                 const isFinished = isComplete || currentStepIndex > idx;
                 const isCurrent = !isComplete && currentStepIndex === idx;
-                const isPending = !isComplete && currentStepIndex < idx;
 
                 return (
                   <div

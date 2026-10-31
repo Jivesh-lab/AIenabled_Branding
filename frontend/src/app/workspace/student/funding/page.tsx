@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import PageContainer from "@/components/shared/PageContainer";
 import PageHeader from "@/components/shared/PageHeader";
-import { Card, StatusBadge } from "@/components/shared/Surface";
+import { Card } from "@/components/shared/Surface";
 import {
   Coins,
   Sparkles,
@@ -13,13 +13,8 @@ import {
   CheckCircle2,
   ArrowRight,
   Search,
-  FileText,
   Award,
   ShieldCheck,
-  ChevronRight,
-  TrendingUp,
-  AlertCircle,
-  HelpCircle,
   Check,
 } from "lucide-react";
 

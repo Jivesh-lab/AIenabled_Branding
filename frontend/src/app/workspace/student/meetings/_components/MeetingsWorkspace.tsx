@@ -12,16 +12,24 @@ import { CalendarPlus, Bot, Video, Mail, CheckCircle, ExternalLink } from "lucid
 import { formatDayLabel } from "@/lib/dates";
 import { Card } from "@/components/shared/Surface";
 import PageHeader from "@/components/shared/PageHeader";
-import { MOCK_NOW } from "@/mock/student-meetings";
-import type { Meeting } from "@/types/meeting";
+import type { StudentMeeting } from "@/types/student-workflow";
 import type { StudentProject } from "@/types/student-application";
-import { groupMeetings, summarize } from "../_lib/meetings";
+import { groupMeetings, isIsoDate, meetingStatus, summarize, type Now } from "@/lib/workflowState";
 import MeetingSummary from "./MeetingSummary";
 import MeetingCalendar from "./MeetingCalendar";
 import MeetingListItem from "./MeetingListItem";
 import RequestMeetingPanel from "./RequestMeetingPanel";
 
-function MeetingSection({ title, meetings, empty }: { title: string; meetings: Meeting[]; empty?: string }) {
+/** Meetings an accredited investor scheduled through the investor workflow (read-only here). */
+interface InvestorIntroduction {
+  _id: string;
+  startupId?: { name?: string };
+  investorId?: { name?: string; email?: string };
+  message?: string;
+  scheduledMeeting?: { date?: string; time?: string; timeZone?: string; meetingLink?: string };
+}
+
+function MeetingSection({ title, meetings, now, empty }: { title: string; meetings: StudentMeeting[]; now: Now; empty?: string }) {
   if (meetings.length === 0 && !empty) return null;
   return (
     <section aria-label={title}>
@@ -36,7 +44,7 @@ function MeetingSection({ title, meetings, empty }: { title: string; meetings: M
         <ul className="flex flex-col gap-3">
           {meetings.map((m) => (
             <li key={m.id}>
-              <MeetingListItem meeting={m} />
+              <MeetingListItem meeting={m} now={now} />
             </li>
           ))}
         </ul>
@@ -48,19 +56,26 @@ function MeetingSection({ title, meetings, empty }: { title: string; meetings: M
 export default function MeetingsWorkspace({
   meetings,
   projects,
+  now,
 }: {
-  meetings: Meeting[];
+  meetings: StudentMeeting[];
   projects: StudentProject[];
+  now: Now;
 }) {
-  const todayDate = new Date(MOCK_NOW.date);
+  const todayDate = new Date(now.date);
   const [view, setView] = useState({ year: todayDate.getUTCFullYear(), month: todayDate.getUTCMonth() });
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [requestOpen, setRequestOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const summary = summarize(meetings);
-  const groups = groupMeetings(meetings);
-  const meetingDates = new Set(meetings.filter((m) => !m.cancellation).map((m) => m.date));
+  const summary = summarize(meetings, now);
+  const groups = groupMeetings(meetings, now);
+  // Dots mark days with a confirmed (non-cancelled, non-requested) meeting on a real date.
+  const meetingDates = new Set(
+    meetings
+      .filter((m) => isIsoDate(m.date) && !["CANCELLED", "REQUESTED", "UNSCHEDULED"].includes(meetingStatus(m, now)))
+      .map((m) => m.date),
+  );
   const onSelectedDate = selectedDate
     ? meetings.filter((m) => m.date === selectedDate).sort((a, b) => a.startTime.localeCompare(b.startTime))
     : [];
@@ -77,7 +92,7 @@ export default function MeetingsWorkspace({
     setView({ year: d.getUTCFullYear(), month: d.getUTCMonth() });
   }
 
-  const [investorMeetings, setInvestorMeetings] = useState<any[]>([]);
+  const [investorMeetings, setInvestorMeetings] = useState<InvestorIntroduction[]>([]);
 
   useEffect(() => {
     async function loadInvestorIntros() {
@@ -183,7 +198,7 @@ export default function MeetingsWorkspace({
 
       {requestOpen && (
         <div ref={panelRef} className="scroll-mt-24">
-          <RequestMeetingPanel projects={projects} onClose={() => setRequestOpen(false)} />
+          <RequestMeetingPanel projects={projects} today={now.date} onClose={() => setRequestOpen(false)} />
         </div>
       )}
 
@@ -195,7 +210,7 @@ export default function MeetingsWorkspace({
           <MeetingCalendar
             year={view.year}
             month={view.month}
-            today={MOCK_NOW.date}
+            today={now.date}
             selected={selectedDate}
             meetingDates={meetingDates}
             onMonthChange={(year, month) => setView({ year, month })}
@@ -213,7 +228,7 @@ export default function MeetingsWorkspace({
             <>
               <div className="flex items-center justify-between gap-3">
                 <p className="text-[14px] font-semibold text-ink" aria-live="polite">
-                  {formatDayLabel(selectedDate, MOCK_NOW.date)}
+                  {formatDayLabel(selectedDate, now.date)}
                 </p>
                 <button
                   type="button"
@@ -223,13 +238,15 @@ export default function MeetingsWorkspace({
                   Show all meetings
                 </button>
               </div>
-              <MeetingSection title="Meetings on this day" meetings={onSelectedDate} empty="No meetings on this day." />
+              <MeetingSection title="Meetings on this day" meetings={onSelectedDate} now={now} empty="No meetings on this day." />
             </>
           ) : (
             <>
-              <MeetingSection title="Today" meetings={groups.today} />
-              <MeetingSection title="Upcoming" meetings={groups.upcoming} empty="No upcoming meetings." />
-              <MeetingSection title="Past meetings" meetings={groups.past} />
+              <MeetingSection title="Today" meetings={groups.today} now={now} />
+              <MeetingSection title="Upcoming" meetings={groups.upcoming} now={now} empty="No upcoming meetings." />
+              <MeetingSection title="Awaiting confirmation" meetings={groups.requested} now={now} />
+              <MeetingSection title="Date to be confirmed" meetings={groups.unscheduled} now={now} />
+              <MeetingSection title="Past meetings" meetings={groups.past} now={now} />
             </>
           )}
         </div>

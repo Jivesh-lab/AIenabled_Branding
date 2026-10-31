@@ -1,14 +1,15 @@
+"use client";
+
 import { useId, useState } from "react";
-import { CheckCircle2, Info, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { CheckCircle2, Info, Loader2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatLongDate } from "@/lib/dates";
 import { Card } from "@/components/shared/Surface";
 import { controlClass, describedBy, FormField } from "@/components/shared/form/FormField";
-import { MEETING_TYPE_LABEL, MOCK_NOW, STUDENT_MEETING_PERMISSIONS, type MeetingType } from "@/mock/student-meetings";
 import type { StudentProject } from "@/types/student-application";
 
 interface RequestDraft {
-  type: MeetingType;
   projectId: string;
   date: string;
   time: string;
@@ -16,47 +17,64 @@ interface RequestDraft {
 }
 
 /**
- * Request a meeting. Students can only request the types allowed by
- * STUDENT_MEETING_PERMISSIONS; official faculty, department and incubation
- * reviews are scheduled by coordinators. Mock only — nothing is sent.
+ * Request a meeting. This POSTs to the backend, which stores an UNCONFIRMED request ("Requested") against the
+ * project; the host schedules it. "Sent" is shown only after the backend confirmed it saved the request, and a
+ * failure is shown as a failure.
  */
 export default function RequestMeetingPanel({
   projects,
+  today,
   onClose,
 }: {
   projects: StudentProject[];
+  today: string;
   onClose: () => void;
 }) {
   const uid = useId();
-  const types = STUDENT_MEETING_PERMISSIONS.requestableTypes;
-  const eligible = projects.filter((p) => p.reviewStatus !== "DRAFT" && p.reviewStatus !== "REJECTED");
+  const router = useRouter();
+  // Only approved projects have a mentoring record the backend can attach a request to.
+  const eligible = projects.filter((p) => p.reviewStatus === "APPROVED");
 
-  const [draft, setDraft] = useState<RequestDraft>({
-    type: types[0],
-    projectId: eligible[0]?.id ?? "",
-    date: "",
-    time: "",
-    agenda: "",
-  });
+  const [draft, setDraft] = useState<RequestDraft>({ projectId: eligible[0]?.id ?? "", date: "", time: "", agenda: "" });
   const [errors, setErrors] = useState<Partial<Record<keyof RequestDraft, string>>>({});
-  const [sentTo, setSentTo] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [failure, setFailure] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
 
   const project = eligible.find((p) => p.id === draft.projectId);
-  const recipient = draft.type === "TEAM_SYNC" ? "your team" : (project?.facultyGuide ?? "the Faculty Coordinator");
 
   function set<K extends keyof RequestDraft>(key: K, value: RequestDraft[K]) {
     setDraft((prev) => ({ ...prev, [key]: value }));
     if (errors[key]) setErrors((prev) => ({ ...prev, [key]: undefined }));
   }
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (submitting) return;
     const next: typeof errors = {};
     if (!draft.projectId) next.projectId = "Choose a project";
     if (!draft.date) next.date = "Choose a preferred date";
-    else if (draft.date < MOCK_NOW.date) next.date = "Choose today or a later date";
+    else if (draft.date < today) next.date = "Choose today or a later date";
     setErrors(next);
-    if (Object.keys(next).length === 0) setSentTo(recipient);
+    if (Object.keys(next).length > 0) return;
+
+    setSubmitting(true);
+    setFailure(null);
+    try {
+      const res = await fetch("/api/student/meeting-requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId: draft.projectId, date: draft.date, startTime: draft.time, agenda: draft.agenda }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(typeof body.message === "string" ? body.message : "The request could not be sent.");
+      setSent(true);
+      router.refresh(); // the new request appears in the list below
+    } catch (error) {
+      setFailure(error instanceof Error ? error.message : "The request could not be sent.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -65,7 +83,7 @@ export default function RequestMeetingPanel({
         <div>
           <h2 className="text-[16px] font-semibold text-ink">Request a meeting</h2>
           <p className="mt-0.5 text-[13px] text-muted-ink">
-            The host confirms the time. You&apos;ll see the meeting here once it&apos;s scheduled.
+            Your request is saved as <strong>awaiting confirmation</strong>. It becomes a scheduled meeting only when the host confirms a time.
           </p>
         </div>
         <button
@@ -78,14 +96,14 @@ export default function RequestMeetingPanel({
         </button>
       </div>
 
-      {sentTo ? (
+      {sent ? (
         <div role="status" className="mt-5 flex items-start gap-3 rounded-lg border border-success/25 bg-success/5 p-4">
           <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-success" aria-hidden="true" />
           <div>
-            <p className="text-[14px] font-semibold text-ink">Request sent to {sentTo}</p>
+            <p className="text-[14px] font-semibold text-ink">Request saved</p>
             <p className="mt-0.5 text-[13px] text-muted-ink">
-              {MEETING_TYPE_LABEL[draft.type]} for {project?.name}, preferred {formatLongDate(draft.date)}
-              {draft.time && ` at ${draft.time}`}. You&apos;ll be notified when it&apos;s confirmed.
+              For {project?.name}, preferred {formatLongDate(draft.date)}
+              {draft.time && ` at ${draft.time}`}. It is not confirmed yet; it will show as scheduled here once the host sets a time.
             </p>
             <button
               type="button"
@@ -98,38 +116,15 @@ export default function RequestMeetingPanel({
         </div>
       ) : eligible.length === 0 ? (
         <p className="mt-5 text-[13px] text-muted-ink">
-          Meetings can be requested once a project has been submitted for review.
+          Meetings can be requested once one of your projects has been approved.
         </p>
       ) : (
         <form noValidate onSubmit={submit} className="mt-5 flex flex-col gap-5">
-          <fieldset>
-            <legend className="mb-1.5 text-[13px] font-medium text-ink">Meeting type</legend>
-            <div className="inline-flex rounded-lg border border-line bg-white p-0.5">
-              {types.map((t) => (
-                <label
-                  key={t}
-                  className={cn(
-                    "cursor-pointer rounded-md px-3.5 py-1.5 text-[13px] font-medium text-muted-ink transition-colors hover:text-ink",
-                    "has-[:checked]:bg-brand-cyan-soft has-[:checked]:text-brand has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand/40"
-                  )}
-                >
-                  <input
-                    type="radio"
-                    name={`${uid}-type`}
-                    value={t}
-                    checked={draft.type === t}
-                    onChange={() => set("type", t)}
-                    className="sr-only"
-                  />
-                  {MEETING_TYPE_LABEL[t]}
-                </label>
-              ))}
-            </div>
-            <p className="mt-2 flex items-start gap-1.5 text-[12px] text-muted-ink">
-              <Info className="mt-px size-3.5 shrink-0 text-brand-cyan" aria-hidden="true" />
-              Faculty, department and incubation reviews are scheduled by coordinators.
+          {failure && (
+            <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-red-800">
+              {failure}
             </p>
-          </fieldset>
+          )}
 
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
             <FormField id={`${uid}-project`} label="Project" required error={errors.projectId} className="md:col-span-2">
@@ -153,7 +148,7 @@ export default function RequestMeetingPanel({
               <input
                 id={`${uid}-date`}
                 type="date"
-                min={MOCK_NOW.date}
+                min={today}
                 value={draft.date}
                 onChange={(e) => set("date", e.target.value)}
                 aria-invalid={!!errors.date}
@@ -176,6 +171,7 @@ export default function RequestMeetingPanel({
               <textarea
                 id={`${uid}-agenda`}
                 rows={3}
+                maxLength={500}
                 value={draft.agenda}
                 onChange={(e) => set("agenda", e.target.value)}
                 placeholder="e.g. Feedback on the prototype test results"
@@ -185,8 +181,9 @@ export default function RequestMeetingPanel({
           </div>
 
           <div className="flex flex-col-reverse gap-2 border-t border-line pt-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-[12px] text-muted-ink">
-              Request goes to <span className="font-medium text-ink">{recipient}</span>
+            <p className="flex items-start gap-1.5 text-[12px] text-muted-ink">
+              <Info className="mt-px size-3.5 shrink-0 text-brand-cyan" aria-hidden="true" />
+              Faculty, department and incubation reviews are scheduled by coordinators.
             </p>
             <div className="flex gap-2">
               <button
@@ -198,9 +195,11 @@ export default function RequestMeetingPanel({
               </button>
               <button
                 type="submit"
-                className="inline-flex h-10 flex-1 items-center justify-center rounded-lg bg-brand px-4 text-[14px] font-semibold text-white transition-colors hover:bg-brand-hover active:bg-brand-active focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 focus-visible:ring-offset-1 sm:flex-none"
+                disabled={submitting}
+                className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg bg-brand px-4 text-[14px] font-semibold text-white transition-colors hover:bg-brand-hover active:bg-brand-active focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 focus-visible:ring-offset-1 disabled:opacity-60 sm:flex-none"
               >
-                Send Request
+                {submitting && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
+                {submitting ? "Sending…" : "Send Request"}
               </button>
             </div>
           </div>

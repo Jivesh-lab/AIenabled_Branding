@@ -1,51 +1,30 @@
-"use client";
+import { redirect } from "next/navigation";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
+import { STUDENT_READ_ROLES, authorize, initialsOf } from "@/lib/apiPolicy";
+import StudentShell from "./_components/StudentShell";
 
-import BaseWorkspaceLayout from "@/components/shared/BaseWorkspaceLayout";
-import { NavSection } from "@/components/shared/DashboardSidebar";
-import {
-  LayoutDashboard,
-  FolderKanban,
-  Route,
-  CalendarDays,
-  Coins,
-} from "lucide-react";
-
-const FALLBACK_USER = {
-  name: "Student",
-  role: "Student",
-  initials: "ST",
+const ROLE_LABEL: Record<string, string> = {
+  student: "Student",
+  admin: "Admin (viewing)",
+  super_admin: "Super Admin (viewing)",
 };
 
-const STUDENT_SECTIONS: NavSection[] = [
-  {
-    label: "Overview",
-    items: [{ label: "Dashboard", icon: LayoutDashboard, href: "/workspace/student/dashboard" }],
-  },
-  {
-    label: "Innovation",
-    items: [
-      { label: "My Projects", icon: FolderKanban, href: "/workspace/student/projects" },
-      { label: "Funding & Grants", icon: Coins, href: "/workspace/student/funding" },
-    ],
-  },
-  {
-    label: "Collaboration",
-    items: [
-      { label: "Journey Timeline", icon: Route, href: "/workspace/student/journey" },
-      { label: "Meetings", icon: CalendarDays, href: "/workspace/student/meetings" },
-    ],
-  },
-];
+/**
+ * Server-side guard + identity for every /workspace/student/* page. The edge proxy already redirects
+ * other roles; this re-checks on the server so the pages never render for the wrong person, and
+ * passes the verified session user down instead of a hardcoded placeholder.
+ */
+export default async function StudentLayout({ children }: { children: React.ReactNode }) {
+  const session = await getServerSession(authOptions);
+  if (authorize(session?.user, STUDENT_READ_ROLES)) redirect("/login");
 
-export default function StudentLayout({ children }: { children: React.ReactNode }) {
+  const user = session!.user!;
+  const name = user.name?.trim() || user.email?.split("@")[0] || "Student";
+
   return (
-    <BaseWorkspaceLayout
-      sections={STUDENT_SECTIONS}
-      user={FALLBACK_USER}
-      workspaceLabel="Student Workspace"
-      allowedRole="student"
-    >
+    <StudentShell user={{ name, role: ROLE_LABEL[user.role ?? ""] ?? "Student", initials: initialsOf(name) || "ST" }}>
       {children}
-    </BaseWorkspaceLayout>
+    </StudentShell>
   );
 }

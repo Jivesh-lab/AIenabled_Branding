@@ -1,38 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
-import { AGENT_SERVICE_URL, createInternalToken } from "@/lib/internalToken";
+import { NextRequest } from "next/server";
+import { proxyToAgent } from "@/lib/agentProxy";
+import { STUDENT_READ_ROLES } from "@/lib/apiPolicy";
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id } = await params;
-    const session = await getServerSession(authOptions);
-    if (!session || !session.user || !session.user.id) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
-
-    const token = await createInternalToken(session.user, ["view_applications"]);
-
-    const backendRes = await fetch(`${AGENT_SERVICE_URL}/api/applications/${id}`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`
-      },
-      cache: "no-store"
-    });
-
-    const data = await backendRes.json();
-    if (!backendRes.ok) {
-      return NextResponse.json(data, { status: backendRes.status });
-    }
-
-    return NextResponse.json(data, { status: 200 });
-  } catch (error: any) {
-    console.error("[Single Application API] Error:", error);
-    return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
-  }
+/** GET /api/applications/:id - one application; agent-service enforces that it belongs to the caller. */
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  return proxyToAgent({
+    path: `/api/applications/${encodeURIComponent(id)}`,
+    permissions: ["view_applications"],
+    roles: STUDENT_READ_ROLES,
+    tag: "Single Application API",
+  });
 }
-

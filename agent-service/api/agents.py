@@ -170,15 +170,16 @@ async def workflow_history_endpoint(target_id: str | None = None):
 async def monitoring_status_endpoint(req: dict[str, Any]):
     """Evaluate milestones, overdue items, risk indicators distinguishing measured facts from AI interpretations."""
     from agents.monitoring_agent import evaluate_startup_health
+    # No defaults: a figure that is not supplied is "not tracked", never an invented healthy value.
     result = evaluate_startup_health(
         startup_name=req.get("startup_name", "Incubation Project"),
-        stage=req.get("stage", "Prototype"),
-        total_milestones=req.get("total_milestones", 4),
-        completed_milestones=req.get("completed_milestones", 2),
-        overdue_milestones=req.get("overdue_milestones", 0),
-        tasks_completed=req.get("tasks_completed", 4),
-        total_tasks=req.get("total_tasks", 5),
-        days_since_last_report=req.get("days_since_last_report", 7),
+        stage=req.get("stage", "Unknown"),
+        total_milestones=req.get("total_milestones"),
+        completed_milestones=req.get("completed_milestones"),
+        overdue_milestones=req.get("overdue_milestones"),
+        tasks_completed=req.get("tasks_completed"),
+        total_tasks=req.get("total_tasks"),
+        days_since_last_report=req.get("days_since_last_report"),
         measured_metrics=req.get("measured_metrics", {}),
     )
     return result

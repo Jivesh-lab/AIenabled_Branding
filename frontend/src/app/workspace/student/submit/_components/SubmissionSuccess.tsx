@@ -42,10 +42,9 @@ export default function SubmissionSuccess({
 }: SubmissionSuccessProps) {
   const [showDossier, setShowDossier] = useState(true);
 
-  // Extract or compute fallback metrics for display
-  const readinessScore =
-    agentEvaluation?.assessment?.overall_readiness_score ??
-    agentEvaluation?.validation?.completeness_score;
+  // Only real agent output is shown; a missing score renders as "—", never a placeholder.
+  const readinessScore = agentEvaluation?.assessment?.overall_readiness_score;
+  const fmt = (value?: number) => (typeof value === "number" ? value : "—");
 
   const problemClarity = agentEvaluation?.assessment?.problem_clarity_score;
   const techFeasibility = agentEvaluation?.assessment?.technical_feasibility_score;
@@ -55,12 +54,12 @@ export default function SubmissionSuccess({
 
   const questions = agentEvaluation?.questions || [];
 
+  // Without an agent summary, show the student's own submitted text (real data), not generated filler.
   const summary = agentEvaluation?.summary || {
-    problem: (submittedValues?.problem as string) || "Technical problem defined in submission",
-    proposed_solution: (submittedValues?.solution as string) || "Prototype-stage solution proposed",
-    target_users: (submittedValues?.affectedUsers as string) || "Target beneficiaries identified",
-    innovation_differentiation:
-      (submittedValues?.differentiation as string) || "Novel application of engineering techniques",
+    problem: submittedValues?.problem as string | undefined,
+    proposed_solution: submittedValues?.solution as string | undefined,
+    target_users: submittedValues?.affectedUsers as string | undefined,
+    innovation_differentiation: submittedValues?.differentiation as string | undefined,
     requested_support: undefined,
   };
 
@@ -73,10 +72,10 @@ export default function SubmissionSuccess({
         </span>
 
         <h2 className="mt-4 text-[22px] font-bold tracking-tight text-ink">
-          Proposal Received & Evaluated by AI Application Agent
+          Proposal submitted for faculty review
         </h2>
         <p className="mx-auto mt-2 max-w-xl text-[14px] text-muted-ink">
-          <span className="font-semibold text-ink">{ideaName}</span> has been ingested. The Application Agent has analyzed your proposal, verified documentation and eligibility, and transferred your dossier to the Faculty Review Committee.
+          <span className="font-semibold text-ink">{ideaName}</span> has been submitted to the Faculty Review Committee. {agentEvaluation?.assessment_available ? "The Application Agent produced a preliminary, advisory assessment; it is not an admission decision." : "An automated assessment was not available for this submission; reviewers will assess it directly."}
         </p>
 
         {/* Status badges */}
@@ -97,7 +96,7 @@ export default function SubmissionSuccess({
             <dt className="text-[11px] font-medium uppercase tracking-wider text-muted-ink">AI Agent Assessment</dt>
             <dd className="mt-1.5 flex items-center gap-1.5 text-[13px] font-bold text-emerald-600 dark:text-emerald-400">
               <Sparkles className="size-3.5" />
-              {readinessScore === undefined ? "Assessment unavailable" : `Eligible (${readinessScore}/100)`}
+              {readinessScore === undefined ? "Unavailable" : `Advisory score ${readinessScore}/100`}
             </dd>
           </div>
         </dl>
@@ -164,7 +163,7 @@ export default function SubmissionSuccess({
                 <Sparkles className="size-4" />
               </span>
               <span className="text-[10px] font-bold uppercase tracking-wider text-purple-600 bg-purple-500/10 px-1.5 py-0.5 rounded">
-                Score: {readinessScore}
+                Score: {fmt(readinessScore)}
               </span>
             </div>
             <h4 className="mt-3 text-[13px] font-bold text-ink">3. Feasibility Scoring</h4>
@@ -239,22 +238,21 @@ export default function SubmissionSuccess({
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
               <div className="rounded-xl border border-line bg-surface p-4">
                 <span className="text-[11px] font-medium uppercase tracking-wider text-muted-ink block">Overall Readiness</span>
-                <span className="mt-1 text-2xl font-black text-brand">{readinessScore}/100</span>
-                <span className="mt-1 text-[11px] text-emerald-600 block font-medium">Eligible for Review</span>
+                <span className="mt-1 text-2xl font-black text-brand">{fmt(readinessScore)}/100</span>
               </div>
               <div className="rounded-xl border border-line bg-surface p-4">
                 <span className="text-[11px] font-medium uppercase tracking-wider text-muted-ink block">Problem Clarity</span>
-                <span className="mt-1 text-2xl font-bold text-ink">{problemClarity}%</span>
+                <span className="mt-1 text-2xl font-bold text-ink">{fmt(problemClarity)}/100</span>
                 <span className="mt-1 text-[11px] text-muted-ink block">Problem well articulated</span>
               </div>
               <div className="rounded-xl border border-line bg-surface p-4">
                 <span className="text-[11px] font-medium uppercase tracking-wider text-muted-ink block">Feasibility</span>
-                <span className="mt-1 text-2xl font-bold text-ink">{techFeasibility}%</span>
+                <span className="mt-1 text-2xl font-bold text-ink">{fmt(techFeasibility)}/100</span>
                 <span className="mt-1 text-[11px] text-muted-ink block">Tech stack achievable</span>
               </div>
               <div className="rounded-xl border border-line bg-surface p-4">
                 <span className="text-[11px] font-medium uppercase tracking-wider text-muted-ink block">Market Viability</span>
-                <span className="mt-1 text-2xl font-bold text-ink">{marketScore}%</span>
+                <span className="mt-1 text-2xl font-bold text-ink">{fmt(marketScore)}/100</span>
                 <span className="mt-1 text-[11px] text-muted-ink block">Clear target beneficiaries</span>
               </div>
             </div>
@@ -262,20 +260,20 @@ export default function SubmissionSuccess({
             {/* Structured Summary from Agent */}
             <div className="space-y-3">
               <h4 className="text-[13px] font-bold text-ink flex items-center gap-1.5">
-                <Layers className="size-4 text-brand" /> Agent Synthesis of Your Proposal
+                <Layers className="size-4 text-brand" /> {agentEvaluation?.summary ? "Agent Synthesis of Your Proposal" : "Your Submitted Proposal"}
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[13px]">
                 <div className="rounded-lg border border-line bg-surface p-3.5">
                   <span className="font-semibold text-ink text-[12px] block mb-1">Target Users & Beneficiaries:</span>
-                  <p className="text-muted-ink leading-relaxed">{summary.target_users}</p>
+                  <p className="text-muted-ink leading-relaxed">{summary.target_users || "—"}</p>
                 </div>
                 <div className="rounded-lg border border-line bg-surface p-3.5">
                   <span className="font-semibold text-ink text-[12px] block mb-1">Innovation & Differentiation:</span>
-                  <p className="text-muted-ink leading-relaxed">{summary.innovation_differentiation}</p>
+                  <p className="text-muted-ink leading-relaxed">{summary.innovation_differentiation || "—"}</p>
                 </div>
                 <div className="rounded-lg border border-line bg-surface p-3.5 md:col-span-2">
                   <span className="font-semibold text-ink text-[12px] block mb-1">Requested Incubation Support:</span>
-                  <p className="text-muted-ink leading-relaxed">{summary.requested_support}</p>
+                  <p className="text-muted-ink leading-relaxed">{summary.requested_support || "—"}</p>
                 </div>
               </div>
             </div>

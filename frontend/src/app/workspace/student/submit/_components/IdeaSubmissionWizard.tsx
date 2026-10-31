@@ -15,6 +15,8 @@
  */
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import Link from "next/link";
+import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { FormProvider, useForm, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -36,12 +38,14 @@ import {
 } from "../_lib/idea-schema";
 import {
   clearDraft,
+  draftsDiffer,
   formatSavedAt,
   getDraftServerSnapshot,
   parseDraft,
   readRawDraft,
   saveDraft,
   subscribeToDraft,
+  type StoredDraft,
 } from "../_lib/draft-storage";
 import WizardStepper from "./WizardStepper";
 import StepIdeaBasics from "./StepIdeaBasics";
@@ -60,7 +64,49 @@ const btn = {
     "h-10 gap-1.5 px-3 text-[14px] font-medium text-brand hover:bg-nav-hover hover:text-brand focus-visible:ring-brand/30",
 };
 
-type SaveState = { kind: "idle" } | { kind: "saved"; at: string } | { kind: "unavailable" };
+type SaveState =
+  | { kind: "idle" }
+  | { kind: "saved"; at: string }
+  | { kind: "unavailable" }
+  | { kind: "server-failed"; message: string };
+
+type LoadState = { kind: "idle" } | { kind: "loading" } | { kind: "error"; message: string };
+
+/** The browser and server hold different copies of one draft; the student chooses. */
+interface DraftConflict {
+  serverValues: IdeaFormValues;
+  serverStep: StepIndex;
+  serverFurthest: StepIndex;
+  serverUpdatedAt: string | null;
+  local: StoredDraft;
+}
+
+const isStep = (n: unknown): n is StepIndex => n === 0 || n === 1 || n === 2 || n === 3;
+
+/** Best human-readable message from an API error body (BFF `message` or FastAPI `detail`). */
+function apiMessage(data: unknown, fallback: string): string {
+  const body = (data ?? {}) as { message?: unknown; detail?: unknown };
+  if (typeof body.message === "string" && body.message) return body.message;
+  if (typeof body.detail === "string" && body.detail) return body.detail;
+  const nested = (body.detail as { message?: unknown } | undefined)?.message;
+  if (typeof nested === "string" && nested) return nested;
+  return fallback;
+}
+
+type FieldError = { field: string; message: string };
+type SubmitFailure = Error & { status?: number; fieldErrors?: FieldError[] };
+
+/** FastAPI/pydantic 422 bodies: [{ loc: ["body", "<field>", ...], msg }]. */
+function serverFieldErrors(data: unknown): FieldError[] {
+  const detail = (data as { detail?: unknown } | null)?.detail;
+  if (!Array.isArray(detail)) return [];
+  return detail.flatMap((item) => {
+    const loc = (item as { loc?: unknown[] })?.loc;
+    const msg = (item as { msg?: unknown })?.msg;
+    const field = Array.isArray(loc) ? loc.find((part, i) => i > 0 && typeof part === "string") : undefined;
+    return typeof field === "string" && typeof msg === "string" ? [{ field, message: msg }] : [];
+  });
+}
 
 export default function IdeaSubmissionWizard() {
   const form = useForm<IdeaFormValues>({
@@ -68,7 +114,8 @@ export default function IdeaSubmissionWizard() {
     defaultValues: IDEA_DEFAULT_VALUES,
     mode: SKIP_VALIDATION ? "onSubmit" : "onTouched",
   });
-  const { getValues, handleSubmit, reset, trigger } = form;
+  const { getValues, handleSubmit, reset, setError, trigger } = form;
+  const { data: session } = useSession();
 
   const topRef = useRef<HTMLDivElement>(null);
   const [step, setStep] = useState<StepIndex>(0);
@@ -77,7 +124,14 @@ export default function IdeaSubmissionWizard() {
   const [draftDecided, setDraftDecided] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [applicationId, setApplicationId] = useState<string | null>(null);
+  const [submitConflict, setSubmitConflict] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const [revisionFeedback, setRevisionFeedback] = useState<string | null>(null);
+  const [conflict, setConflict] = useState<DraftConflict | null>(null);
+  // Refs, not state: saves and the double-click guard must see the latest value synchronously.
+  const applicationIdRef = useRef<string | null>(null);
+  const saveChain = useRef<Promise<void>>(Promise.resolve());
+  const submitLock = useRef(false);
   const [evaluatingValues, setEvaluatingValues] = useState<IdeaFormValues | null>(null);
   const [isPipelineComplete, setIsPipelineComplete] = useState(false);
   const [pipelineResult, setPipelineResult] = useState<AgentEvaluationData | null>(null);
@@ -93,75 +147,135 @@ export default function IdeaSubmissionWizard() {
   const pendingDraft = draftDecided ? null : parseDraft(rawDraft);
 
   const revisionApplicationId = useSearchParams().get("applicationId");
+  const [loadState, setLoadState] = useState<LoadState>(
+    revisionApplicationId ? { kind: "loading" } : { kind: "idle" },
+  );
 
   useEffect(() => {
     if (!revisionApplicationId) return;
     let active = true;
     async function loadApplication() {
+      setLoadState({ kind: "loading" });
       try {
-        const response = await fetch(`/api/applications/${revisionApplicationId}`, { cache: "no-store" });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.message || data.detail || "Unable to load application");
+        const response = await fetch(`/api/applications/${encodeURIComponent(revisionApplicationId!)}`, { cache: "no-store" });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(apiMessage(data, "Unable to load this application."));
+        if (data.status !== "DRAFT" && data.status !== "REVISION_REQUESTED") {
+          throw new Error(
+            data.status === "SUBMITTED" || data.status === "UNDER_REVIEW"
+              ? "This application has been submitted and is awaiting review, so it can't be edited."
+              : "This application has been decided and can't be edited.",
+          );
+        }
+
         // Server drafts carry their wizard position in formData._draft; resume there.
         const { _draft: draftMeta, ...savedValues } = (data.formData || {}) as Record<string, unknown> & {
           _draft?: { step?: number; furthestStep?: number };
         };
-        const isStep = (n: unknown): n is StepIndex => n === 0 || n === 1 || n === 2 || n === 3;
-        const resumeStep: StepIndex = data.status === "DRAFT" && isStep(draftMeta?.step) ? draftMeta.step : 3;
-        const resumeFurthest: StepIndex =
-          data.status === "DRAFT" && isStep(draftMeta?.furthestStep) ? draftMeta.furthestStep : 3;
-        const values = { ...IDEA_DEFAULT_VALUES, ...savedValues, declarationAccepted: false };
-        values.name = data.startup?.name || values.name;
-        values.shortDescription = data.startup?.tagline || values.shortDescription;
-        values.problem = data.startup?.problem || values.problem;
-        values.solution = data.startup?.solution || values.solution;
-        values.domain = data.startup?.sector || values.domain;
-        values.maturity = String(data.startup?.stage || values.maturity).toUpperCase() as IdeaFormValues["maturity"];
-        if (active) {
-          reset(values);
-          setApplicationId(revisionApplicationId);
-          setDraftDecided(true);
-          setStep(resumeStep);
-          setFurthest(Math.max(resumeStep, resumeFurthest) as StepIndex);
+        const isDraftStatus = data.status === "DRAFT";
+        const serverStep: StepIndex = isDraftStatus && isStep(draftMeta?.step) ? draftMeta.step : 3;
+        const serverFurthest: StepIndex =
+          isDraftStatus && isStep(draftMeta?.furthestStep) ? draftMeta.furthestStep : 3;
+        // The team lead is added from the session at submit time; the form only holds the other members.
+        const savedMembers = Array.isArray(savedValues.teamMembers)
+          ? (savedValues.teamMembers as { inviteStatus?: string }[]).filter((m) => m.inviteStatus !== "LEAD")
+          : [];
+        const serverValues = {
+          ...IDEA_DEFAULT_VALUES,
+          ...savedValues,
+          teamMembers: savedMembers,
+          declarationAccepted: false,
+        } as IdeaFormValues;
+        if (!active) return;
+
+        applicationIdRef.current = revisionApplicationId;
+        setRevisionFeedback(
+          data.status === "REVISION_REQUESTED"
+            ? (typeof data.reviewerComments === "string" && data.reviewerComments.trim()) || ""
+            : null,
+        );
+
+        // Never silently pick one copy: if this browser holds a newer, different copy, ask.
+        const local = parseDraft(readRawDraft());
+        const localNewer =
+          local && local.applicationId === revisionApplicationId && Date.parse(local.savedAt) > Date.parse(data.updatedAt ?? "");
+        if (local && localNewer && draftsDiffer(local.values, serverValues)) {
+          setConflict({ serverValues, serverStep, serverFurthest, serverUpdatedAt: data.updatedAt ?? null, local });
+        } else {
+          reset(serverValues);
+          setStep(serverStep);
+          setFurthest(Math.max(serverStep, serverFurthest) as StepIndex);
         }
+        setDraftDecided(true);
+        setLoadState({ kind: "idle" });
       } catch (error) {
-        if (active) setSubmitError(error instanceof Error ? error.message : "Unable to load application");
+        if (active) {
+          setLoadState({ kind: "error", message: error instanceof Error ? error.message : "Unable to load this application." });
+        }
       }
     }
     void loadApplication();
     return () => { active = false; };
-  }, [revisionApplicationId, reset]);
+  }, [revisionApplicationId, reset, loadAttempt]);
+
+  function resolveConflict(use: "browser" | "server") {
+    if (!conflict) return;
+    if (use === "browser") {
+      reset({ ...IDEA_DEFAULT_VALUES, ...conflict.local.values, declarationAccepted: false });
+      setStep(conflict.local.step);
+      setFurthest(conflict.local.furthestStep);
+    } else {
+      reset(conflict.serverValues);
+      setStep(conflict.serverStep);
+      setFurthest(Math.max(conflict.serverStep, conflict.serverFurthest) as StepIndex);
+    }
+    setConflict(null);
+  }
 
   // -------------------------------------------------------------------------
   // Draft handling
   // -------------------------------------------------------------------------
   function persist(nextStep: StepIndex, nextFurthest: StepIndex) {
-    const at = saveDraft(getValues(), nextStep, nextFurthest);
+    const values = getValues();
+    const at = saveDraft(values, nextStep, nextFurthest, applicationIdRef.current);
     setSaveState(at ? { kind: "saved", at } : { kind: "unavailable" });
     // Saving over the stored draft settles the resume-or-discard question.
     setDraftDecided(true);
-    void fetch("/api/applications/draft", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        applicationId,
-        values: getValues(),
-        step: nextStep,
-        furthestStep: nextFurthest,
-      }),
-    }).then(async (response) => {
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || data.detail || "Unable to save draft");
-      if (data.application_id) setApplicationId(String(data.application_id));
-    }).catch((error) => {
-      setSaveState({ kind: "unavailable" });
-      setSubmitError(error instanceof Error ? error.message : "Unable to save draft");
+
+    // Server saves run one at a time, so two quick saves can never create two server drafts.
+    saveChain.current = saveChain.current.then(async () => {
+      try {
+        const response = await fetch("/api/applications/draft", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            applicationId: applicationIdRef.current,
+            values,
+            step: nextStep,
+            furthestStep: nextFurthest,
+          }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(apiMessage(data, "Unable to save draft"));
+        if (data.application_id) {
+          applicationIdRef.current = String(data.application_id);
+          // Re-stamp the browser copy with the server id so a later resume continues the same record.
+          saveDraft(values, nextStep, nextFurthest, applicationIdRef.current);
+        }
+        setSaveState({ kind: "saved", at: data.updatedAt || new Date().toISOString() });
+      } catch (error) {
+        setSaveState({
+          kind: "server-failed",
+          message: error instanceof Error ? error.message : "Unable to save draft",
+        });
+      }
     });
   }
 
   function resumeDraft() {
     if (!pendingDraft) return;
     reset({ ...IDEA_DEFAULT_VALUES, ...pendingDraft.values, declarationAccepted: false });
+    applicationIdRef.current = pendingDraft.applicationId;
     setStep(pendingDraft.step);
     setFurthest(pendingDraft.furthestStep);
     setSaveState({ kind: "saved", at: pendingDraft.savedAt });
@@ -219,26 +333,52 @@ export default function IdeaSubmissionWizard() {
   // Submission — mock only, no API
   // -------------------------------------------------------------------------
   async function onValid(values: IdeaFormValues) {
+    // A ref, not state: a double-click fires twice before React re-renders `isSubmitting`.
+    if (submitLock.current) return;
+    submitLock.current = true;
     setIsSubmitting(true);
     setEvaluatingValues(values);
     setIsPipelineComplete(false);
     setPipelineResult(null);
     setSubmitError(null);
+    setSubmitConflict(false);
     scrollToTop();
 
     try {
+      const lead = session?.user;
+      if (!lead?.id) throw new Error("Your session has expired. Please sign in again to submit.");
+
+      // Let any in-flight draft save finish so the submit targets the same server record.
+      await saveChain.current;
       const response = await fetch("/api/applications/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...values, ...(applicationId ? { applicationId } : {}) }),
+        body: JSON.stringify({
+          ...values,
+          // The team lead is the signed-in student, recorded first; the form only holds the other members.
+          teamMembers: [
+            { id: lead.id, name: lead.name ?? "Team lead", rollNumber: "", email: lead.email ?? "", inviteStatus: "LEAD" },
+            ...values.teamMembers,
+          ],
+          ...(applicationIdRef.current ? { applicationId: applicationIdRef.current } : {}),
+        }),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        const detail = typeof data.detail === "string" ? data.detail : data.detail?.message;
-        const missing = data.detail?.validation?.missing_fields;
-        throw new Error([data.message || detail || "Failed to submit application", missing?.length ? `Missing: ${missing.join(", ")}` : ""].filter(Boolean).join(" "));
+        const fieldErrors = serverFieldErrors(data);
+        const missing: string[] | undefined = data.detail?.validation?.missing_fields;
+        const failure: SubmitFailure = new Error(
+          fieldErrors.length > 0
+            ? "Some fields were rejected by the server. Please correct the highlighted fields."
+            : [apiMessage(data, "Failed to submit application"), missing?.length ? `Missing: ${missing.join(", ")}` : ""]
+                .filter(Boolean)
+                .join(" "),
+        );
+        failure.status = response.status;
+        failure.fieldErrors = fieldErrors;
+        throw failure;
       }
 
       const result = data as SubmitApplicationResponse;
@@ -247,16 +387,26 @@ export default function IdeaSubmissionWizard() {
       setIsPipelineComplete(true);
       setSubmitted({
         name: values.name.trim() || "Untitled idea",
-        referenceId: data.application_id || `IDEA-${new Date().getFullYear()}`,
-        agentEvaluation: data.agent_evaluation || null,
+        referenceId: result.application_id,
+        agentEvaluation: result.agent_evaluation || null,
         documentsCount: values.attachments?.length || 0,
         submittedValues: values,
       });
+      // Intentionally keeps the lock: this application is submitted, so a second request must not go out.
     } catch (error) {
       console.error("Submission error:", error);
+      submitLock.current = false;
       setIsSubmitting(false);
       setEvaluatingValues(null);
-      setSubmitError(error instanceof Error ? error.message : "An error occurred during submission");
+      const failure = error as SubmitFailure;
+      if (failure.fieldErrors?.length) {
+        for (const { field, message } of failure.fieldErrors) {
+          setError(field as keyof IdeaFormValues, { type: "server", message });
+        }
+        setStep(firstStepWithError(failure.fieldErrors.map((e) => e.field)));
+      }
+      setSubmitConflict(failure.status === 409);
+      setSubmitError(failure.message || "An error occurred during submission");
       scrollToTop();
     }
   }
@@ -280,13 +430,78 @@ export default function IdeaSubmissionWizard() {
     setEvaluatingValues(null);
     setIsPipelineComplete(false);
     setPipelineResult(null);
-    setApplicationId(null);
+    applicationIdRef.current = null;
+    submitLock.current = false;
+    setSubmitConflict(false);
+    setRevisionFeedback(null);
+    setConflict(null);
     scrollToTop();
   }
 
   // -------------------------------------------------------------------------
   // Render
   // -------------------------------------------------------------------------
+  if (loadState.kind === "loading") {
+    return (
+      <Card>
+        <div role="status" className="flex items-center gap-3 px-6 py-10 text-[14px] text-muted-ink">
+          <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+          Loading your application…
+        </div>
+      </Card>
+    );
+  }
+
+  if (loadState.kind === "error") {
+    return (
+      <Card>
+        <div role="alert" className="flex flex-col gap-4 px-6 py-8">
+          <div>
+            <h2 className="text-[16px] font-semibold text-ink">We couldn&apos;t open this application</h2>
+            <p className="mt-1 text-[13px] text-muted-ink">{loadState.message}</p>
+          </div>
+          <div className="flex gap-2">
+            <Button type="button" onClick={() => setLoadAttempt((n) => n + 1)} className={btn.primary}>
+              Try again
+            </Button>
+            <Link
+              href="/workspace/student/projects"
+              className="inline-flex h-10 items-center rounded-md border border-line bg-white px-4 text-[14px] font-medium text-ink hover:bg-nav-hover"
+            >
+              Back to My Projects
+            </Link>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  // Two different copies of this draft exist (this browser vs the server): the student decides.
+  if (conflict) {
+    return (
+      <Card>
+        <div role="alert" className="flex flex-col gap-4 px-6 py-8">
+          <div>
+            <h2 className="text-[16px] font-semibold text-ink">Two versions of this draft exist</h2>
+            <p className="mt-1 text-[13px] text-muted-ink">
+              This browser has a copy saved {formatSavedAt(conflict.local.savedAt)}
+              {conflict.serverUpdatedAt ? `, newer than the one on the server (${formatSavedAt(conflict.serverUpdatedAt)})` : ""}.
+              The server copy probably didn&apos;t save. Nothing is overwritten until you choose.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" onClick={() => resolveConflict("browser")} className={btn.primary}>
+              Use the browser copy
+            </Button>
+            <Button type="button" variant="outline" onClick={() => resolveConflict("server")} className={btn.secondary}>
+              Use the server copy
+            </Button>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
   // Active Agent Execution Pipeline while submitting or viewing intermediate outputs
   if (isSubmitting && evaluatingValues) {
     return (
@@ -334,6 +549,15 @@ export default function IdeaSubmissionWizard() {
               <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full bg-red-200 text-[10px] font-bold text-red-700">!</span>
               <div>
                 <strong className="font-semibold">Submission Error:</strong> {submitError}
+                {submitConflict && (
+                  <>
+                    {" "}
+                    <Link href="/workspace/student/projects" className="font-semibold underline">
+                      Check My Projects
+                    </Link>{" "}
+                    to see whether it was already submitted.
+                  </>
+                )}
               </div>
             </div>
             <button
@@ -344,6 +568,18 @@ export default function IdeaSubmissionWizard() {
               Dismiss
             </button>
           </div>
+        )}
+
+        {revisionFeedback !== null && (
+          <section aria-label="Reviewer feedback" className="rounded-lg border border-amber-200 bg-amber-50/70 px-4 py-3">
+            <h2 className="text-[13px] font-bold text-amber-950">Revision requested — reviewer feedback</h2>
+            <p className="mt-1 whitespace-pre-line text-[13px] leading-relaxed text-amber-900">
+              {revisionFeedback || "The reviewer did not leave written comments. Contact your faculty reviewer for details."}
+            </p>
+            <p className="mt-1.5 text-[12px] text-amber-800">
+              Update your application below and submit again — this resubmits the same application.
+            </p>
+          </section>
         )}
 
         {/* Resume an existing draft — offered, never silently applied */}
@@ -427,6 +663,9 @@ export default function IdeaSubmissionWizard() {
                   {saveState.kind === "saved" && `Saved ${formatSavedAt(saveState.at)}`}
                   {saveState.kind === "unavailable" && (
                     <span className="text-danger">Drafts can&apos;t be saved in this browser</span>
+                  )}
+                  {saveState.kind === "server-failed" && (
+                    <span className="text-danger">Saved in this browser only — server save failed: {saveState.message}</span>
                   )}
                 </span>
               </div>

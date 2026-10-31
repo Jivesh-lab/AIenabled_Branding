@@ -10,6 +10,7 @@
  */
 import { useState } from "react";
 import type { StudentProject } from "@/types/student-application";
+import type { MentorResult } from "@/lib/mentorState";
 import {
   countByStatus,
   DEFAULT_FILTERS,
@@ -22,7 +23,15 @@ import ProjectsToolbar from "./ProjectsToolbar";
 import ProjectCard from "./ProjectCard";
 import EmptyState from "./EmptyState";
 
-export default function ProjectPortfolio({ projects, error }: { projects: StudentProject[]; error?: string | null }) {
+export default function ProjectPortfolio({
+  projects,
+  error,
+  mentors,
+}: {
+  projects: StudentProject[];
+  error?: string | null;
+  mentors?: Record<string, MentorResult>;
+}) {
   const [filters, setFilters] = useState<ProjectFilters>(DEFAULT_FILTERS);
 
   const counts = countByStatus(projects);
@@ -80,7 +89,7 @@ export default function ProjectPortfolio({ projects, error }: { projects: Studen
           <ul className="flex flex-col gap-4">
             {visible.map((project) => (
               <li key={project.id}>
-                <ProjectCard project={project} />
+                <ProjectCard project={project} mentor={mentors?.[project.id]} />
               </li>
             ))}
           </ul>

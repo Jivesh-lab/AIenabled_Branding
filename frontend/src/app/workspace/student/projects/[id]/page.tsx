@@ -1,10 +1,20 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { getServerSession } from "next-auth/next";
-import { AGENT_SERVICE_URL, createInternalToken } from "@/lib/internalToken";
-import { authOptions } from "@/lib/auth";
+import { fetchAgent } from "@/lib/agentProxy";
+import { STUDENT_READ_ROLES } from "@/lib/apiPolicy";
+import type { ApplicationDetail } from "@/types/student-application";
+import LoadError from "../../_components/LoadError";
+import MentorCard from "../../_components/MentorCard";
+import TaskList from "../../_components/TaskList";
+import MilestonesPanel from "../../_components/MilestonesPanel";
+import MonitoringCard from "../../_components/MonitoringCard";
+import { getProjectMonitoring } from "@/lib/projectMonitoring";
+import { fetchBackend } from "@/lib/backendProxy";
+import { istNow } from "@/lib/workflowState";
+import type { StudentTask } from "@/types/student-workflow";
+import type { MilestonesResponse } from "@/types/student-application";
+import { getMentorInfo } from "@/lib/mentorAllocation";
 import PageContainer from "@/components/shared/PageContainer";
-import { Card, MaturityTag, ProgressBar, StatusBadge } from "@/components/shared/Surface";
+import { Card, MaturityTag, StatusBadge } from "@/components/shared/Surface";
 import {
   ArrowLeft,
   Pencil,
@@ -12,17 +22,14 @@ import {
   AlertTriangle,
   Sparkles,
   HelpCircle,
-  FileText,
   Users,
   Code,
   ExternalLink,
   GitBranch,
   Calendar,
-  Layers,
   ShieldCheck,
   Building,
   Target,
-  Clock,
   Compass,
 } from "lucide-react";
 import {
@@ -33,64 +40,26 @@ import {
   type ReviewStatus,
 } from "@/types/status";
 
-interface ApplicationRecord {
-  id: string;
-  startup: {
-    name: string;
-    tagline: string;
-    problem: string;
-    solution: string;
-    sector: string;
-    stage: string;
-  };
-  status: string;
-  aiSummary: string | null;
-  aiFeedback: string | null;
-  reviewerComments?: string | null;
-  formData: {
-    department?: string;
-    projectType?: string;
-    affectedUsers?: string;
-    currentSolutions?: string;
-    differentiation?: string;
-    teamMembers?: Array<{
-      id?: string;
-      name: string;
-      rollNumber?: string;
-      email?: string;
-      inviteStatus?: string;
-    }>;
-    technologies?: string[];
-    githubUrl?: string;
-    demoUrl?: string;
-    prototypeAvailable?: string;
-  };
-  documents: Array<Record<string, unknown>>;
-  submittedAt: string | null;
+interface StoredAssessment {
+  overall_readiness_score?: number;
+  problem_clarity_score?: number;
+  technical_feasibility_score?: number;
+  market_potential_score?: number;
+  strengths?: string[];
+  weaknesses?: string[];
+}
+interface StoredFeedback {
+  preliminary_assessment?: StoredAssessment;
+  questions_for_reviewers?: string[];
+  missing_evidence?: string[];
 }
 
-async function fetchProjectData(id: string): Promise<ApplicationRecord | null> {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) return null;
-
-  try {
-    const token = await createInternalToken(session.user, ["view_applications"]);
-
-    const res = await fetch(`${AGENT_SERVICE_URL}/api/applications/${id}`, {
-      method: "GET",
-      headers: { Authorization: `Bearer ${token}` },
-      cache: "no-store",
-    });
-
-    if (res.ok) {
-      return await res.json();
-    }
-  } catch (err) {
-    console.error("[ProjectPage] Failed to fetch live application:", err);
-  }
-
-  return null;
-}
+const LOAD_TITLE = {
+  "not-found": "Project not found",
+  forbidden: "No access",
+  unauthenticated: "Sign in required",
+  unavailable: "We couldn't load this project",
+} as const;
 
 export default async function ProjectPage({
   params,
@@ -98,33 +67,48 @@ export default async function ProjectPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const project = await fetchProjectData(id);
+  const result = await fetchAgent<ApplicationDetail>({
+    path: `/api/applications/${encodeURIComponent(id)}`,
+    permissions: ["view_applications"],
+    roles: STUDENT_READ_ROLES,
+    tag: "Project Page",
+  });
 
-  if (!project) {
+  if (!result.ok) {
     return (
       <PageContainer>
-        <div className="py-12 text-center">
-          <h2 className="text-xl font-bold text-ink">Project Not Found</h2>
-          <p className="mt-2 text-sm text-muted-ink">
-            No proposal found with reference ID <span className="font-mono">{id}</span>.
-          </p>
-          <div className="mt-6">
-            <Link
-              href="/workspace/student/projects"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-hover"
-            >
-              <ArrowLeft className="size-4" />
-              Back to My Projects
-            </Link>
-          </div>
-        </div>
+        <LoadError
+          title={LOAD_TITLE[result.kind]}
+          message={result.kind === "not-found" ? `No application exists with reference ID ${id}.` : result.message}
+          canRetry={result.kind === "unavailable"}
+          backHref="/workspace/student/projects"
+          backLabel="Back to My Projects"
+        />
       </PageContainer>
     );
   }
 
+  const project = result.data;
+  const mentor = await getMentorInfo(project.id, project.status);
+  const approved = project.status.toUpperCase() === "APPROVED";
+  const milestones = approved
+    ? await fetchAgent<MilestonesResponse>({
+        path: `/api/applications/${encodeURIComponent(project.id)}/milestones`,
+        permissions: ["view_applications"],
+        roles: STUDENT_READ_ROLES,
+        tag: "Project Milestones",
+      })
+    : null;
+  // Tasks only exist for approved projects (they are keyed by the synced project record).
+  const tasks =
+    project.status.toUpperCase() === "APPROVED"
+      ? await fetchBackend<StudentTask[]>({ path: "/api/student/tasks", roles: STUDENT_READ_ROLES, tag: "Project Tasks" }, [])
+      : null;
+  const monitoring = approved ? await getProjectMonitoring(project.id, tasks && tasks.ok ? tasks.data : null) : null;
+
   // Parse AI outputs safely
-  let aiSummaryObj: Record<string, any> = {};
-  let aiFeedbackObj: Record<string, any> = {};
+  let aiSummaryObj: { requested_support?: string } = {};
+  let aiFeedbackObj: StoredFeedback = {};
 
   try {
     if (project.aiSummary) {
@@ -139,21 +123,25 @@ export default async function ProjectPage({
   } catch {}
 
   const assessment = aiFeedbackObj.preliminary_assessment || {};
-  const readinessScore = assessment.overall_readiness_score || 80;
-  const problemScore = assessment.problem_clarity_score || 85;
-  const feasibilityScore = assessment.technical_feasibility_score || 80;
-  const marketScore = assessment.market_potential_score || 75;
+  // Only persisted agent output is shown; a missing score is "—", never a placeholder number.
+  const hasAssessment = typeof assessment.overall_readiness_score === "number";
+  const score = (value?: number) => (typeof value === "number" ? `${value}/100` : "—");
+  const readinessScore = score(assessment.overall_readiness_score);
+  const problemScore = score(assessment.problem_clarity_score);
+  const feasibilityScore = score(assessment.technical_feasibility_score);
+  const marketScore = score(assessment.market_potential_score);
   const strengths: string[] = assessment.strengths || [];
   const weaknesses: string[] = assessment.weaknesses || [];
   const questions: string[] = aiFeedbackObj.questions_for_reviewers || [];
   const missingEvidence: string[] = aiFeedbackObj.missing_evidence || [];
 
-  const rawStatus = (project.status || "SUBMITTED").toUpperCase() as ReviewStatus;
-  const statusLabel = REVIEW_STATUS_LABEL[rawStatus] || rawStatus;
-  const statusTone = REVIEW_STATUS_TONE[rawStatus] || "progress";
+  // Status comes straight from the persisted record - no default is substituted when it is unexpected.
+  const rawStatus = String(project.status).toUpperCase() as ReviewStatus;
+  const statusLabel = REVIEW_STATUS_LABEL[rawStatus] ?? rawStatus;
+  const statusTone = REVIEW_STATUS_TONE[rawStatus] ?? "neutral";
 
-  const rawMaturity = (project.startup.stage || "PROTOTYPE").toUpperCase() as Maturity;
-  const maturityLabel = MATURITY_LABEL[rawMaturity] || rawMaturity;
+  const rawMaturity = String(project.startup.stage).toUpperCase() as Maturity;
+  const maturityLabel = MATURITY_LABEL[rawMaturity] ?? rawMaturity;
 
   const teamMembers = project.formData.teamMembers || [];
   const technologies = project.formData.technologies || [];
@@ -245,109 +233,170 @@ export default async function ProjectPage({
           <Card className="border-amber-200 bg-amber-50/60 p-5">
             <h2 className="text-[15px] font-bold text-amber-950">Reviewer feedback</h2>
             <p className="mt-1 text-[13px] leading-relaxed text-amber-900">
-              {project.reviewerComments || aiFeedbackObj.comments || aiFeedbackObj.reviewer_comments || "Please review the requested changes and resubmit your application."}
+              {project.reviewerComments?.trim() || "The reviewer did not leave written comments. Contact your faculty reviewer for details."}
             </p>
           </Card>
         )}
 
         {/* AI Application Agent Assessment Dossier */}
-        <Card className="overflow-hidden border-indigo-100 bg-gradient-to-b from-indigo-50/40 via-white to-white p-6">
-          <div className="flex items-center justify-between border-b border-indigo-100/80 pb-4">
-            <div className="flex items-center gap-2.5">
-              <span className="flex size-8 items-center justify-center rounded-lg bg-indigo-600/10 text-indigo-600">
-                <Sparkles className="size-4" />
+        {hasAssessment ? (
+          <Card className="overflow-hidden border-indigo-100 bg-gradient-to-b from-indigo-50/40 via-white to-white p-6">
+            <div className="flex items-center justify-between border-b border-indigo-100/80 pb-4">
+              <div className="flex items-center gap-2.5">
+                <span className="flex size-8 items-center justify-center rounded-lg bg-indigo-600/10 text-indigo-600">
+                  <Sparkles className="size-4" />
+                </span>
+                <div>
+                  <h2 className="text-[16px] font-bold text-ink">AI Application Agent Evaluation Dossier</h2>
+                  <p className="text-[12px] text-muted-ink">
+                    Preliminary multi-dimensional feasibility scoring and committee interview preparation
+                  </p>
+                </div>
+              </div>
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-bold text-emerald-700">
+                <ShieldCheck className="size-3.5" />
+                Advisory only
               </span>
-              <div>
-                <h2 className="text-[16px] font-bold text-ink">AI Application Agent Evaluation Dossier</h2>
-                <p className="text-[12px] text-muted-ink">
-                  Preliminary multi-dimensional feasibility scoring and committee interview preparation
-                </p>
+            </div>
+
+            {/* Metric Badges Grid */}
+            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="rounded-xl border border-line bg-surface p-3.5">
+                <span className="block text-[11px] font-medium uppercase tracking-wider text-muted-ink">Overall Readiness</span>
+                <span className="mt-1 block text-2xl font-black text-brand">{readinessScore}</span>
+                </div>
+              <div className="rounded-xl border border-line bg-surface p-3.5">
+                <span className="block text-[11px] font-medium uppercase tracking-wider text-muted-ink">Problem Clarity</span>
+                <span className="mt-1 block text-2xl font-bold text-ink">{problemScore}</span>
+                <span className="mt-0.5 block text-[11px] text-muted-ink">Pain point articulated</span>
+              </div>
+              <div className="rounded-xl border border-line bg-surface p-3.5">
+                <span className="block text-[11px] font-medium uppercase tracking-wider text-muted-ink">Tech Feasibility</span>
+                <span className="mt-1 block text-2xl font-bold text-ink">{feasibilityScore}</span>
+                <span className="mt-0.5 block text-[11px] text-muted-ink">Achievable architecture</span>
+              </div>
+              <div className="rounded-xl border border-line bg-surface p-3.5">
+                <span className="block text-[11px] font-medium uppercase tracking-wider text-muted-ink">Market Viability</span>
+                <span className="mt-1 block text-2xl font-bold text-ink">{marketScore}</span>
+                <span className="mt-0.5 block text-[11px] text-muted-ink">Target users identified</span>
               </div>
             </div>
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-bold text-emerald-700">
-              <ShieldCheck className="size-3.5" />
-              Pre-Screened
-            </span>
-          </div>
 
-          {/* Metric Badges Grid */}
-          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <div className="rounded-xl border border-line bg-surface p-3.5">
-              <span className="block text-[11px] font-medium uppercase tracking-wider text-muted-ink">Overall Readiness</span>
-              <span className="mt-1 block text-2xl font-black text-brand">{readinessScore}/100</span>
-              <span className="mt-0.5 block text-[11px] text-emerald-600 font-medium">Eligible for Incubation</span>
-            </div>
-            <div className="rounded-xl border border-line bg-surface p-3.5">
-              <span className="block text-[11px] font-medium uppercase tracking-wider text-muted-ink">Problem Clarity</span>
-              <span className="mt-1 block text-2xl font-bold text-ink">{problemScore}%</span>
-              <span className="mt-0.5 block text-[11px] text-muted-ink">Pain point articulated</span>
-            </div>
-            <div className="rounded-xl border border-line bg-surface p-3.5">
-              <span className="block text-[11px] font-medium uppercase tracking-wider text-muted-ink">Tech Feasibility</span>
-              <span className="mt-1 block text-2xl font-bold text-ink">{feasibilityScore}%</span>
-              <span className="mt-0.5 block text-[11px] text-muted-ink">Achievable architecture</span>
-            </div>
-            <div className="rounded-xl border border-line bg-surface p-3.5">
-              <span className="block text-[11px] font-medium uppercase tracking-wider text-muted-ink">Market Viability</span>
-              <span className="mt-1 block text-2xl font-bold text-ink">{marketScore}%</span>
-              <span className="mt-0.5 block text-[11px] text-muted-ink">Target users identified</span>
-            </div>
-          </div>
+            {/* AI Strengths & Committee Questions */}
+            <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+                <h3 className="mb-2.5 flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wider text-emerald-800">
+                  <CheckCircle2 className="size-3.5 text-emerald-600" /> Key Strengths Identified by AI
+                </h3>
+                <ul className="space-y-1.5 text-[12px] text-emerald-950">
+                  {strengths.length > 0 ? (
+                    strengths.map((str, idx) => (
+                      <li key={idx} className="flex items-start gap-2">
+                        <span className="mt-0.5 text-emerald-500">•</span>
+                        <span>{str}</span>
+                      </li>
+                    ))
+                  ) : (
+                    <li className="text-muted-ink">No strengths recorded.</li>
+                  )}
+                </ul>
+              </div>
 
-          {/* AI Strengths & Committee Questions */}
-          <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
-              <h3 className="mb-2.5 flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wider text-emerald-800">
-                <CheckCircle2 className="size-3.5 text-emerald-600" /> Key Strengths Identified by AI
-              </h3>
-              <ul className="space-y-1.5 text-[12px] text-emerald-950">
-                {strengths.length > 0 ? (
-                  strengths.map((str, idx) => (
-                    <li key={idx} className="flex items-start gap-2">
-                      <span className="mt-0.5 text-emerald-500">•</span>
-                      <span>{str}</span>
-                    </li>
-                  ))
-                ) : (
-                  <li className="text-muted-ink">Core technical solution scope meets baseline criteria.</li>
-                )}
-              </ul>
+              <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-4">
+                <h3 className="mb-2.5 flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wider text-indigo-900">
+                  <HelpCircle className="size-3.5 text-indigo-600" /> Questions Prepared for Faculty Committee
+                </h3>
+                <ul className="space-y-1.5 text-[12px] text-indigo-950">
+                  {questions.length > 0 ? (
+                    questions.map((q, idx) => (
+                      <li key={idx} className="flex items-start gap-2">
+                        <span className="mt-0.5 text-indigo-500">•</span>
+                        <span>{q}</span>
+                      </li>
+                    ))
+                  ) : (
+                    <li className="text-muted-ink">No reviewer questions recorded.</li>
+                  )}
+                </ul>
+              </div>
             </div>
 
-            <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-4">
-              <h3 className="mb-2.5 flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wider text-indigo-900">
-                <HelpCircle className="size-3.5 text-indigo-600" /> Questions Prepared for Faculty Committee
-              </h3>
-              <ul className="space-y-1.5 text-[12px] text-indigo-950">
-                {questions.length > 0 ? (
-                  questions.map((q, idx) => (
-                    <li key={idx} className="flex items-start gap-2">
-                      <span className="mt-0.5 text-indigo-500">•</span>
-                      <span>{q}</span>
-                    </li>
-                  ))
-                ) : (
-                  <li className="text-muted-ink">Standard faculty review questions will be posed during panel interview.</li>
-                )}
-              </ul>
-            </div>
-          </div>
+            {/* Missing Evidence / Weaknesses Notice if any */}
+            {(missingEvidence.length > 0 || weaknesses.length > 0) && (
+              <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-50/60 p-4 text-[12px] text-amber-950">
+                <span className="flex items-center gap-1.5 font-bold text-amber-900 mb-1.5">
+                  <AlertTriangle className="size-3.5 text-amber-600" /> Items for Further Clarification:
+                </span>
+                <ul className="list-disc pl-4 space-y-1 text-[12px]">
+                  {missingEvidence.map((m, idx) => (
+                    <li key={`ev-${idx}`}>{m}</li>
+                  ))}
+                  {weaknesses.map((w, idx) => (
+                    <li key={`wk-${idx}`}>{w}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </Card>
+        ) : (
+          <Card className="p-5">
+            <h2 className="text-[15px] font-bold text-ink">AI preliminary assessment</h2>
+            <p className="mt-1 text-[13px] text-muted-ink">
+              No AI assessment is stored for this application (the assessment service was unavailable when it was submitted, or this is a draft). Your application is reviewed by the faculty panel regardless.
+            </p>
+          </Card>
+        )}
 
-          {/* Missing Evidence / Weaknesses Notice if any */}
-          {(missingEvidence.length > 0 || weaknesses.length > 0) && (
-            <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-50/60 p-4 text-[12px] text-amber-950">
-              <span className="flex items-center gap-1.5 font-bold text-amber-900 mb-1.5">
-                <AlertTriangle className="size-3.5 text-amber-600" /> Items for Further Clarification:
-              </span>
-              <ul className="list-disc pl-4 space-y-1 text-[12px]">
-                {missingEvidence.map((m, idx) => (
-                  <li key={`ev-${idx}`}>{m}</li>
-                ))}
-                {weaknesses.map((w, idx) => (
-                  <li key={`wk-${idx}`}>{w}</li>
-                ))}
-              </ul>
-            </div>
+        {/* Mentor - persisted allocation; recommendations are labelled as such */}
+        <MentorCard result={mentor} />
+
+        {/* Tasks assigned to the student on this project */}
+        {tasks &&
+          (tasks.ok ? (
+            <TaskList tasks={tasks.data.filter((t) => t.projectId === project.id)} today={istNow().date} />
+          ) : (
+            <LoadError
+              title="We couldn't load your tasks"
+              message={tasks.message}
+              canRetry={tasks.kind === "unavailable"}
+            />
+          ))}
+
+        {/* Milestones and monitoring (approved projects only). Monitoring uses the same tasks and milestones shown here. */}
+        {milestones &&
+          (milestones.ok ? (
+            <MilestonesPanel applicationId={project.id} data={milestones.data} />
+          ) : (
+            <LoadError title="We couldn't load your milestones" message={milestones.message} canRetry={milestones.kind === "unavailable"} />
+          ))}
+        {monitoring && <MonitoringCard projectId={project.id} result={monitoring} />}
+
+        {/* Activity - persisted status transitions (application_audit_logs) */}
+        <Card className="p-6">
+          <h2 className="text-[15px] font-bold text-ink">Activity</h2>
+          {project.history.length === 0 ? (
+            <p className="mt-2 text-[13px] text-muted-ink">No status changes recorded yet.</p>
+          ) : (
+            <ol className="mt-4 flex flex-col gap-4">
+              {[...project.history].reverse().map((entry, idx) => (
+                <li key={`${entry.at}-${idx}`} className="flex gap-3">
+                  <span aria-hidden="true" className="mt-1.5 size-2 shrink-0 rounded-full bg-brand-cyan" />
+                  <div className="min-w-0">
+                    <p className="text-[13px] font-medium text-ink">
+                      {entry.from
+                        ? `${REVIEW_STATUS_LABEL[entry.from as ReviewStatus] ?? entry.from} → ${REVIEW_STATUS_LABEL[entry.to as ReviewStatus] ?? entry.to}`
+                        : REVIEW_STATUS_LABEL[entry.to as ReviewStatus] ?? entry.to}
+                    </p>
+                    {entry.at && (
+                      <p className="text-[12px] text-muted-ink">{new Date(entry.at).toLocaleString("en-IN")}</p>
+                    )}
+                    {entry.comments && (
+                      <p className="mt-1 whitespace-pre-line text-[13px] text-muted-ink">{entry.comments}</p>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ol>
           )}
         </Card>
 
@@ -545,3 +594,4 @@ export default async function ProjectPage({
     </PageContainer>
   );
 }
+

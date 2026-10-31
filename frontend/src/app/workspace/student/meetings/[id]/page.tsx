@@ -1,247 +1,139 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { ArrowLeft, CalendarClock, MapPin, Video } from "lucide-react";
-import { formatClock, formatDayLabel, formatLongDate } from "@/lib/dates";
-import { initialsOf } from "@/lib/format";
-import { cn } from "@/lib/utils";
+import { formatDayLabel, formatLongDate } from "@/lib/dates";
 import PageContainer from "@/components/shared/PageContainer";
 import { Card, StatusBadge } from "@/components/shared/Surface";
-import {
-  MEETING_TYPE_LABEL,
-  MEETINGS,
-  MOCK_NOW,
-  STUDENT_MEETING_PERMISSIONS,
-  type Meeting,
-  type MeetingType,
-  type Person,
-} from "@/mock/student-meetings";
-import {
-  hasEnded,
-  isJoinable,
-  MEETING_STATUS_LABEL,
-  MEETING_STATUS_TONE,
-  meetingStatus,
-} from "../_lib/meetings";
-import { joinLinkClass } from "../_components/MeetingListItem";
-import MeetingNotesPanel from "./_components/MeetingNotesPanel";
+import { fetchBackend } from "@/lib/backendProxy";
+import { STUDENT_READ_ROLES } from "@/lib/apiPolicy";
+import { isIsoDate, istNow, joinUrl, MEETING_STATUS_LABEL, meetingStatus, reminderLabel } from "@/lib/workflowState";
+import type { StudentMeeting } from "@/types/student-workflow";
+import LoadError from "../../_components/LoadError";
+import { joinLinkClass, MEETING_STATUS_TONE, timeRange } from "../_components/MeetingListItem";
 
-const BACKEND_URL = process.env.BACKEND_URL || "http://127.0.0.1:5000";
+export const metadata: Metadata = {
+  title: "Meeting | DBIT Incubation Centre",
+};
 
-async function fetchMeeting(id: string): Promise<Meeting | null> {
-  try {
-    const res = await fetch(`${BACKEND_URL}/api/faculty/meetings`, { cache: "no-store" });
-    if (res.ok) {
-      const json = await res.json();
-      if (json.success && Array.isArray(json.data)) {
-        const found = json.data.find((m: any) => (m.id || m._id) === id);
-        if (found) {
-          const dateStr = found.date
-            ? new Date(found.date).toISOString().split("T")[0]
-            : new Date().toISOString().split("T")[0];
-          return {
-            id: found.id || found._id,
-            title: found.agenda || "Advisory Mentorship Review",
-            projectId: found.projectId || "p1",
-            projectName: found.projectTitle || "Incubation Project",
-            type: "MENTOR_SESSION",
-            date: dateStr,
-            startTime: found.time || "10:00",
-            endTime: "11:00",
-            host: { name: found.facultyGuide || "Faculty Advisor", role: "Mentor" },
-            participants: [{ name: found.studentLead || "Student", role: "Founder" }],
-            agenda: [found.agenda || "Progress Review"],
-            meetingLink: found.meetingLink,
-            location: found.location || "Online",
-            actionItems: [],
-          };
-        }
-      }
-    }
-  } catch {}
-  return MEETINGS.find((m) => m.id === id) || null;
-}
-
-type Params = { params: Promise<{ id: string }> };
-
-export async function generateMetadata({ params }: Params): Promise<Metadata> {
+export default async function MeetingDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const meeting = await fetchMeeting(id);
-  return {
-    title: meeting
-      ? `${meeting.title} | Meetings | DBIT Incubation Centre`
-      : "Meeting not found | DBIT Incubation Centre",
-  };
-}
-
-function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="py-2.5 first:pt-0 last:pb-0">
-      <dt className="text-[12px] font-medium text-muted-ink">{label}</dt>
-      <dd className="mt-0.5 text-[14px] text-ink">{children}</dd>
-    </div>
+  const result = await fetchBackend<StudentMeeting[]>(
+    { path: "/api/student/meetings", roles: STUDENT_READ_ROLES, tag: "Meeting Detail" },
+    [],
   );
-}
 
-export default async function MeetingDetailPage({ params }: Params) {
-  const { id } = await params;
-  const meeting = await fetchMeeting(id);
-  if (!meeting) notFound();
+  // The student endpoint only ever returns the caller's own meetings, so an id that is not in the list is
+  // either missing or not theirs - the page cannot (and need not) tell which.
+  const meeting = result.ok ? result.data.find((m) => m.id === id) : undefined;
 
-  const status = meetingStatus(meeting);
-  const ended = hasEnded(meeting) && status !== "CANCELLED";
-  const joinable = isJoinable(meeting);
-  const cancelled = status === "CANCELLED";
+  if (!result.ok || !meeting) {
+    return (
+      <PageContainer>
+        <LoadError
+          title={result.ok ? "Meeting not found" : "We couldn't load this meeting"}
+          message={result.ok ? "This meeting doesn't exist, or it isn't one of yours." : result.message}
+          canRetry={!result.ok && result.kind === "unavailable"}
+          backHref="/workspace/student/meetings"
+          backLabel="Back to Meetings"
+        />
+      </PageContainer>
+    );
+  }
+
+  const now = istNow();
+  const status = meetingStatus(meeting, now);
+  const join = joinUrl(meeting, now);
+  const online = /^https?:\/\//i.test(meeting.location);
+  const reminder = reminderLabel(meeting.reminder);
 
   return (
     <PageContainer>
-      <div className="flex flex-col gap-6">
+      <div className="flex max-w-3xl flex-col gap-6">
         <Link
           href="/workspace/student/meetings"
-          className="inline-flex items-center gap-1.5 self-start rounded-md text-[13px] font-medium text-muted-ink transition-colors hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+          className="inline-flex w-fit items-center gap-1.5 text-[13px] font-medium text-muted-ink transition-colors hover:text-brand"
         >
-          <ArrowLeft className="size-4" aria-hidden="true" />
-          All meetings
+          <ArrowLeft className="size-4" aria-hidden="true" /> Back to Meetings
         </Link>
 
-        {/* Header */}
-        <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <StatusBadge label={MEETING_STATUS_LABEL[status]} tone={MEETING_STATUS_TONE[status]} />
-              <span className="text-[13px] text-muted-ink">{MEETING_TYPE_LABEL[meeting.type]}</span>
+        <Card className="p-6">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h1 className="text-[22px] font-bold tracking-tight text-ink">{meeting.title}</h1>
+              <p className="mt-1 text-[14px] font-medium text-brand-cyan-ink">{meeting.projectTitle}</p>
             </div>
-            <h1 className="mt-2 text-[28px] font-bold leading-tight tracking-tight text-ink">{meeting.title}</h1>
-            <Link
-              href={`/student/projects/${meeting.projectId}`}
-              className="mt-1 inline-block text-[14px] font-medium text-brand-cyan-ink hover:text-brand hover:underline"
-            >
-              {meeting.projectName}
-            </Link>
-            <p className="mt-2 flex items-center gap-1.5 text-[14px] text-ink">
-              <CalendarClock className="size-4 shrink-0 text-muted-ink" aria-hidden="true" />
-              {formatDayLabel(meeting.date, MOCK_NOW.date)} · {formatClock(meeting.startTime)} – {formatClock(meeting.endTime)}
-            </p>
+            <StatusBadge label={MEETING_STATUS_LABEL[status]} tone={MEETING_STATUS_TONE[status]} />
           </div>
 
-          {joinable && (
-            <a href={meeting.meetingLink} target="_blank" rel="noopener noreferrer" className={cn(joinLinkClass, "h-10 self-start px-4 text-[14px]")}>
-              <Video className="size-4" aria-hidden="true" />
-              Join Meeting
+          <dl className="mt-5 grid grid-cols-1 gap-4 text-[14px] sm:grid-cols-2">
+            <div>
+              <dt className="text-[12px] font-medium text-muted-ink">When</dt>
+              <dd className="mt-0.5 flex items-start gap-1.5 text-ink">
+                <CalendarClock className="mt-0.5 size-4 shrink-0 text-muted-ink" aria-hidden="true" />
+                <span>
+                  {isIsoDate(meeting.date) ? `${formatDayLabel(meeting.date, now.date)} · ${formatLongDate(meeting.date)}` : `${meeting.date} (not a confirmed date)`}
+                  <br />
+                  <span className="tabular-nums text-muted-ink">
+                    {timeRange(meeting)}
+                    {meeting.startTime && meeting.timeZone ? ` · ${meeting.timeZone}` : ""}
+                  </span>
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[12px] font-medium text-muted-ink">Where</dt>
+              <dd className="mt-0.5 flex items-start gap-1.5 text-ink">
+                {online ? <Video className="mt-0.5 size-4 shrink-0 text-muted-ink" aria-hidden="true" /> : <MapPin className="mt-0.5 size-4 shrink-0 text-muted-ink" aria-hidden="true" />}
+                <span>
+                  {meeting.provider || "To be confirmed"}
+                  {meeting.location && !online && <span className="block text-muted-ink">{meeting.location}</span>}
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[12px] font-medium text-muted-ink">Type</dt>
+              <dd className="mt-0.5 text-ink">{meeting.meetingType}</dd>
+            </div>
+            <div>
+              <dt className="text-[12px] font-medium text-muted-ink">Participants</dt>
+              <dd className="mt-0.5 text-ink">{meeting.participants.length > 0 ? meeting.participants.join(", ") : "Not listed"}</dd>
+            </div>
+          </dl>
+
+          {join && (
+            <a href={join} target="_blank" rel="noopener noreferrer" className={`${joinLinkClass} mt-5`}>
+              <Video className="size-3.5" aria-hidden="true" /> Join Meeting
             </a>
           )}
-        </header>
+          {status === "REQUESTED" && (
+            <p className="mt-5 rounded-lg border border-brand-gold/40 bg-brand-gold/10 px-3 py-2 text-[13px] text-brand-gold-ink">
+              This is your request. It is not a scheduled meeting until the host confirms a time.
+            </p>
+          )}
+          {reminder && (
+            <p className={`mt-4 text-[12px] ${reminder.tone === "bad" ? "text-danger" : "text-muted-ink"}`}>{reminder.text}</p>
+          )}
+        </Card>
 
-        {cancelled && (
-          <div role="status" className="rounded-lg border border-line bg-white px-4 py-3 text-[14px] text-ink">
-            <span className="font-semibold">This meeting was cancelled.</span>{" "}
-            <span className="text-muted-ink">{meeting.cancellation?.reason}</span>
-          </div>
-        )}
+        <Card className="p-6">
+          <h2 className="text-[15px] font-bold text-ink">Agenda</h2>
+          <p className="mt-2 whitespace-pre-line text-[14px] leading-relaxed text-muted-ink">
+            {meeting.agenda || "No agenda has been added."}
+          </p>
+        </Card>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_18.5rem] lg:items-start">
-          {/* Main */}
-          <div className="flex min-w-0 flex-col gap-6">
-            <Card className="p-5">
-              <h2 className="text-[15px] font-semibold text-ink">Agenda</h2>
-              <ol className="mt-3 flex list-decimal flex-col gap-2 pl-5 text-[14px] leading-relaxed text-ink marker:font-medium marker:text-muted-ink">
-                {meeting.agenda.map((point) => (
-                  <li key={point} className="pl-1">
-                    {point}
-                  </li>
-                ))}
-              </ol>
-            </Card>
-
-            {ended && (
-              <Card className="p-5">
-                <div className="flex items-baseline justify-between gap-3">
-                  <h2 className="text-[15px] font-semibold text-ink">Meeting minutes</h2>
-                  <span className="text-[12px] text-muted-ink">Recorded by {meeting.host.name}</span>
-                </div>
-                {meeting.minutes ? (
-                  <p className="mt-3 whitespace-pre-line text-[14px] leading-relaxed text-ink">{meeting.minutes}</p>
-                ) : (
-                  <p className="mt-3 text-[13px] text-muted-ink">
-                    Minutes haven&apos;t been recorded yet.
-                    {!STUDENT_MEETING_PERMISSIONS.canRecordMinutes && " The host will add them after the meeting."}
-                  </p>
-                )}
-              </Card>
-            )}
-
-            {!cancelled && <MeetingNotesPanel meeting={meeting} ended={ended} />}
-          </div>
-
-          {/* Details */}
-          <aside className="flex flex-col gap-4 lg:sticky lg:top-[84px]">
-            <Card className="p-5">
-              <h2 className="sr-only">Meeting details</h2>
-              <dl className="flex flex-col divide-y divide-line">
-                <DetailRow label="Date">{formatLongDate(meeting.date)}</DetailRow>
-                <DetailRow label="Time">
-                  {formatClock(meeting.startTime)} – {formatClock(meeting.endTime)}
-                </DetailRow>
-                <DetailRow label="Meeting type">{MEETING_TYPE_LABEL[meeting.type]}</DetailRow>
-                <DetailRow label={meeting.meetingLink ? "Meeting link" : "Location"}>
-                  {meeting.meetingLink ? (
-                    joinable ? (
-                      <a
-                        href={meeting.meetingLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 font-medium text-brand hover:underline"
-                      >
-                        <Video className="size-3.5" aria-hidden="true" />
-                        Join online
-                      </a>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 text-muted-ink">
-                        <Video className="size-3.5" aria-hidden="true" />
-                        {ended || cancelled ? "Online meeting" : "Link available on the day"}
-                      </span>
-                    )
-                  ) : (
-                    <span className="inline-flex items-start gap-1.5">
-                      <MapPin className="mt-0.5 size-3.5 shrink-0 text-muted-ink" aria-hidden="true" />
-                      {meeting.location}
-                    </span>
-                  )}
-                </DetailRow>
-                {meeting.followUpDate && (
-                  <DetailRow label="Follow-up">
-                    {formatLongDate(meeting.followUpDate)}
-                    <span className="block text-[12px] text-muted-ink">Set by host</span>
-                  </DetailRow>
-                )}
-              </dl>
-            </Card>
-
-            <Card className="p-5">
-              <h2 className="text-[14px] font-semibold text-ink">Participants</h2>
-              <ul className="mt-3 flex flex-col gap-3">
-                {[meeting.host, ...meeting.participants.filter((p) => p.name !== meeting.host.name)].map((person, i) => (
-                  <li key={person.name} className="flex items-center gap-3">
-                    <span
-                      aria-hidden="true"
-                      className={
-                        i === 0
-                          ? "flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-deep text-[11px] font-semibold text-white"
-                          : "flex size-8 shrink-0 items-center justify-center rounded-full border border-line bg-canvas text-[11px] font-semibold text-muted-ink"
-                      }
-                    >
-                      {initialsOf(person.name)}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="truncate text-[13px] font-medium text-ink">{person.name}</p>
-                      <p className="truncate text-[12px] text-muted-ink">{i === 0 ? `Host · ${person.role}` : person.role}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          </aside>
-        </div>
+        <Card className="p-6">
+          <h2 className="text-[15px] font-bold text-ink">Notes and outcome</h2>
+          {meeting.notes === null ? (
+            <p className="mt-2 text-[13px] text-muted-ink">
+              Notes are shared after the host records this meeting as held. None have been recorded yet.
+            </p>
+          ) : (
+            <p className="mt-2 whitespace-pre-line text-[14px] leading-relaxed text-ink">
+              {meeting.notes || "The host recorded this meeting as held but did not add notes."}
+            </p>
+          )}
+        </Card>
       </div>
     </PageContainer>
   );

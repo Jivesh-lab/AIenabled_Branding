@@ -1,9 +1,9 @@
 /**
  * Draft persistence for Submit New Idea.
  *
- * There is no backend yet, so drafts live in this browser's localStorage. When
- * the API exists, replace `saveDraft` / `loadDraft` / `clearDraft` with calls
- * to it — the wizard only depends on these three functions.
+ * This is the browser-side copy. The server copy (POST /api/applications/draft)
+ * is the durable one; the wizard writes both on every save and never lets
+ * either overwrite the other without the student choosing (see `draftsDiffer`).
  *
  * Every storage access is wrapped: localStorage can be unavailable (private
  * mode, blocked site data) and the page must still work without it.
@@ -22,6 +22,8 @@ export interface StoredDraft {
   step: StepIndex;
   furthestStep: StepIndex;
   savedAt: string;
+  /** The server-side application this browser copy belongs to, once one exists. */
+  applicationId: string | null;
 }
 
 function isStep(value: unknown): value is StepIndex {
@@ -48,6 +50,7 @@ export function parseDraft(raw: string | null): StoredDraft | null {
       step: isStep(parsed.step) ? parsed.step : 0,
       furthestStep: isStep(parsed.furthestStep) ? parsed.furthestStep : 0,
       savedAt: parsed.savedAt,
+      applicationId: typeof parsed.applicationId === "string" ? parsed.applicationId : null,
     };
   } catch {
     return null;
@@ -63,11 +66,16 @@ export function readRawDraft(): string | null {
 }
 
 /** Returns the save timestamp, or null when storage is unavailable. */
-export function saveDraft(values: IdeaFormValues, step: StepIndex, furthestStep: StepIndex): string | null {
+export function saveDraft(
+  values: IdeaFormValues,
+  step: StepIndex,
+  furthestStep: StepIndex,
+  applicationId: string | null = null,
+): string | null {
   const { declarationAccepted: _omit, ...persistable } = values;
   void _omit;
   const savedAt = new Date().toISOString();
-  const draft: StoredDraft = { values: persistable, step, furthestStep, savedAt };
+  const draft: StoredDraft = { values: persistable, step, furthestStep, savedAt, applicationId };
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
     return savedAt;
@@ -106,4 +114,20 @@ export function formatSavedAt(iso: string): string {
     hour: "numeric",
     minute: "2-digit",
   });
+}
+
+function stableStringify(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
+  if (value && typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .filter(([key]) => key !== "declarationAccepted" && key !== "_draft")
+      .sort(([a], [b]) => a.localeCompare(b));
+    return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${stableStringify(v)}`).join(",")}}`;
+  }
+  return JSON.stringify(value ?? null);
+}
+
+/** True when the browser copy and the server copy hold different form content. */
+export function draftsDiffer(a: object, b: object): boolean {
+  return stableStringify(a) !== stableStringify(b);
 }

@@ -7,6 +7,7 @@ const auditRouter = require('./routes/audit');
 const adminRouter = require('./routes/admin');
 const investorsRouter = require('./routes/investors');
 const facultyRouter = require('./routes/faculty');
+const studentRouter = require('./routes/student');
 
 const app = express();
 
@@ -53,6 +54,7 @@ app.use('/api/audit', auditRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/investors', investorsRouter);
 app.use('/api/faculty', facultyRouter);
+app.use('/api/student', studentRouter);
 
 // Health check
 app.get('/api/health', (_request, response) => {

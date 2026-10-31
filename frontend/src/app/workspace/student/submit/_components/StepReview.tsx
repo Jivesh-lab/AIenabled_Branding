@@ -61,7 +61,7 @@ export default function StepReview({ onEditStep }: { onEditStep: (step: StepInde
   const v = useWatch<IdeaFormValues>();
 
   const [validating, setValidating] = useState(false);
-  const [validationResult, setValidationResult] = useState<any>(null);
+  const [validationResult, setValidationResult] = useState<{ is_complete?: boolean; completeness_score?: number; missing_fields?: string[] } | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const team = v.teamMembers ?? [];
@@ -128,11 +128,11 @@ export default function StepReview({ onEditStep }: { onEditStep: (step: StepInde
               </span>
             </div>
 
-            {validationResult.missing_fields?.length > 0 && (
+            {(validationResult.missing_fields?.length ?? 0) > 0 && (
               <div className="bg-amber-50/80 p-2.5 rounded-lg border border-amber-200/60 text-amber-900 text-[11px]">
                 <strong>Attention Required:</strong>
                 <ul className="list-disc pl-4 mt-1 space-y-0.5">
-                  {validationResult.missing_fields.map((f: string, i: number) => (
+                  {(validationResult.missing_fields ?? []).map((f: string, i: number) => (
                     <li key={i}>{f}</li>
                   ))}
                 </ul>

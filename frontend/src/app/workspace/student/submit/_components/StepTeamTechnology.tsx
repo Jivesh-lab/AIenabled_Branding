@@ -2,18 +2,16 @@
 
 import { useId, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
-import { FileText, Info, Plus, Search, UserPlus, X } from "lucide-react";
+import { FileText, Info, Plus, UserPlus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { controlClass, describedBy, FieldError, FormField, FormSection } from "@/components/shared/form/FormField";
+import { useSession } from "next-auth/react";
 import {
-  ASSIGNED_FACULTY_GUIDE,
-  CURRENT_STUDENT,
   FILE_RULES,
-  STUDENT_DIRECTORY,
   TEAM_LIMIT,
   TECHNOLOGY_LIMIT,
   TECHNOLOGY_SUGGESTIONS,
-} from "@/mock/submit-idea";
+} from "../_lib/form-options";
 import type { Attachment, IdeaFormValues, TeamMemberInvite } from "../_lib/idea-schema";
 import { formatBytes, initialsOf } from "@/lib/format";
 
@@ -25,74 +23,65 @@ function makeId(prefix: string) {
 }
 
 // ---------------------------------------------------------------------------
-// Faculty guide — read-only. Students cannot assign their own guide.
+// Faculty guide — read-only. Assigned by the Faculty Coordinator after submission.
 // ---------------------------------------------------------------------------
 function FacultyGuide() {
   return (
     <div>
       <p className="mb-1.5 text-[13px] font-medium text-ink">Faculty guide</p>
-      {ASSIGNED_FACULTY_GUIDE ? (
-        <div className="flex items-center gap-3 rounded-lg border border-line bg-canvas px-3 py-2.5">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-deep text-[12px] font-semibold text-white">
-            {initialsOf(ASSIGNED_FACULTY_GUIDE.name)}
-          </span>
-          <div className="min-w-0">
-            <p className="truncate text-[13px] font-semibold text-ink">{ASSIGNED_FACULTY_GUIDE.name}</p>
-            <p className="truncate text-[12px] text-muted-ink">{ASSIGNED_FACULTY_GUIDE.department}</p>
-          </div>
+      <div className="flex items-start gap-2.5 rounded-lg border border-line bg-canvas px-3 py-2.5">
+        <Info className="mt-0.5 size-4 shrink-0 text-brand-cyan" aria-hidden="true" />
+        <div>
+          <p className="text-[13px] font-medium text-ink">Assigned by Faculty Coordinator</p>
+          <p className="mt-0.5 text-[12px] text-muted-ink">
+            A guide is assigned after submission. You don&apos;t need to choose one.
+          </p>
         </div>
-      ) : (
-        <div className="flex items-start gap-2.5 rounded-lg border border-line bg-canvas px-3 py-2.5">
-          <Info className="mt-0.5 size-4 shrink-0 text-brand-cyan" aria-hidden="true" />
-          <div>
-            <p className="text-[13px] font-medium text-ink">Assigned by Faculty Coordinator</p>
-            <p className="mt-0.5 text-[12px] text-muted-ink">
-              A guide is assigned after submission. You don&apos;t need to choose one.
-            </p>
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Team — lead is the logged-in student; others receive pending invites.
+// Team — the lead is the signed-in student (from the session). Other members are
+// typed in by the lead and stored with the application; there is no student
+// directory or invitation service, so nothing here is searched or "sent".
 // ---------------------------------------------------------------------------
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 function TeamInvites() {
-  const searchId = useId();
+  const nameId = useId();
+  const rollId = useId();
+  const emailId = useId();
+  const { data: session } = useSession();
   const { setValue, formState: { errors } } = useFormContext<IdeaFormValues>();
   const members = useWatch<IdeaFormValues, "teamMembers">({ name: "teamMembers" });
-  const [query, setQuery] = useState("");
+  const [entry, setEntry] = useState({ name: "", rollNumber: "", email: "" });
+  const [entryError, setEntryError] = useState<string | null>(null);
 
   const teamIsFull = members.length >= TEAM_LIMIT - 1;
-  const trimmed = query.trim().toLowerCase();
-  const invitedIds = new Set(members.map((m) => m.id));
+  const leadName = session?.user?.name || "You";
 
-  const results =
-    trimmed.length < 2
-      ? []
-      : STUDENT_DIRECTORY.filter(
-          (s) =>
-            !invitedIds.has(s.id) &&
-            (s.name.toLowerCase().includes(trimmed) ||
-              s.rollNumber.toLowerCase().includes(trimmed) ||
-              s.email.toLowerCase().includes(trimmed))
-        ).slice(0, 5);
-
-  function invite(student: (typeof STUDENT_DIRECTORY)[number]) {
-    const next: TeamMemberInvite = {
-      id: student.id,
-      name: student.name,
-      rollNumber: student.rollNumber,
-      email: student.email,
-      inviteStatus: "PENDING",
-    };
+  function addMember() {
+    const name = entry.name.trim();
+    const rollNumber = entry.rollNumber.trim();
+    const email = entry.email.trim();
+    if (name.length < 2) return setEntryError("Enter the member's full name.");
+    if (!rollNumber) return setEntryError("Enter the member's roll number.");
+    if (!EMAIL_PATTERN.test(email)) return setEntryError("Enter a valid email address.");
+    if (
+      email.toLowerCase() === (session?.user?.email ?? "").toLowerCase() ||
+      members.some((m) => m.email.toLowerCase() === email.toLowerCase())
+    ) {
+      return setEntryError("This person is already on the team.");
+    }
+    const next: TeamMemberInvite = { id: makeId("member"), name, rollNumber, email, inviteStatus: "PENDING" };
     setValue("teamMembers", [...members, next], { shouldDirty: true, shouldValidate: true });
-    setQuery("");
+    setEntry({ name: "", rollNumber: "", email: "" });
+    setEntryError(null);
   }
 
-  function withdraw(id: string) {
+  function remove(id: string) {
     setValue(
       "teamMembers",
       members.filter((m) => m.id !== id),
@@ -110,23 +99,23 @@ function TeamInvites() {
       </div>
 
       <ul className="divide-y divide-line rounded-lg border border-line">
-        {/* Team lead */}
+        {/* Team lead — the signed-in student */}
         <li className="flex items-center gap-3 px-3 py-2.5">
           <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand text-[12px] font-semibold text-white">
-            {initialsOf(CURRENT_STUDENT.name)}
+            {initialsOf(leadName)}
           </span>
           <div className="min-w-0 flex-1">
             <p className="truncate text-[13px] font-semibold text-ink">
-              {CURRENT_STUDENT.name} <span className="font-normal text-muted-ink">(you)</span>
+              {leadName} <span className="font-normal text-muted-ink">(you)</span>
             </p>
-            <p className="truncate text-[12px] text-muted-ink">{CURRENT_STUDENT.rollNumber}</p>
+            {session?.user?.email && <p className="truncate text-[12px] text-muted-ink">{session.user.email}</p>}
           </div>
           <span className="shrink-0 rounded-md border border-brand/20 bg-brand-cyan-soft px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-brand">
             Team lead
           </span>
         </li>
 
-        {/* Pending invites */}
+        {/* Members added by the lead */}
         {members.map((member) => (
           <li key={member.id} className="flex items-center gap-3 px-3 py-2.5">
             <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-line bg-canvas text-[12px] font-semibold text-muted-ink">
@@ -134,15 +123,17 @@ function TeamInvites() {
             </span>
             <div className="min-w-0 flex-1">
               <p className="truncate text-[13px] font-semibold text-ink">{member.name}</p>
-              <p className="truncate text-[12px] text-muted-ink">{member.rollNumber}</p>
+              <p className="truncate text-[12px] text-muted-ink">
+                {member.rollNumber} · {member.email}
+              </p>
             </div>
             <span className="shrink-0 rounded-md border border-brand-gold/40 bg-brand-gold/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-brand-gold-ink">
-              Invite pending
+              Unconfirmed
             </span>
             <button
               type="button"
-              onClick={() => withdraw(member.id)}
-              aria-label={`Withdraw invite for ${member.name}`}
+              onClick={() => remove(member.id)}
+              aria-label={`Remove ${member.name} from the team`}
               className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-ink transition-colors hover:bg-nav-hover hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
             >
               <X className="size-4" aria-hidden="true" />
@@ -151,60 +142,72 @@ function TeamInvites() {
         ))}
       </ul>
 
-      {/* Invite search */}
-      <div className="mt-3">
-        <label htmlFor={searchId} className="sr-only">
-          Search students to invite
-        </label>
-        <div className="relative">
-          <Search
-            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-ink"
-            aria-hidden="true"
-          />
-          <input
-            id={searchId}
-            type="search"
-            value={query}
-            disabled={teamIsFull}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={teamIsFull ? "Team is full" : "Invite by name, roll number or email"}
-            className={cn(controlClass, "h-10 pl-9")}
-            autoComplete="off"
-          />
+      {/* Add a member */}
+      <fieldset className="mt-3" disabled={teamIsFull}>
+        <legend className="sr-only">Add a team member</legend>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <div>
+            <label htmlFor={nameId} className="sr-only">Member name</label>
+            <input
+              id={nameId}
+              value={entry.name}
+              onChange={(e) => setEntry((v) => ({ ...v, name: e.target.value }))}
+              placeholder={teamIsFull ? "Team is full" : "Full name"}
+              className={cn(controlClass, "h-10")}
+              autoComplete="off"
+            />
+          </div>
+          <div>
+            <label htmlFor={rollId} className="sr-only">Roll number</label>
+            <input
+              id={rollId}
+              value={entry.rollNumber}
+              onChange={(e) => setEntry((v) => ({ ...v, rollNumber: e.target.value }))}
+              placeholder="Roll number"
+              className={cn(controlClass, "h-10")}
+              autoComplete="off"
+            />
+          </div>
+          <div>
+            <label htmlFor={emailId} className="sr-only">Email</label>
+            <input
+              id={emailId}
+              type="email"
+              value={entry.email}
+              onChange={(e) => setEntry((v) => ({ ...v, email: e.target.value }))}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addMember();
+                }
+              }}
+              placeholder="Email"
+              className={cn(controlClass, "h-10")}
+              autoComplete="off"
+            />
+          </div>
         </div>
+        <div className="mt-2 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={addMember}
+            className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-line px-3 text-[13px] font-semibold text-brand transition-colors hover:border-brand/40 hover:bg-nav-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+          >
+            <UserPlus className="size-3.5" aria-hidden="true" />
+            Add member
+          </button>
+          {entryError && (
+            <p role="alert" className="text-[12px] text-danger">
+              {entryError}
+            </p>
+          )}
+        </div>
+      </fieldset>
 
-        {trimmed.length >= 2 && (
-          <ul className="mt-2 divide-y divide-line rounded-lg border border-line bg-white" aria-label="Matching students">
-            {results.length === 0 ? (
-              <li className="px-3 py-3 text-[13px] text-muted-ink">No students match &ldquo;{query.trim()}&rdquo;.</li>
-            ) : (
-              results.map((student) => (
-                <li key={student.id} className="flex items-center gap-3 px-3 py-2">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[13px] font-medium text-ink">{student.name}</p>
-                    <p className="truncate text-[12px] text-muted-ink">
-                      {student.rollNumber} · {student.department}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => invite(student)}
-                    className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-line px-3 text-[13px] font-semibold text-brand transition-colors hover:border-brand/40 hover:bg-nav-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-                  >
-                    <UserPlus className="size-3.5" aria-hidden="true" />
-                    Invite
-                  </button>
-                </li>
-              ))
-            )}
-          </ul>
-        )}
-
-        <p className="mt-2 text-[12px] text-muted-ink">
-          Invited students must accept before they join the team.
-        </p>
-        <FieldError id="teamMembers" message={errors.teamMembers?.message} />
-      </div>
+      <p className="mt-2 text-[12px] text-muted-ink">
+        Members are recorded with your application. Email invitations are not sent yet, so let them know yourself.
+      </p>
+      <FieldError id="teamMembers" message={errors.teamMembers?.message} />
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { useFormContext } from "react-hook-form";
 import { cn } from "@/lib/utils";
 import { controlClass, describedBy, FormField } from "@/components/shared/form/FormField";
 import { MATURITY_LABEL, SUBMITTABLE_MATURITY_LEVELS } from "@/types/status";
-import { DEPARTMENTS, DOMAINS, PROJECT_TYPES } from "@/mock/submit-idea";
+import { DEPARTMENTS, DOMAINS, PROJECT_TYPES } from "../_lib/form-options";
 import type { IdeaFormValues } from "../_lib/idea-schema";
 import CharCount from "./CharCount";
 

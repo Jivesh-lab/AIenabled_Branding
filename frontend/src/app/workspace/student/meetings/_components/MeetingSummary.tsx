@@ -1,25 +1,25 @@
 import { cn } from "@/lib/utils";
 
 /**
- * Compact summary strip — one bordered row divided into four, not four cards.
- * Gold is used for Action Required only when there is something to act on.
+ * Compact summary strip. Counts come from the meetings the backend returned; "Awaiting confirmation" are the
+ * student's own requests the host has not scheduled yet.
  */
 export default function MeetingSummary({
   upcoming,
   thisWeek,
   completed,
-  actionRequired,
+  requested,
 }: {
   upcoming: number;
   thisWeek: number;
   completed: number;
-  actionRequired: number;
+  requested: number;
 }) {
   const items = [
     { label: "Upcoming", value: upcoming },
     { label: "This week", value: thisWeek },
     { label: "Completed", value: completed },
-    { label: "Action required", value: actionRequired, attention: actionRequired > 0 },
+    { label: "Awaiting confirmation", value: requested, attention: requested > 0 },
   ];
 
   return (
@@ -29,7 +29,6 @@ export default function MeetingSummary({
           key={item.label}
           className={cn(
             "px-4 py-3",
-            // Dividers: vertical between columns, horizontal between the two rows on mobile.
             i % 2 === 1 && "border-l border-line",
             i >= 2 && "border-t border-line sm:border-t-0",
             i === 2 && "sm:border-l"
