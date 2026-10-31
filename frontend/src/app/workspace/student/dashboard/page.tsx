@@ -1,3 +1,6 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import PageContainer from "@/components/shared/PageContainer";
 import DashboardHeader from "./_components/DashboardHeader";
 import KpiRow from "./_components/KpiRow";
@@ -9,40 +12,58 @@ import AiInsights from "./_components/AiInsights";
 import RecentActivity from "./_components/RecentActivity";
 import FundingOpportunities from "./_components/FundingOpportunities";
 
-/**
- * Student Dashboard.
- *
- * Intent: "here is what is happening with your innovation, and here is what you
- * should do next" — work and deadlines over vanity metrics.
- *
- * Layout: KPI row, then a 3-column grid where the left 2 columns carry the
- * weight (Projects, Journey, AI Insights) and the right column carries the
- * time-sensitive lists (Meetings, Next Actions, Activity). Funding spans full
- * width as a preview. Everything collapses to a single column below `lg`.
- *
- * Fully static — no client components, no state, no effects.
- */
 export default function DashboardPage() {
+  const [projects, setProjects] = useState<any[]>([]);
+  const [meetings, setMeetings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadDashboard() {
+      try {
+        setLoading(true);
+        const [appsRes, meetingsRes] = await Promise.allSettled([
+          fetch("/api/applications"),
+          fetch("/api/faculty/meetings"),
+        ]);
+
+        if (appsRes.status === "fulfilled" && appsRes.value.ok) {
+          const appsData = await appsRes.value.json();
+          setProjects(appsData.projects || appsData.applications || []);
+        }
+
+        if (meetingsRes.status === "fulfilled" && meetingsRes.value.ok) {
+          const meetData = await meetingsRes.value.json();
+          setMeetings(meetData.data || meetData.meetings || []);
+        }
+      } catch (err) {
+        console.error("Dashboard data load error:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadDashboard();
+  }, []);
+
   return (
     <PageContainer>
       <div className="flex flex-col gap-6">
         <DashboardHeader />
 
-        <KpiRow />
+        <KpiRow projects={projects} meetings={meetings} loading={loading} />
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Primary column */}
           <div className="flex flex-col gap-6 lg:col-span-2">
-            <MyProjects />
-            <IncubationJourney />
-            <AiInsights />
+            <MyProjects projects={projects} loading={loading} />
+            <IncubationJourney projects={projects} />
+            <AiInsights projects={projects} />
           </div>
 
           {/* Time-sensitive column */}
           <div className="flex flex-col gap-6">
-            <UpcomingMeetings />
-            <NextActions />
-            <RecentActivity />
+            <UpcomingMeetings meetings={meetings} loading={loading} />
+            <NextActions projects={projects} />
+            <RecentActivity projects={projects} />
           </div>
         </div>
 

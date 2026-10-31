@@ -23,16 +23,52 @@ import {
 import { joinLinkClass } from "../_components/MeetingListItem";
 import MeetingNotesPanel from "./_components/MeetingNotesPanel";
 
-type Params = { params: Promise<{ id: string }> };
+const BACKEND_URL = process.env.BACKEND_URL || "http://127.0.0.1:5000";
 
-export function generateStaticParams() {
-  return MEETINGS.map((m) => ({ id: m.id }));
+async function fetchMeeting(id: string): Promise<Meeting | null> {
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/faculty/meetings`, { cache: "no-store" });
+    if (res.ok) {
+      const json = await res.json();
+      if (json.success && Array.isArray(json.data)) {
+        const found = json.data.find((m: any) => (m.id || m._id) === id);
+        if (found) {
+          const dateStr = found.date
+            ? new Date(found.date).toISOString().split("T")[0]
+            : new Date().toISOString().split("T")[0];
+          return {
+            id: found.id || found._id,
+            title: found.agenda || "Advisory Mentorship Review",
+            projectId: found.projectId || "p1",
+            projectName: found.projectTitle || "Incubation Project",
+            type: "MENTOR_SESSION",
+            date: dateStr,
+            startTime: found.time || "10:00",
+            endTime: "11:00",
+            host: { name: found.facultyGuide || "Faculty Advisor", role: "Mentor" },
+            participants: [{ name: found.studentLead || "Student", role: "Founder" }],
+            agenda: [found.agenda || "Progress Review"],
+            meetingLink: found.meetingLink,
+            location: found.location || "Online",
+            actionItems: [],
+          };
+        }
+      }
+    }
+  } catch {}
+  return null;
 }
+
+type Params = { params: Promise<{ id: string }> };
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { id } = await params;
-  const meeting = MEETINGS.find((m) => m.id === id);
-  return { title: meeting ? `${meeting.title} | Meetings | DBIT Incubation Centre` : "Meeting not found | DBIT Incubation Centre" };
+  const meeting = await fetchMeeting(id);
+  return {
+    title: meeting
+      ? `${meeting.title} | Meetings | DBIT Incubation Centre`
+      : "Meeting not found | DBIT Incubation Centre",
+  };
 }
 
 function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
@@ -46,7 +82,7 @@ function DetailRow({ label, children }: { label: string; children: React.ReactNo
 
 export default async function MeetingDetailPage({ params }: Params) {
   const { id } = await params;
-  const meeting = MEETINGS.find((m) => m.id === id);
+  const meeting = await fetchMeeting(id);
   if (!meeting) notFound();
 
   const status = meetingStatus(meeting);

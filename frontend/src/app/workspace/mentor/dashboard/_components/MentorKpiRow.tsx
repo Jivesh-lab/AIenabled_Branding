@@ -1,17 +1,75 @@
-import { Users, CalendarDays, CheckSquare, MessageSquare } from "lucide-react";
+"use client";
+
+import { useState, useEffect } from "react";
+import { Users, CalendarDays, CheckSquare, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const KPIS = [
-  { label: "Active Mentees", value: "8", icon: Users, trend: "+2 this month", positive: true },
-  { label: "Sessions This Week", value: "3", icon: CalendarDays },
-  { label: "Pending Reviews", value: "2", icon: CheckSquare, alert: true },
-  { label: "Unread Messages", value: "5", icon: MessageSquare },
-];
+interface Metrics {
+  activeProjects: number;
+  totalStudents: number;
+  pendingMentorRequests: number;
+  upcomingMeetings: number;
+  pendingTasks: number;
+  overdueMilestones: number;
+}
 
 export default function MentorKpiRow() {
+  const [metrics, setMetrics] = useState<Metrics | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchKPIs() {
+      try {
+        setLoading(true);
+        const res = await fetch("/api/faculty/overview");
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data?.metrics) {
+            setMetrics(json.data.metrics);
+          }
+        }
+      } catch {
+        // Silently catch
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchKPIs();
+  }, []);
+
+  const kpis = [
+    {
+      label: "Active Mentees",
+      value: loading ? "—" : (metrics?.activeProjects ?? 0).toString(),
+      icon: Users,
+      trend: "Supervised startups",
+      positive: true,
+    },
+    {
+      label: "Upcoming Sessions",
+      value: loading ? "—" : (metrics?.upcomingMeetings ?? 0).toString(),
+      icon: CalendarDays,
+      trend: "Scheduled meetings",
+    },
+    {
+      label: "Pending Tasks",
+      value: loading ? "—" : (metrics?.pendingTasks ?? 0).toString(),
+      icon: CheckSquare,
+      alert: (metrics?.pendingTasks ?? 0) > 0,
+      trend: "Action items",
+    },
+    {
+      label: "At Risk / Overdue",
+      value: loading ? "—" : (metrics?.overdueMilestones ?? 0).toString(),
+      icon: AlertCircle,
+      alert: (metrics?.overdueMilestones ?? 0) > 0,
+      trend: "Needs attention",
+    },
+  ];
+
   return (
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-      {KPIS.map((kpi) => (
+      {kpis.map((kpi) => (
         <div
           key={kpi.label}
           className="flex flex-col rounded-[12px] border border-line bg-white p-5 shadow-sm shadow-slate-200/50"

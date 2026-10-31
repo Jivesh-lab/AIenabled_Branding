@@ -30,53 +30,8 @@ type AuditLogItem = {
   createdAt: string;
 };
 
-const MOCK_AUDIT_LOGS: AuditLogItem[] = [
-  {
-    _id: "log_1",
-    userId: "usr_super_1",
-    email: "superadmin@aai-dbitic.edu",
-    role: "super_admin",
-    action: "SUPER_ADMIN_LOGIN_SUCCESS",
-    resource: "/api/auth/login",
-    workspace: "super-admin",
-    details: { loginMethod: "email_password_2fa" },
-    ip: "127.0.0.1",
-    userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-    status: "SUCCESS",
-    createdAt: "2026-09-20T20:25:00.000Z",
-  },
-  {
-    _id: "log_2",
-    userId: "usr_super_1",
-    email: "superadmin@aai-dbitic.edu",
-    role: "super_admin",
-    action: "WORKSPACE_INSPECT_VIEW",
-    resource: "/workspace/student/dashboard",
-    workspace: "student",
-    details: { viewMode: "read_inspect" },
-    ip: "127.0.0.1",
-    userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-    status: "SUCCESS",
-    createdAt: "2026-09-20T20:10:00.000Z",
-  },
-  {
-    _id: "log_3",
-    userId: "usr_super_1",
-    email: "superadmin@aai-dbitic.edu",
-    role: "super_admin",
-    action: "SUPER_ADMIN_SEEDED",
-    resource: "CLI setup script",
-    workspace: "system",
-    details: { note: "Account created via seed script" },
-    ip: "localhost",
-    userAgent: "Node.js/v22",
-    status: "SUCCESS",
-    createdAt: "2026-09-20T18:00:00.000Z",
-  },
-];
-
 export default function AuditLogViewer() {
-  const [logs, setLogs] = useState<AuditLogItem[]>(MOCK_AUDIT_LOGS);
+  const [logs, setLogs] = useState<AuditLogItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");

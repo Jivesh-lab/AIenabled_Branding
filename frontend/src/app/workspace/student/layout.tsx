@@ -10,10 +10,10 @@ import {
   Coins,
 } from "lucide-react";
 
-const MOCK_USER = {
-  name: "Riya Patel",
+const FALLBACK_USER = {
+  name: "Student",
   role: "Student",
-  initials: "RP",
+  initials: "ST",
 };
 
 const STUDENT_SECTIONS: NavSection[] = [
@@ -41,7 +41,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   return (
     <BaseWorkspaceLayout
       sections={STUDENT_SECTIONS}
-      user={MOCK_USER}
+      user={FALLBACK_USER}
       workspaceLabel="Student Workspace"
       allowedRole="student"
     >

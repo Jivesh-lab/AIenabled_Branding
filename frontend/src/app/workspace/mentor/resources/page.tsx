@@ -183,8 +183,17 @@ export default function MentorResourcesPage() {
         </div>
 
         {/* Resource Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filtered.map((resource) => {
+        {filtered.length === 0 ? (
+          <div className="rounded-xl border border-line bg-canvas p-10 text-center">
+            <BookOpen className="size-10 text-muted-ink mx-auto mb-3 opacity-40" />
+            <p className="text-sm font-semibold text-ink">No mentoring resources found</p>
+            <p className="text-xs text-muted-ink mt-1">
+              Try adjusting your filter or search keywords, or upload a new advisory guide above.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {filtered.map((resource) => {
             const Icon = TYPE_ICON[resource.type];
             return (
               <Card key={resource.id} interactive className="p-5">
@@ -234,6 +243,7 @@ export default function MentorResourcesPage() {
             );
           })}
         </div>
+      )}
 
         {/* Upload Dialog */}
         {showUpload && (

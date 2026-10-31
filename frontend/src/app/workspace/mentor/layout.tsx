@@ -12,10 +12,10 @@ import {
   Sparkles
 } from "lucide-react";
 
-const MOCK_USER = {
-  name: "Dr. Mentor",
+const FALLBACK_USER = {
+  name: "Mentor",
   role: "Mentor",
-  initials: "DM",
+  initials: "ME",
 };
 
 const MENTOR_SECTIONS: NavSection[] = [
@@ -55,7 +55,7 @@ export default function MentorLayout({ children }: { children: React.ReactNode }
   return (
     <BaseWorkspaceLayout
       sections={MENTOR_SECTIONS}
-      user={MOCK_USER}
+      user={FALLBACK_USER}
       workspaceLabel="Mentor Workspace"
       allowedRole="mentor"
     >

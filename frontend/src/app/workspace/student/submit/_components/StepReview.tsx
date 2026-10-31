@@ -3,8 +3,7 @@ import { useFormContext, useWatch } from "react-hook-form";
 import { FileText, Pencil, Sparkles, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FieldError } from "@/components/shared/form/FormField";
-import { MATURITY_LABEL } from "@/types/status";
-import { CURRENT_STUDENT } from "@/mock/submit-idea";
+import { useSession } from "next-auth/react";
 import type { IdeaFormValues, StepIndex } from "../_lib/idea-schema";
 import { formatBytes } from "@/lib/format";
 
@@ -53,6 +52,7 @@ function Item({ label, value, wide = false }: { label: string; value?: React.Rea
 }
 
 export default function StepReview({ onEditStep }: { onEditStep: (step: StepIndex) => void }) {
+  const { data: session } = useSession();
   const {
     register,
     formState: { errors },
@@ -161,7 +161,7 @@ export default function StepReview({ onEditStep }: { onEditStep: (step: StepInde
             value={
               <ul className="mt-1 flex flex-col gap-1">
                 <li>
-                  {CURRENT_STUDENT.name} <span className="text-muted-ink">· Team lead</span>
+                  {session?.user?.name || "Team Lead"} <span className="text-muted-ink">· Team lead</span>
                 </li>
                 {team.map((m) => (
                   <li key={m.id}>

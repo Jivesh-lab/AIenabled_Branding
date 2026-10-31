@@ -11,10 +11,10 @@ import {
   FileCheck2
 } from "lucide-react";
 
-const MOCK_USER = {
-  name: "Sarah Investor",
+const FALLBACK_USER = {
+  name: "Investor",
   role: "Investor",
-  initials: "SI",
+  initials: "IN",
 };
 
 const INVESTOR_SECTIONS: NavSection[] = [
@@ -43,7 +43,7 @@ export default function InvestorLayout({ children }: { children: React.ReactNode
   return (
     <BaseWorkspaceLayout
       sections={INVESTOR_SECTIONS}
-      user={MOCK_USER}
+      user={FALLBACK_USER}
       workspaceLabel="Investor Workspace"
       allowedRole="investor"
     >

@@ -1,97 +1,34 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PageContainer from "@/components/shared/PageContainer";
-import { Card, SectionHeading, StatusBadge } from "@/components/shared/Surface";
+import { Card, StatusBadge } from "@/components/shared/Surface";
 import {
-  Calendar,
-  Plus,
-  Clock,
-  Video,
-  MapPin,
-  Users,
-  ChevronLeft,
-  ChevronRight,
-  Check,
-  X,
-  Edit2,
-  Bell,
+  Calendar, Plus, Clock, Video, MapPin, Users,
+  ChevronLeft, ChevronRight, Check, X, Edit2, Bell, Loader2, AlertCircle,
 } from "lucide-react";
 
-const SESSIONS = [
-  {
-    id: "1",
-    mentee: "Priya Sharma",
-    projectTitle: "AI Crop Disease Detection",
-    date: "2025-01-27",
-    time: "10:00 AM",
-    duration: "60 min",
-    format: "Video Call",
-    agenda: "Prototype review and B2B pivot strategy discussion",
-    status: "Upcoming" as const,
-  },
-  {
-    id: "2",
-    mentee: "Kavita Nair",
-    projectTitle: "IoT Water Quality Monitor",
-    date: "2025-01-29",
-    time: "11:30 AM",
-    duration: "45 min",
-    format: "Video Call",
-    agenda: "Regulatory submission preparation and investor deck review",
-    status: "Upcoming" as const,
-  },
-  {
-    id: "3",
-    mentee: "Arjun Mehta",
-    projectTitle: "Biodegradable Packaging",
-    date: "2025-02-05",
-    time: "10:00 AM",
-    duration: "60 min",
-    format: "Video Call",
-    agenda: "Lab test results review and milestone catch-up plan",
-    status: "Upcoming" as const,
-  },
-  {
-    id: "4",
-    mentee: "Rohan Das",
-    projectTitle: "Blockchain Health Records",
-    date: "2025-02-10",
-    time: "2:00 PM",
-    duration: "90 min",
-    format: "In-person (Bengaluru)",
-    agenda: "Intervention meeting: scope, timeline, and commitment assessment",
-    status: "Upcoming" as const,
-  },
-  {
-    id: "5",
-    mentee: "Priya Sharma",
-    projectTitle: "AI Crop Disease Detection",
-    date: "2025-01-20",
-    time: "10:00 AM",
-    duration: "60 min",
-    format: "Video Call",
-    agenda: "Dataset collection strategy and ML model architecture review",
-    status: "Completed" as const,
-  },
-  {
-    id: "6",
-    mentee: "Kavita Nair",
-    projectTitle: "IoT Water Quality Monitor",
-    date: "2025-01-22",
-    time: "11:00 AM",
-    duration: "45 min",
-    format: "Video Call",
-    agenda: "Pitch deck coaching and investor narrative structuring",
-    status: "Completed" as const,
-  },
-];
+interface Session {
+  _id: string;
+  id?: string;
+  title: string;
+  projectTitle?: string;
+  participants?: string[];
+  date: string;
+  startTime?: string;
+  durationMinutes?: number;
+  meetingType?: string;
+  agenda?: string;
+  meetingProvider?: string;
+  meetingLinkOrLocation?: string;
+  invitationStatus?: string;
+}
 
 const STATUS_TONE: Record<string, "progress" | "success" | "neutral" | "attention"> = {
-  Upcoming: "progress",
+  Sent: "progress",
+  Confirmed: "success",
   Completed: "success",
   Cancelled: "neutral",
-  Rescheduled: "attention",
 };
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -100,16 +37,61 @@ export default function MentorSchedulePage() {
   const [view, setView] = useState<"list" | "calendar">("list");
   const [filter, setFilter] = useState<"All" | "Upcoming" | "Completed">("All");
   const [showNewSession, setShowNewSession] = useState(false);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filtered = SESSIONS.filter((s) => filter === "All" || s.status === filter);
-  const upcoming = SESSIONS.filter((s) => s.status === "Upcoming");
+  useEffect(() => {
+    async function fetchSessions() {
+      try {
+        setLoading(true);
+        const res = await fetch("/api/faculty/meetings");
+        if (!res.ok) throw new Error(`Server error: ${res.status}`);
+        const json = await res.json();
+        if (json.success) {
+          setSessions(json.data || []);
+        } else {
+          throw new Error(json.message || "Failed to load sessions");
+        }
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchSessions();
+  }, []);
 
-  // Build a simple January 2025 calendar
-  const CALENDAR_SESSIONS: Record<string, typeof SESSIONS[0][]> = {};
-  SESSIONS.forEach((s) => {
-    const day = parseInt(s.date.split("-")[2]);
+  const isUpcoming = (s: Session) => s.invitationStatus !== "Completed" && s.invitationStatus !== "Cancelled";
+  const isCompleted = (s: Session) => s.invitationStatus === "Completed";
+
+  const filtered = sessions.filter((s) => {
+    if (filter === "Upcoming") return isUpcoming(s);
+    if (filter === "Completed") return isCompleted(s);
+    return true;
+  });
+
+  const upcoming = sessions.filter(isUpcoming);
+
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+
+  const sessionsThisMonth = sessions.filter((s) => {
+    const d = new Date(s.date);
+    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+  });
+
+  // Build calendar map for current month
+  const CALENDAR_SESSIONS: Record<number, Session[]> = {};
+  sessionsThisMonth.forEach((s) => {
+    const day = new Date(s.date).getDate();
     CALENDAR_SESSIONS[day] = [...(CALENDAR_SESSIONS[day] || []), s];
   });
+
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
+  const monthLabel = now.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
 
   return (
     <PageContainer
@@ -120,10 +102,10 @@ export default function MentorSchedulePage() {
         {/* Quick Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: "This Month", value: SESSIONS.filter((s) => s.date.startsWith("2025-01")).length, icon: Calendar, color: "bg-brand/10 text-brand" },
+            { label: "This Month", value: sessionsThisMonth.length, icon: Calendar, color: "bg-brand/10 text-brand" },
             { label: "Upcoming", value: upcoming.length, icon: Clock, color: "bg-brand-cyan/10 text-brand-cyan-ink" },
-            { label: "Completed (Jan)", value: SESSIONS.filter((s) => s.status === "Completed").length, icon: Check, color: "bg-emerald-50 text-emerald-700" },
-            { label: "Total Mentees Active", value: new Set(upcoming.map((s) => s.mentee)).size, icon: Users, color: "bg-amber-50 text-amber-700" },
+            { label: "Completed", value: sessions.filter(isCompleted).length, icon: Check, color: "bg-emerald-50 text-emerald-700" },
+            { label: "Mentees Active", value: new Set(upcoming.flatMap((s) => s.participants || [])).size, icon: Users, color: "bg-amber-50 text-amber-700" },
           ].map((s) => (
             <Card key={s.label} className="p-4">
               <div className="flex items-start justify-between">
@@ -142,7 +124,6 @@ export default function MentorSchedulePage() {
         {/* Controls */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            {/* View toggle */}
             <div className="flex rounded-lg border border-line overflow-hidden">
               {(["list", "calendar"] as const).map((v) => (
                 <button
@@ -154,7 +135,6 @@ export default function MentorSchedulePage() {
                 </button>
               ))}
             </div>
-            {/* Status filter */}
             {(["All", "Upcoming", "Completed"] as const).map((f) => (
               <button
                 key={f}
@@ -173,48 +153,72 @@ export default function MentorSchedulePage() {
           </button>
         </div>
 
-        {view === "list" ? (
-          /* List View */
+        {loading ? (
+          <div className="flex items-center justify-center py-16 text-muted-ink gap-2">
+            <Loader2 className="size-5 animate-spin" />
+            <span className="text-sm">Loading sessions from database…</span>
+          </div>
+        ) : error ? (
+          <div className="rounded-xl border border-red-100 bg-red-50 p-6 text-center">
+            <AlertCircle className="size-8 text-danger mx-auto mb-2" />
+            <p className="text-sm font-semibold text-danger">Failed to load sessions</p>
+            <p className="text-xs text-muted-ink mt-1">{error}</p>
+          </div>
+        ) : view === "list" ? (
           <div className="space-y-3">
-            {filtered.map((session) => (
-              <Card key={session.id} interactive className="p-4">
-                <div className="flex items-start gap-4">
-                  <div className="shrink-0 text-center w-12">
-                    <p className="text-xs text-muted-ink">{new Date(session.date).toLocaleDateString("en-IN", { month: "short" })}</p>
-                    <p className="text-xl font-bold text-ink">{new Date(session.date).getDate()}</p>
-                    <p className="text-[10px] text-muted-ink">{new Date(session.date).toLocaleDateString("en-IN", { weekday: "short" })}</p>
+            {filtered.length === 0 ? (
+              <div className="rounded-xl border border-line bg-canvas p-10 text-center">
+                <Calendar className="size-10 text-muted-ink mx-auto mb-3 opacity-40" />
+                <p className="text-sm font-semibold text-ink">No sessions found</p>
+                <p className="text-xs text-muted-ink mt-1">Schedule a new session to get started.</p>
+              </div>
+            ) : (
+              filtered.map((session) => (
+                <Card key={session._id} interactive className="p-4">
+                  <div className="flex items-start gap-4">
+                    <div className="shrink-0 text-center w-12">
+                      <p className="text-xs text-muted-ink">{new Date(session.date).toLocaleDateString("en-IN", { month: "short" })}</p>
+                      <p className="text-xl font-bold text-ink">{new Date(session.date).getDate()}</p>
+                      <p className="text-[10px] text-muted-ink">{new Date(session.date).toLocaleDateString("en-IN", { weekday: "short" })}</p>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <span className="text-sm font-bold text-ink">{session.title}</span>
+                        <StatusBadge label={session.invitationStatus || "Sent"} tone={STATUS_TONE[session.invitationStatus || "Sent"] ?? "neutral"} />
+                      </div>
+                      <p className="text-[12px] text-muted-ink mb-1">{session.projectTitle}</p>
+                      {session.agenda && (
+                        <p className="text-[12px] text-ink font-medium italic">"{session.agenda}"</p>
+                      )}
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5 text-[11px] text-muted-ink">
+                        {session.startTime && <span className="flex items-center gap-1"><Clock className="size-3" /> {session.startTime} · {session.durationMinutes}min</span>}
+                        {session.meetingProvider && (
+                          <span className="flex items-center gap-1">
+                            {session.meetingProvider.includes("Video") ? <Video className="size-3" /> : <MapPin className="size-3" />}
+                            {session.meetingProvider}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {isUpcoming(session) && (
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-brand text-white text-xs font-semibold hover:bg-brand-hover transition-colors">
+                          <Video className="size-3" /> Join
+                        </button>
+                        <button className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-line text-muted-ink text-xs font-semibold hover:border-brand/40 hover:text-brand transition-colors">
+                          <Edit2 className="size-3" /> Edit
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2 mb-1">
-                      <span className="text-sm font-bold text-ink">{session.mentee}</span>
-                      <StatusBadge label={session.status} tone={STATUS_TONE[session.status]} />
-                    </div>
-                    <p className="text-[12px] text-muted-ink mb-1">{session.projectTitle}</p>
-                    <p className="text-[12px] text-ink font-medium italic">"{session.agenda}"</p>
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5 text-[11px] text-muted-ink">
-                      <span className="flex items-center gap-1"><Clock className="size-3" /> {session.time} · {session.duration}</span>
-                      <span className="flex items-center gap-1">{session.format === "Video Call" ? <Video className="size-3" /> : <MapPin className="size-3" />} {session.format}</span>
-                    </div>
-                  </div>
-                  {session.status === "Upcoming" && (
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-brand text-white text-xs font-semibold hover:bg-brand-hover transition-colors">
-                        <Video className="size-3" /> Join
-                      </button>
-                      <button className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-line text-muted-ink text-xs font-semibold hover:border-brand/40 hover:text-brand transition-colors">
-                        <Edit2 className="size-3" /> Edit
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </Card>
-            ))}
+                </Card>
+              ))
+            )}
           </div>
         ) : (
-          /* Calendar View (simplified) */
           <Card className="p-5">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-bold text-ink">January 2025</h3>
+              <h3 className="text-base font-bold text-ink">{monthLabel}</h3>
               <div className="flex gap-1">
                 <button className="size-7 rounded border border-line flex items-center justify-center text-muted-ink hover:border-brand/40 hover:text-brand transition-colors"><ChevronLeft className="size-4" /></button>
                 <button className="size-7 rounded border border-line flex items-center justify-center text-muted-ink hover:border-brand/40 hover:text-brand transition-colors"><ChevronRight className="size-4" /></button>
@@ -224,9 +228,8 @@ export default function MentorSchedulePage() {
               {DAY_LABELS.map((d) => <p key={d} className="text-[10px] font-bold text-muted-ink uppercase">{d}</p>)}
             </div>
             <div className="grid grid-cols-7 gap-1">
-              {/* January 2025 starts on Wednesday (offset 3) */}
-              {Array.from({ length: 3 }).map((_, i) => <div key={`empty-${i}`} />)}
-              {Array.from({ length: 31 }).map((_, i) => {
+              {Array.from({ length: firstDayOfMonth }).map((_, i) => <div key={`empty-${i}`} />)}
+              {Array.from({ length: daysInMonth }).map((_, i) => {
                 const day = i + 1;
                 const hasSessions = CALENDAR_SESSIONS[day];
                 return (
@@ -250,10 +253,8 @@ export default function MentorSchedulePage() {
               <h2 className="text-base font-bold text-ink mb-4">Schedule New Session</h2>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-ink mb-1.5">Mentee *</label>
-                  <select className="w-full px-3 py-2 text-sm border border-line rounded-lg focus:outline-none bg-white">
-                    {["Priya Sharma", "Arjun Mehta", "Kavita Nair", "Rohan Das"].map((m) => <option key={m}>{m}</option>)}
-                  </select>
+                  <label className="block text-xs font-semibold text-ink mb-1.5">Session Title *</label>
+                  <input type="text" placeholder="e.g. Prototype Review" className="w-full px-3 py-2 text-sm border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/30" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -268,7 +269,7 @@ export default function MentorSchedulePage() {
                 <div>
                   <label className="block text-xs font-semibold text-ink mb-1.5">Format *</label>
                   <select className="w-full px-3 py-2 text-sm border border-line rounded-lg focus:outline-none bg-white">
-                    <option>Video Call</option><option>In-person (Bengaluru)</option><option>Phone Call</option>
+                    <option>Video Call</option><option>In-person</option><option>Phone Call</option>
                   </select>
                 </div>
                 <div>

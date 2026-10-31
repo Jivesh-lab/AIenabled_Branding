@@ -24,3 +24,9 @@ coverage.xml
 # OS files
 .DS_Store
 Thumbs.db
+
+# Database & local sqlite files
+*.sqlite
+*.sqlite3
+*.db
+standalone_data.sqlite

@@ -1,105 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PageContainer from "@/components/shared/PageContainer";
 import { Card, SectionHeading, StatusBadge, ProgressBar } from "@/components/shared/Surface";
 import {
-  Eye,
-  Search,
-  Filter,
-  AlertTriangle,
-  CheckCircle2,
-  Clock,
-  TrendingUp,
-  Users,
-  BookOpen,
-  MessageSquare,
-  ExternalLink,
-  ChevronDown,
+  Search, AlertTriangle, CheckCircle2, Clock,
+  Users, MessageSquare, ExternalLink, ChevronDown,
+  Loader2, AlertCircle,
 } from "lucide-react";
 
-const STUDENT_PROJECTS = [
-  {
-    id: "1",
-    student: "Priya Sharma",
-    projectTitle: "AI-Driven Crop Disease Detection",
-    stage: "Prototype",
-    progress: 68,
-    trl: 4,
-    lastCheckIn: "3 days ago",
-    healthStatus: "On Track" as const,
-    alerts: [],
-    milestones: [
-      { name: "Literature Review", done: true },
-      { name: "Dataset Collection", done: true },
-      { name: "ML Model Training", done: true },
-      { name: "Prototype v1.0", done: false },
-      { name: "Field Validation", done: false },
-    ],
-    mentorSessions: 8,
-    documents: 14,
-  },
-  {
-    id: "2",
-    student: "Arjun Mehta",
-    projectTitle: "Biodegradable Packaging from Sugarcane Waste",
-    stage: "Research",
-    progress: 35,
-    trl: 2,
-    lastCheckIn: "12 days ago",
-    healthStatus: "Needs Attention" as const,
-    alerts: ["No mentor check-in in 12 days", "Milestone 2 overdue by 5 days"],
-    milestones: [
-      { name: "Raw Material Sourcing", done: true },
-      { name: "Lab Formulation Tests", done: false },
-      { name: "Biodegradation Study", done: false },
-      { name: "Industry Sample Approval", done: false },
-      { name: "Scale-up Feasibility", done: false },
-    ],
-    mentorSessions: 3,
-    documents: 6,
-  },
-  {
-    id: "3",
-    student: "Kavita Nair",
-    projectTitle: "Smart Water Quality Monitoring IoT",
-    stage: "Validation",
-    progress: 82,
-    trl: 6,
-    lastCheckIn: "1 day ago",
-    healthStatus: "On Track" as const,
-    alerts: [],
-    milestones: [
-      { name: "Sensor Hardware Design", done: true },
-      { name: "Firmware Development", done: true },
-      { name: "Lab Accuracy Testing", done: true },
-      { name: "Field Pilot (3 sites)", done: true },
-      { name: "Regulatory Pre-Submission", done: false },
-    ],
-    mentorSessions: 15,
-    documents: 28,
-  },
-  {
-    id: "4",
-    student: "Rohan Das",
-    projectTitle: "Decentralised Health Records on Blockchain",
-    stage: "Ideation",
-    progress: 15,
-    trl: 1,
-    lastCheckIn: "1 week ago",
-    healthStatus: "At Risk" as const,
-    alerts: ["TRL 1 after 3 months — progress slower than cohort average", "IP strategy not defined"],
-    milestones: [
-      { name: "Problem Statement", done: true },
-      { name: "Architecture Design", done: false },
-      { name: "Smart Contract POC", done: false },
-      { name: "User Testing", done: false },
-      { name: "Regulatory Compliance Review", done: false },
-    ],
-    mentorSessions: 2,
-    documents: 3,
-  },
-];
+interface Milestone {
+  name: string;
+  done: boolean;
+}
+
+interface Project {
+  id: string;
+  title: string;
+  leadStudent: string;
+  stage: string;
+  progress: number;
+  trl: number;
+  health: string;
+  overdueMilestonesCount: number;
+  nextMilestone: string;
+  nextMilestoneDate: string;
+}
 
 const HEALTH_TONE: Record<string, "success" | "attention" | "danger" | "neutral"> = {
   "On Track": "success",
@@ -111,10 +37,36 @@ export default function FacultyOversightPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"All" | "On Track" | "Needs Attention" | "At Risk">("All");
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filtered = STUDENT_PROJECTS.filter((p) => {
-    const matchSearch = p.student.toLowerCase().includes(search.toLowerCase()) || p.projectTitle.toLowerCase().includes(search.toLowerCase());
-    const matchFilter = filter === "All" || p.healthStatus === filter;
+  useEffect(() => {
+    async function fetchProjects() {
+      try {
+        setLoading(true);
+        const res = await fetch("/api/faculty/projects");
+        if (!res.ok) throw new Error(`Server error: ${res.status}`);
+        const json = await res.json();
+        if (json.success) {
+          setProjects(json.data || []);
+        } else {
+          throw new Error(json.message || "Failed to load projects");
+        }
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchProjects();
+  }, []);
+
+  const filtered = projects.filter((p) => {
+    const matchSearch =
+      p.leadStudent?.toLowerCase().includes(search.toLowerCase()) ||
+      p.title?.toLowerCase().includes(search.toLowerCase());
+    const matchFilter = filter === "All" || p.health === filter;
     return matchSearch && matchFilter;
   });
 
@@ -127,10 +79,10 @@ export default function FacultyOversightPage() {
         {/* Summary */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: "Total Supervised", value: STUDENT_PROJECTS.length, icon: Users, color: "bg-brand/10 text-brand" },
-            { label: "On Track", value: STUDENT_PROJECTS.filter((p) => p.healthStatus === "On Track").length, icon: CheckCircle2, color: "bg-emerald-50 text-emerald-700" },
-            { label: "Needs Attention", value: STUDENT_PROJECTS.filter((p) => p.healthStatus === "Needs Attention").length, icon: Clock, color: "bg-amber-50 text-amber-700" },
-            { label: "At Risk", value: STUDENT_PROJECTS.filter((p) => p.healthStatus === "At Risk").length, icon: AlertTriangle, color: "bg-red-50 text-danger" },
+            { label: "Total Supervised", value: projects.length, icon: Users, color: "bg-brand/10 text-brand" },
+            { label: "On Track", value: projects.filter((p) => p.health === "On Track").length, icon: CheckCircle2, color: "bg-emerald-50 text-emerald-700" },
+            { label: "Needs Attention", value: projects.filter((p) => p.health === "Needs Attention").length, icon: Clock, color: "bg-amber-50 text-amber-700" },
+            { label: "At Risk", value: projects.filter((p) => p.health === "At Risk").length, icon: AlertTriangle, color: "bg-red-50 text-danger" },
           ].map((s) => (
             <Card key={s.label} className="p-4">
               <div className="flex items-start justify-between">
@@ -172,70 +124,76 @@ export default function FacultyOversightPage() {
         </div>
 
         {/* Project Cards */}
-        <div className="space-y-3">
-          {filtered.map((proj) => (
-            <Card key={proj.id} className="overflow-hidden">
-              <div
-                className="p-5 cursor-pointer hover:bg-canvas/50 transition-colors"
-                onClick={() => setExpanded(expanded === proj.id ? null : proj.id)}
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                      <StatusBadge label={proj.healthStatus} tone={HEALTH_TONE[proj.healthStatus]} />
-                      <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded bg-canvas border border-line text-muted-ink">TRL {proj.trl}</span>
-                      <span className="text-[11px] font-semibold text-muted-ink">{proj.stage}</span>
-                    </div>
-                    <h3 className="text-sm font-bold text-ink">{proj.projectTitle}</h3>
-                    <p className="text-[12px] text-muted-ink mt-0.5 flex items-center gap-1">
-                      <Users className="size-3" /> {proj.student} · Last check-in: {proj.lastCheckIn}
-                    </p>
-                    {proj.alerts.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {proj.alerts.map((alert, i) => (
-                          <span key={i} className="inline-flex items-center gap-1 text-[11px] text-danger bg-red-50 border border-red-100 rounded px-1.5 py-0.5">
-                            <AlertTriangle className="size-3" /> {alert}
+        {loading ? (
+          <div className="flex items-center justify-center py-16 text-muted-ink gap-2">
+            <Loader2 className="size-5 animate-spin" />
+            <span className="text-sm">Loading oversight data from database…</span>
+          </div>
+        ) : error ? (
+          <div className="rounded-xl border border-red-100 bg-red-50 p-6 text-center">
+            <AlertCircle className="size-8 text-danger mx-auto mb-2" />
+            <p className="text-sm font-semibold text-danger">Failed to load projects</p>
+            <p className="text-xs text-muted-ink mt-1">{error}</p>
+          </div>
+        ) : projects.length === 0 ? (
+          <div className="rounded-xl border border-line bg-canvas p-10 text-center">
+            <Users className="size-10 text-muted-ink mx-auto mb-3 opacity-40" />
+            <p className="text-sm font-semibold text-ink">No cohort projects enrolled yet</p>
+            <p className="text-xs text-muted-ink mt-1">
+              Supervised student capstones and startup projects will appear here as cohorts begin.
+            </p>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="rounded-xl border border-line bg-canvas p-10 text-center">
+            <Users className="size-10 text-muted-ink mx-auto mb-3 opacity-40" />
+            <p className="text-sm font-semibold text-ink">No projects match your filter</p>
+            <p className="text-xs text-muted-ink mt-1">Try changing the health status filter or search term.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filtered.map((proj) => (
+              <Card key={proj.id} className="overflow-hidden">
+                <div
+                  className="p-5 cursor-pointer hover:bg-canvas/50 transition-colors"
+                  onClick={() => setExpanded(expanded === proj.id ? null : proj.id)}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                        <StatusBadge label={proj.health} tone={HEALTH_TONE[proj.health] ?? "neutral"} />
+                        <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded bg-canvas border border-line text-muted-ink">TRL {proj.trl}</span>
+                        <span className="text-[11px] font-semibold text-muted-ink">{proj.stage}</span>
+                      </div>
+                      <h3 className="text-sm font-bold text-ink">{proj.title}</h3>
+                      <p className="text-[12px] text-muted-ink mt-0.5 flex items-center gap-1">
+                        <Users className="size-3" /> {proj.leadStudent}
+                      </p>
+                      {proj.overdueMilestonesCount > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          <span className="inline-flex items-center gap-1 text-[11px] text-danger bg-red-50 border border-red-100 rounded px-1.5 py-0.5">
+                            <AlertTriangle className="size-3" /> {proj.overdueMilestonesCount} milestone(s) overdue
                           </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div className="w-32 shrink-0">
-                    <ProgressBar value={proj.progress} label={`${proj.progress}%`} />
-                  </div>
-                  <ChevronDown className={`size-4 text-muted-ink transition-transform shrink-0 ${expanded === proj.id ? "rotate-180" : ""}`} />
-                </div>
-              </div>
-
-              {expanded === proj.id && (
-                <div className="border-t border-line p-5 bg-canvas/50">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Milestone tracker */}
-                    <div>
-                      <p className="text-xs font-bold text-ink mb-3">Milestone Progress</p>
-                      <div className="space-y-2">
-                        {proj.milestones.map((m, i) => (
-                          <div key={i} className="flex items-center gap-2.5">
-                            <div className={`size-4 rounded-full flex items-center justify-center shrink-0 ${m.done ? "bg-success" : "border-2 border-line bg-white"}`}>
-                              {m.done && <CheckCircle2 className="size-3 text-white" />}
-                            </div>
-                            <span className={`text-xs ${m.done ? "text-muted-ink line-through" : "text-ink"}`}>{m.name}</span>
-                          </div>
-                        ))}
-                      </div>
+                        </div>
+                      )}
                     </div>
+                    <div className="w-32 shrink-0">
+                      <ProgressBar value={proj.progress} label={`${proj.progress}%`} />
+                    </div>
+                    <ChevronDown className={`size-4 text-muted-ink transition-transform shrink-0 ${expanded === proj.id ? "rotate-180" : ""}`} />
+                  </div>
+                </div>
 
-                    {/* Quick stats */}
-                    <div className="space-y-3">
-                      <div className="p-3 rounded-lg bg-white border border-line flex items-center justify-between">
-                        <span className="text-xs text-muted-ink">Mentor Sessions Completed</span>
-                        <span className="text-sm font-bold text-ink">{proj.mentorSessions}</span>
+                {expanded === proj.id && (
+                  <div className="border-t border-line p-5 bg-canvas/50">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <p className="text-xs font-bold text-ink mb-2">Next Milestone</p>
+                        <div className="p-3 rounded-lg bg-white border border-line">
+                          <p className="text-sm font-semibold text-ink">{proj.nextMilestone || "—"}</p>
+                          <p className="text-[11px] text-muted-ink mt-0.5">Due: {proj.nextMilestoneDate || "TBD"}</p>
+                        </div>
                       </div>
-                      <div className="p-3 rounded-lg bg-white border border-line flex items-center justify-between">
-                        <span className="text-xs text-muted-ink">Documents Submitted</span>
-                        <span className="text-sm font-bold text-ink">{proj.documents}</span>
-                      </div>
-                      <div className="flex gap-2 mt-3">
+                      <div className="flex gap-2 items-end">
                         <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand text-white text-xs font-semibold hover:bg-brand-hover transition-colors">
                           <MessageSquare className="size-3.5" /> Send Nudge
                         </button>
@@ -245,11 +203,11 @@ export default function FacultyOversightPage() {
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
-            </Card>
-          ))}
-        </div>
+                )}
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
     </PageContainer>
   );

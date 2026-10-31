@@ -35,39 +35,9 @@ type ModerationItem = {
   createdAt: string;
 };
 
-const MOCK_PENDING: PendingUser[] = [
-  {
-    _id: "p1",
-    name: "Vikram Malhotra",
-    email: "vikram@techcorp.com",
-    role: "mentor",
-    createdAt: "2026-09-18T14:30:00.000Z",
-    profile: { organisation: "TechCorp India", expertise: "Product Strategy & FinTech" },
-  },
-  {
-    _id: "p2",
-    name: "Elena Rostova",
-    email: "elena@globalventures.io",
-    role: "investor",
-    createdAt: "2026-09-19T09:15:00.000Z",
-    profile: { firmName: "GlobalVentures Capital", investmentFocus: "Clean Energy & DeepTech" },
-  },
-];
-
-const MOCK_MODERATION: ModerationItem[] = [
-  {
-    _id: "m1",
-    contentType: "opportunity",
-    title: "Unverified Cryptocurrency Trading Internship",
-    reason: "Flagged by 3 students: Unverified financial scheme posting.",
-    reporterEmail: "student1@dbit.edu",
-    createdAt: "2026-09-20T11:20:00.000Z",
-  },
-];
-
 export default function ApprovalsPage() {
-  const [pendingUsers, setPendingUsers] = useState<PendingUser[]>(MOCK_PENDING);
-  const [moderationItems, setModerationItems] = useState<ModerationItem[]>(MOCK_MODERATION);
+  const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
+  const [moderationItems, setModerationItems] = useState<ModerationItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 

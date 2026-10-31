@@ -32,7 +32,6 @@ import {
   type Maturity,
   type ReviewStatus,
 } from "@/types/status";
-import { STUDENT_PROJECTS } from "@/mock/student-projects";
 
 const AGENT_SERVICE_URL = process.env.AGENT_SERVICE_URL || "http://127.0.0.1:8000";
 const INTERNAL_JWT_SECRET = process.env.INTERNAL_JWT_SECRET || "test_internal_secret_key_123";
@@ -101,71 +100,6 @@ async function fetchProjectData(id: string): Promise<ApplicationRecord | null> {
     }
   } catch (err) {
     console.error("[ProjectPage] Failed to fetch live application:", err);
-  }
-
-  // Fallback to mock data if id matches mock project ID
-  const mock = STUDENT_PROJECTS.find((p) => p.id === id);
-  if (mock) {
-    return {
-      id: mock.id,
-      startup: {
-        name: mock.name,
-        tagline: mock.shortDescription,
-        problem:
-          "Targeted pain point identified in " +
-          mock.domain +
-          ". Student innovators are developing an automated prototype to improve sector outcomes.",
-        solution: mock.shortDescription,
-        sector: mock.domain,
-        stage: mock.maturity.toLowerCase(),
-      },
-      status: mock.reviewStatus,
-      aiSummary: JSON.stringify({
-        problem: "Addressed pain points in " + mock.domain,
-        proposed_solution: mock.shortDescription,
-        target_users: "Students, institutional stakeholders, and local industry partners",
-        innovation_differentiation: "Direct domain integration with DBIT laboratory research facilities",
-        requested_support: "Prototyping equipment, faculty mentor guidance, and institutional seed grant",
-      }),
-      aiFeedback: JSON.stringify({
-        preliminary_assessment: {
-          problem_clarity_score: 85,
-          technical_feasibility_score: 80,
-          market_potential_score: 75,
-          overall_readiness_score: mock.progress,
-          strengths: [
-            "Strong domain alignment with college incubation focus",
-            "Clearly articulated technical problem and solution scope",
-          ],
-          weaknesses: ["Needs pilot deployment validation data"],
-        },
-        questions_for_reviewers: [
-          "What is the projected deployment timeline for the MVP pilot?",
-          "Are there specific laboratory testing safety approvals required?",
-        ],
-        missing_evidence: ["Formal bench test reports"],
-        validation: { is_complete: true, completeness_score: 85 },
-      }),
-      formData: {
-        department: "Computer Engineering",
-        projectType: "Capstone / Incubation",
-        affectedUsers: "Target beneficiaries across campus and industry",
-        currentSolutions: "Manual and commercial off-the-shelf alternatives",
-        differentiation: "Novel student-developed algorithm with low-cost architecture",
-        teamMembers: [
-          {
-            name: "Founder Lead",
-            rollNumber: "DBIT-2024-01",
-            email: "founder@dbit.ac.in",
-            inviteStatus: "accepted",
-          },
-        ],
-        technologies: ["Python", "Next.js", "IoT Sensors", "PostgreSQL"],
-        prototypeAvailable: "YES",
-      },
-      documents: [],
-      submittedAt: mock.updatedAt,
-    };
   }
 
   return null;
