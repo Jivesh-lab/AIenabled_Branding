@@ -11,7 +11,7 @@ export default function RecentActivity({ projects = [] }: { projects?: StudentPr
     .map((p) => ({
       id: p.id,
       description: `${p.name} — ${REVIEW_STATUS_LABEL[p.reviewStatus]}`,
-      timestamp: new Date(`${p.updatedAt}T00:00:00`).toLocaleDateString("en-IN", { day: "2-digit", month: "short" }),
+      timestamp: new Date(`${p.updatedAt}T00:00:00Z`).toLocaleDateString("en-IN", { day: "2-digit", month: "short", timeZone: "UTC" }),
     }));
 
   return (

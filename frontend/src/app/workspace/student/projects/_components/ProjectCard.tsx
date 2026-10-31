@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AlertCircle, ArrowRight, CircleDot, Flag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDue, formatUpdated, isDueSoon } from "@/lib/dates";
+import { istNow } from "@/lib/workflowState";
 import { Card, MaturityTag, ProgressBar, StatusBadge } from "@/components/shared/Surface";
 import {
   MATURITY_LABEL,
@@ -27,7 +28,7 @@ function NextStep({ project }: { project: StudentProject }) {
   const { next, reviewStatus } = project;
   if (!next) return <span className="text-[13px] text-muted-ink">No pending actions</span>;
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = istNow().date;
   const due = next.dueDate ? formatDue(next.dueDate, today) : null;
   const needsAttention =
     reviewStatus === "REVISION_REQUESTED" ||
@@ -63,7 +64,7 @@ export default function ProjectCard({ project, mentor }: { project: StudentProje
   const isDraft = project.reviewStatus === "DRAFT";
   const prefix = PIPELINE_PREFIX[project.reviewStatus];
   const primaryHref = isDraft ? `/workspace/student/submit?applicationId=${encodeURIComponent(project.id)}` : `/workspace/student/projects/${project.id}`;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = istNow().date;
 
   return (
     <Card className="transition-colors duration-150 hover:border-brand-cyan/40">

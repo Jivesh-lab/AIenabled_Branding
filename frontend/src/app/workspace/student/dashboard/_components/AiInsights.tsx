@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { Card, SectionHeading } from "@/components/shared/Surface";
+import { EmptyState } from "@/components/shared/loading/primitives";
 import type { StudentProject } from "@/types/student-application";
 
 interface StoredAssessment {
   overall_readiness_score?: number;
+  strengths?: string[];
   weaknesses?: string[];
 }
 
@@ -20,66 +22,46 @@ function readAssessment(project: StudentProject): StoredAssessment | null {
   }
 }
 
-/** Only real, stored agent output is shown. No assessment -> an honest empty state, not filler. */
-export default function AiInsights({ projects = [] }: { projects?: StudentProject[] }) {
+/**
+ * Only STORED agent output is shown, one insight per project (so nothing repeats), each labelled as an advisory AI
+ * assessment made when the application was submitted. No assessment -> an honest empty state, never filler.
+ */
+export default function AiInsights({ projects }: { projects: StudentProject[] }) {
   const insights = projects.flatMap((project) => {
     const assessment = readAssessment(project);
-    if (!assessment) return [];
-    const improvement = assessment.weaknesses?.[0];
-    return [
-      {
-        id: project.id,
-        project: project.name,
-        headline: `Overall readiness ${assessment.overall_readiness_score}/100 (advisory)`,
-        detail: improvement ? `Suggested improvement: ${improvement}` : null,
-      },
-    ];
+    return assessment ? [{ project, assessment }] : [];
   });
 
   return (
     <section aria-label="AI insights">
       <SectionHeading title="AI Insights" />
-
       <Card>
         {insights.length === 0 ? (
-          <p className="p-5 text-center text-xs text-muted-ink">
-            No AI assessment is stored yet. One is produced when you submit an application, if the AI service is available.
-          </p>
+          <EmptyState
+            icon={Sparkles}
+            title="No AI assessment stored yet"
+            description="One is produced when you submit an application, if the AI service is available."
+          />
         ) : (
-          <ul className="divide-y divide-line">
-            {insights.slice(0, 2).map((insight) => (
-              <li key={insight.id} className="flex gap-3 p-5">
-                <span
-                  aria-hidden="true"
-                  className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-cyan-soft"
-                >
-                  <Sparkles className="size-4 text-brand-cyan" />
-                </span>
-
-                <div className="min-w-0">
-                  <p className="text-[13px] font-semibold text-ink">{insight.project}</p>
-                  <p className="mt-1 text-[14px] text-ink">{insight.headline}</p>
-                  {insight.detail && (
-                    <p className="mt-1 text-[13px] leading-relaxed text-muted-ink">{insight.detail}</p>
-                  )}
-                </div>
+          <ul className="grid grid-cols-1 divide-y divide-line md:grid-cols-2 md:divide-x md:divide-y-0">
+            {insights.slice(0, 4).map(({ project, assessment }) => (
+              <li key={project.id} className="p-5">
+                <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-brand-cyan-ink">
+                  <Sparkles className="size-3.5" aria-hidden="true" /> AI assessment at submission · advisory
+                </p>
+                <p className="mt-1.5 truncate text-[15px] font-semibold text-ink">{project.name}</p>
+                <p className="mt-1 text-[13px] text-ink">
+                  Overall readiness <span className="font-semibold">{assessment.overall_readiness_score}/100</span>
+                </p>
+                {assessment.strengths?.[0] && <p className="mt-2 text-[13px] text-muted-ink"><span className="font-medium text-success">Strength:</span> {assessment.strengths[0]}</p>}
+                {assessment.weaknesses?.[0] && <p className="mt-1 text-[13px] text-muted-ink"><span className="font-medium text-brand-gold-ink">To improve:</span> {assessment.weaknesses[0]}</p>}
+                <Link href={`/workspace/student/projects/${encodeURIComponent(project.id)}`} className="group mt-3 inline-flex items-center gap-1 text-[13px] font-semibold text-brand hover:text-brand-hover">
+                  View project <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+                </Link>
               </li>
             ))}
           </ul>
         )}
-
-        <div className="border-t border-line px-5 py-3">
-          <Link
-            href="/workspace/student/projects"
-            className="group inline-flex items-center gap-1 text-[13px] font-medium text-brand transition-colors duration-150 hover:text-brand-cyan"
-          >
-            View project details
-            <ArrowRight
-              className="size-3.5 transition-transform duration-150 group-hover:translate-x-0.5"
-              aria-hidden="true"
-            />
-          </Link>
-        </div>
       </Card>
     </section>
   );

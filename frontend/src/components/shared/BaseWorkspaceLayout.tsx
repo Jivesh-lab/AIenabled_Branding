@@ -20,6 +20,8 @@ interface BaseWorkspaceLayoutProps {
   user: NavbarUser;
   workspaceLabel: string;
   allowedRole: AllowedRole;
+  onSearch?: (query: string) => void;
+  searchPlaceholder?: string;
 }
 
 export default function BaseWorkspaceLayout({
@@ -28,6 +30,8 @@ export default function BaseWorkspaceLayout({
   user: staticUser,
   workspaceLabel,
   allowedRole,
+  onSearch,
+  searchPlaceholder,
 }: BaseWorkspaceLayoutProps) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const { data: session } = useSession();
@@ -74,7 +78,8 @@ export default function BaseWorkspaceLayout({
         <DashboardNavbar
           workspaceLabel={workspaceLabel}
           user={user}
-          notificationCount={4}
+          onSearch={onSearch}
+          searchPlaceholder={searchPlaceholder}
           onMenuClick={openMobile}
           allowedRole={allowedRole}
         />

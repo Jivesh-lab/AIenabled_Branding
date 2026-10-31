@@ -411,3 +411,15 @@ def test_mentor_lookup_requires_a_valid_token_and_permission():
     assert client.get("/api/mentors/lookup", params={"name": "Dr. K. R. Raman"}).status_code == 401
     no_perm = auth(permissions=["submit_application"])
     assert client.get("/api/mentors/lookup", params={"name": "Dr. K. R. Raman"}, headers=no_perm).status_code == 403
+
+
+def test_project_dates_are_institute_dates_not_utc_slices():
+    from datetime import datetime, timezone
+    from core.application_status import _date_str
+
+    assert _date_str("2026-10-31T20:50:00+00:00") == "2026-11-01"  # 02:20 IST next day
+    assert _date_str("2026-10-31T10:00:00+00:00") == "2026-10-31"
+    assert _date_str(datetime(2026, 10, 31, 20, 50, tzinfo=timezone.utc)) == "2026-11-01"
+    assert _date_str("2026-10-31T20:50:00") == "2026-11-01"  # naive values are treated as UTC
+    assert _date_str("2026-10-31T18:29:59Z") == "2026-10-31" and _date_str("2026-10-31T18:30:00Z") == "2026-11-01"
+    assert _date_str(None) is None and _date_str("") is None

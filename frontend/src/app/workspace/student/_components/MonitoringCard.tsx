@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Activity } from "lucide-react";
 import { Card, StatusBadge } from "@/components/shared/Surface";
+import { formatIstDateTime } from "@/lib/workflowState";
 import { actionForSignal, describeHealth, MONITORING_UNAVAILABLE } from "@/lib/monitoringView";
 import type { MonitoringResponse } from "@/types/student-application";
 
@@ -110,7 +111,7 @@ export default function MonitoringCard({ projectId, result }: { projectId: strin
       )}
 
       <p className="mt-4 text-[12px] text-muted-ink">
-        {note} Checked {new Date(ai.evaluated_at).toLocaleString("en-IN")}.
+        {note} Checked {formatIstDateTime(ai.evaluated_at)} IST.
       </p>
     </Card>
   );

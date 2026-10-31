@@ -9,7 +9,7 @@ import MilestonesPanel from "../../_components/MilestonesPanel";
 import MonitoringCard from "../../_components/MonitoringCard";
 import { getProjectMonitoring } from "@/lib/projectMonitoring";
 import { fetchBackend } from "@/lib/backendProxy";
-import { istNow } from "@/lib/workflowState";
+import { formatIstDateTime, istNow } from "@/lib/workflowState";
 import type { StudentTask } from "@/types/student-workflow";
 import type { MilestonesResponse } from "@/types/student-application";
 import { getMentorInfo } from "@/lib/mentorAllocation";
@@ -193,7 +193,7 @@ export default async function ProjectPage({
                 {project.submittedAt && (
                   <span className="flex items-center gap-1">
                     <Calendar className="size-3.5" />
-                    Submitted: {new Date(project.submittedAt).toLocaleDateString()}
+                    Submitted: {formatIstDateTime(project.submittedAt).split(",").slice(0, 2).join(",")}
                   </span>
                 )}
               </div>
@@ -388,7 +388,7 @@ export default async function ProjectPage({
                         : REVIEW_STATUS_LABEL[entry.to as ReviewStatus] ?? entry.to}
                     </p>
                     {entry.at && (
-                      <p className="text-[12px] text-muted-ink">{new Date(entry.at).toLocaleString("en-IN")}</p>
+                      <p className="text-[12px] text-muted-ink">{formatIstDateTime(entry.at)} IST</p>
                     )}
                     {entry.comments && (
                       <p className="mt-1 whitespace-pre-line text-[13px] text-muted-ink">{entry.comments}</p>

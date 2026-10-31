@@ -11,15 +11,15 @@
  *   surface   bg-white          border  border-line (#D8EAF0)
  *   text      text-ink          muted   text-muted-ink
  *   icons     text-icon         hover   bg-nav-hover (#F1FAFC)
- *   active    bg-brand-cyan-soft (#CAF0F8) + text/icon/indicator brand (#023EBA)
+ *   active    bg-brand-soft (#CAF0F8) + text/icon/indicator brand (#023EBA)
  *   AI accent text-brand-cyan (#00B4D8)
  *   logo mark bg-brand-deep (#03045E) with a cyan glyph
  *
  * Layout contract:
- *   - desktop: sticky, full viewport height, 240px expanded / 68px collapsed
+ *   - desktop: sticky, full viewport height, 248px expanded / 68px collapsed
  *   - the nav list is the ONLY scroll container here, and only scrolls when the
  *     item list genuinely exceeds the viewport (thin, subtle scrollbar)
- *   - the 60px brand row matches the header height so both baselines align
+ *   - the 64px brand row matches the header height so both baselines align
  */
 
 import { useCallback, useEffect, useState } from "react";
@@ -27,10 +27,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronLeft, X } from "lucide-react";
+import { ChevronDown, PanelLeft, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-export const SIDEBAR_WIDTH_EXPANDED = 240;
+export const SIDEBAR_WIDTH_EXPANDED = 248;
 export const SIDEBAR_WIDTH_COLLAPSED = 68;
 
 // ---------------------------------------------------------------------------
@@ -74,8 +74,8 @@ function SidebarBrand({ isExpanded }: { isExpanded: boolean }) {
   return (
     <div
       className={cn(
-        "flex h-[60px] shrink-0 items-center border-b border-line",
-        isExpanded ? "px-4" : "justify-center px-0"
+        "flex h-16 shrink-0 items-center",
+        isExpanded ? "px-5" : "justify-center px-0"
       )}
     >
       <div className="flex items-center gap-2.5">
@@ -119,19 +119,11 @@ function SidebarItem({
 
   const content = (
     <>
-      {/* Left indicator - the only ornament on an active row */}
-      {isActive && (
-        <span
-          aria-hidden="true"
-          className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-brand"
-        />
-      )}
-
       <Icon
         className={cn(
           "size-[18px] shrink-0 transition-colors duration-150",
           isActive
-            ? "text-brand"
+            ? "text-white"
             : item.isAI
               ? "text-brand-cyan"
               : "text-icon group-hover:text-ink"
@@ -143,7 +135,7 @@ function SidebarItem({
           <span
             className={cn(
               "truncate text-[14px] transition-colors duration-150",
-              isActive ? "font-semibold text-brand" : "font-medium text-ink"
+              isActive ? "font-semibold text-white" : "font-medium text-ink"
             )}
           >
             {item.label}
@@ -152,7 +144,7 @@ function SidebarItem({
             <ChevronDown
               className={cn(
                 "size-[14px] transition-transform duration-150",
-                isActive ? "text-brand" : "text-muted-ink",
+                isActive ? "text-white" : "text-muted-ink",
                 isOpen && "rotate-180"
               )}
               aria-hidden="true"
@@ -171,10 +163,10 @@ function SidebarItem({
   );
 
   const wrapperClass = cn(
-    "group relative flex h-10 w-full items-center rounded-[8px] outline-none transition-colors duration-150",
+    "group relative flex h-11 w-full items-center rounded-lg outline-none transition-colors duration-150",
     "focus-visible:ring-2 focus-visible:ring-brand/40",
     isExpanded ? "px-3" : "justify-center px-0",
-    isActive ? "bg-brand-cyan-soft" : "hover:bg-nav-hover"
+    isActive ? "bg-brand" : "hover:bg-nav-hover"
   );
 
   return (
@@ -233,20 +225,15 @@ export default function DashboardSidebar({
     [pathname]
   );
 
-  const renderContent = (expanded: boolean) => (
+  const renderContent = (expanded: boolean, showProfile = false) => (
     <div className="flex h-full w-full flex-col bg-white">
       <SidebarBrand isExpanded={expanded} />
 
       {/* Nav list - the only scroll container in the shell, and only when needed. */}
       <nav className="scrollbar-thin min-h-0 flex-1 overflow-y-auto overflow-x-hidden py-4">
-        <div className="flex flex-col gap-5 px-3">
+        <div className="flex flex-col gap-4 px-4">
           {sections.map((section) => (
-            <div key={section.label} className="flex flex-col gap-1">
-              {expanded && (
-                <h3 className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-ink">
-                  {section.label}
-                </h3>
-              )}
+            <div key={section.label} className="flex flex-col gap-1.5">
               {section.items.map((item) => (
                 <SidebarItem
                   key={item.label}
@@ -261,7 +248,8 @@ export default function DashboardSidebar({
         </div>
       </nav>
 
-      {/* Profile */}
+      {/* Profile: the desktop header already carries the user menu, so only the mobile drawer repeats it. */}
+      {showProfile && (
       <div className="shrink-0 border-t border-line p-3">
         <button
           type="button"
@@ -288,6 +276,7 @@ export default function DashboardSidebar({
           )}
         </button>
       </div>
+      )}
     </div>
   );
 
@@ -304,12 +293,9 @@ export default function DashboardSidebar({
           type="button"
           onClick={() => setIsExpanded((v) => !v)}
           aria-label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
-          className="absolute -right-3 top-[76px] hidden size-6 items-center justify-center rounded-full border border-line bg-white text-muted-ink shadow-sm transition-colors hover:text-ink md:flex"
+          className={cn("absolute hidden size-8 items-center justify-center rounded-md text-muted-ink transition-colors hover:bg-nav-hover hover:text-ink md:flex", isExpanded ? "right-3 top-4" : "left-[18px] top-[72px]")}
         >
-          <ChevronLeft
-            className={cn("size-[14px] transition-transform duration-200", !isExpanded && "rotate-180")}
-            aria-hidden="true"
-          />
+          <PanelLeft className="size-[18px]" aria-hidden="true" />
         </button>
       </aside>
 
@@ -332,7 +318,7 @@ export default function DashboardSidebar({
               transition={{ type: "tween", duration: 0.25, ease: "easeOut" }}
               className="fixed inset-y-0 left-0 z-50 w-[248px] border-r border-line md:hidden"
             >
-              {renderContent(true)}
+              {renderContent(true, true)}
               <button
                 type="button"
                 onClick={onMobileClose}

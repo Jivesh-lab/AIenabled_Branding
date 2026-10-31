@@ -14,11 +14,12 @@ Lifecycle (stored lowercase, exposed UPPERCASE to the frontend):
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 from fastapi import HTTPException
 
-from core.milestones import EMPTY_SUMMARY as EMPTY_MILESTONES
+from core.milestones import EMPTY_SUMMARY as EMPTY_MILESTONES, IST
 
 DRAFT = "draft"
 SUBMITTED = "submitted"
@@ -54,11 +55,22 @@ def require_student_editable(status: str, action: str) -> None:
 
 
 def _date_str(value: Any) -> Optional[str]:
-    """YYYY-MM-DD from a datetime (asyncpg) or an ISO string (sqlite)."""
+    """YYYY-MM-DD in institute time (IST) from a datetime (asyncpg) or an ISO timestamp string (sqlite).
+
+    Timestamps are stored in UTC; cutting the UTC date off would show the previous day for anything saved
+    between 00:00 and 05:30 IST. Naive values are treated as UTC.
+    """
     if not value:
         return None
-    if hasattr(value, "date"):
-        return value.date().isoformat()
+    if isinstance(value, str):
+        try:
+            value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return value[:10]
+    if hasattr(value, "astimezone"):
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=timezone.utc)
+        return value.astimezone(IST).date().isoformat()
     return str(value)[:10]
 
 

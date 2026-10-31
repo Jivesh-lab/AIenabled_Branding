@@ -3,7 +3,7 @@
  * status badge. Every dashboard section is built from these so cards cannot
  * drift in radius, border, shadow or heading scale.
  *
- * Card: #FFFFFF · 1px #D8EAF0 · radius 12px · shadow-sm. Nothing else.
+ * Card: #FFFFFF · 1px #E2E8F0 · radius 12px · shadow-sm. Nothing else.
  */
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
@@ -63,7 +63,7 @@ export function SectionHeading({
 
 const TONE_CLASS: Record<StatusTone, string> = {
   // Blue — active, on-track work
-  progress: "border-brand/20 bg-brand-cyan-soft text-brand",
+  progress: "border-brand/20 bg-brand-soft text-brand",
   // Cyan — informational stage
   info: "border-brand-cyan/30 bg-brand-cyan/10 text-brand-cyan-ink",
   // Gold — genuinely needs the student's attention
@@ -126,7 +126,7 @@ export function ProgressBar({
         aria-valuemin={0}
         aria-valuemax={100}
         aria-label={label ?? "Progress"}
-        className="h-1.5 w-full overflow-hidden rounded-full bg-brand-cyan-soft"
+        className="h-1.5 w-full overflow-hidden rounded-full bg-brand-soft"
       >
         <div className="h-full rounded-full bg-brand" style={{ width: `${currentVal}%` }} />
       </div>

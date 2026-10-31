@@ -14,21 +14,22 @@
   /* --- OCEAN ROYALE BRAND TOKENS (single source of truth) ---------------
      Generates utilities: bg-brand, text-brand-deep, border-line, ring-brand/50 ...
      Do NOT hardcode brand hex values in components; use these tokens. */
-  --color-brand-deep: #03045E;       /* PRIMARY_DEEP  - logo mark, auth brand panels */
-  --color-brand: #023EBA;            /* PRIMARY       - CTAs, links, active, focus */
-  --color-brand-hover: #023399;
-  --color-brand-active: #01287A;
-  --color-brand-cyan: #00B4D8;       /* ACCENT_CYAN   - AI features, charts */
-  --color-brand-cyan-soft: #CAF0F8;  /* LIGHT_CYAN    - soft backgrounds */
-  --color-brand-cyan-ink: #0E7490;   /* readable cyan TEXT on a cyan tint */
+  --color-brand-deep: #142B4A;       /* PRIMARY_DEEP  - logo mark, auth brand panels */
+  --color-brand: #2458D3;            /* PRIMARY       - CTAs, links, active, focus */
+  --color-brand-hover: #1D49B0;
+  --color-brand-active: #173A8E;
+  --color-brand-soft: #E8EFFC;       /* SOFT_BLUE     - active nav, progress track, soft badges */
+  --color-brand-cyan: #0D9488;       /* ACCENT_CYAN   - AI features, charts */
+  --color-brand-cyan-soft: #CCFBF1;  /* LIGHT_CYAN    - soft backgrounds */
+  --color-brand-cyan-ink: #0F766E;   /* readable cyan TEXT on a cyan tint */
   --color-brand-gold: #FBB02D;       /* ACCENT_GOLD   - warm emphasis */
   --color-brand-gold-ink: #A16207;   /* readable gold TEXT on a gold tint */
-  --color-ink: #0F172A;              /* TEXT */
+  --color-ink: #172B4D;              /* TEXT */
   --color-muted-ink: #64748B;        /* MUTED_TEXT */
-  --color-line: #D8EAF0;             /* BORDER */
-  --color-canvas: #F8FAFC;           /* BACKGROUND */
+  --color-line: #E2E8F0;             /* BORDER */
+  --color-canvas: #F5F7FA;           /* BACKGROUND */
   --color-icon: #475569;             /* resting navigation / control icons */
-  --color-nav-hover: #F1FAFC;        /* navigation row hover on a light surface */
+  --color-nav-hover: #F1F5F9;        /* navigation row hover on a light surface */
 
   /* Semantic state colours - state only, never decoration */
   --color-success: #16A34A;          /* APPROVED */
@@ -79,7 +80,7 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
   /* Ocean Royale PRIMARY (#023EBA) */
-  --primary: #023EBA;
+  --primary: #2458D3;
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -88,9 +89,9 @@
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: #D8EAF0;
-  --input: #D8EAF0;
-  --ring: color-mix(in oklch, #023EBA 40%, transparent);
+  --border: #E2E8F0;
+  --input: #E2E8F0;
+  --ring: color-mix(in oklch, #2458D3 40%, transparent);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -99,12 +100,12 @@
   --radius: 0.5rem;
   --sidebar: #FFFFFF;
   --sidebar-foreground: #0F172A;
-  --sidebar-primary: #023EBA;
+  --sidebar-primary: #2458D3;
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: #CAF0F8;
-  --sidebar-accent-foreground: #023EBA;
-  --sidebar-border: #D8EAF0;
-  --sidebar-ring: #023EBA;
+  --sidebar-accent: #E8EFFC;
+  --sidebar-accent-foreground: #2458D3;
+  --sidebar-border: #E2E8F0;
+  --sidebar-ring: #2458D3;
 }
 
 
@@ -522,4 +523,18 @@
   .landing-page .problem-copy > p,
   .landing-page .journey-heading p { font-size: 16px; }
   .landing-page .problem-list span { font-size: 13px; }
+}
+
+
+/* ---------------------------------------------------------------------------
+   Loading motion. Indeterminate on purpose: we never show a made-up percentage.
+   Reduced-motion users get a static bar instead of movement.
+   ------------------------------------------------------------------------- */
+@keyframes route-progress-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(260%); }
+}
+@keyframes startup-progress-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
 }

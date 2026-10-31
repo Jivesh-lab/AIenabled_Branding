@@ -27,12 +27,15 @@ export default function ProjectPortfolio({
   projects,
   error,
   mentors,
+  initialQuery = "",
 }: {
   projects: StudentProject[];
   error?: string | null;
   mentors?: Record<string, MentorResult>;
+  /** Pre-filled from the header search (?q=). */
+  initialQuery?: string;
 }) {
-  const [filters, setFilters] = useState<ProjectFilters>(DEFAULT_FILTERS);
+  const [filters, setFilters] = useState<ProjectFilters>({ ...DEFAULT_FILTERS, query: initialQuery });
 
   const counts = countByStatus(projects);
   const visible = filterProjects(projects, filters);

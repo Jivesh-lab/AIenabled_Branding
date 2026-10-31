@@ -12,7 +12,9 @@ export const metadata: Metadata = {
   title: "My Projects | DBIT Incubation Centre",
 };
 
-export default async function MyProjectsPage() {
+export default async function MyProjectsPage({ searchParams }: { searchParams: Promise<{ q?: string | string[] }> }) {
+  const { q } = await searchParams;
+  const query = (Array.isArray(q) ? q[0] : q)?.slice(0, 100) ?? "";
   const result = await fetchAgent<ProjectsResponse>({
     path: "/api/applications/",
     permissions: ["view_applications"],
@@ -31,7 +33,7 @@ export default async function MyProjectsPage() {
           action={{ label: "Submit New Idea", href: "/workspace/student/submit" }}
         />
         {result.ok ? (
-          <ProjectPortfolio projects={result.data.projects} mentors={mentors} />
+          <ProjectPortfolio key={query} projects={result.data.projects} mentors={mentors} initialQuery={query} />
         ) : (
           <LoadError
             title="We couldn't load your projects"

@@ -7,7 +7,7 @@
 import { formatLongDateSafe } from "./journeyFormat.ts";
 import { projectUrl, type Journey } from "./journey.ts";
 import { MATCHING_DESCRIPTION, type MentorResult } from "./mentorState.ts";
-import { isIsoDate, meetingStatus, taskState, type Now } from "./workflowState.ts";
+import { isIsoDate, istDateOf, meetingStatus, taskState, type Now } from "./workflowState.ts";
 import type { ApplicationDetail, MilestonesResponse, StudentProject } from "../types/student-application.ts";
 import type { StudentMeeting, StudentTask } from "../types/student-workflow.ts";
 
@@ -46,6 +46,16 @@ const STATUS_LABEL: Record<string, string> = {
 const clip = (text: string, n = 280) => (text.length > n ? `${text.slice(0, n - 1)}…` : text);
 const quote = (text: string, n = 280) => `"${clip(text.replace(/\s+/g, " ").trim(), n)}"`;
 
+/** A specific link label from where the link goes (never a vague "Go"). */
+export function labelForHref(href: string): string {
+  if (href.includes("#milestones")) return "Open milestones";
+  if (href.includes("#tasks")) return "Open tasks";
+  if (href.includes("/submit")) return "Edit application";
+  if (/\/meetings\/[^/]+/.test(href)) return "Open meeting";
+  if (href.endsWith("/meetings")) return "Open meetings";
+  return "Open project";
+}
+
 export function buildFacts(ctx: AssistantContext): { facts: Fact[]; unavailable: { topic: Topic; text: string }[] } {
   const { project, detail, journey, mentor, tasks, meetings, milestones, now } = ctx;
   const facts: Fact[] = [];
@@ -75,7 +85,7 @@ export function buildFacts(ctx: AssistantContext): { facts: Fact[]; unavailable:
       facts.push({ id: "reviewer", topic: "feedback", text: "No reviewer comment is recorded for this project." });
     }
     for (const [i, entry] of detail.history.slice(-3).entries()) {
-      const when = entry.at ? formatLongDateSafe(entry.at.slice(0, 10)) : "an unknown date";
+      const when = entry.at ? formatLongDateSafe(istDateOf(entry.at)) : "an unknown date";
       facts.push({ id: `history-${i}`, topic: "feedback", text: `On ${when}: ${entry.from ? `${entry.from} → ` : ""}${entry.to}${entry.comments ? ` - ${quote(entry.comments)}` : ""}.` });
     }
   }
@@ -149,9 +159,9 @@ export function buildFacts(ctx: AssistantContext): { facts: Fact[]; unavailable:
 
   // blockers + next steps come from the journey model, i.e. the same rules as the Journey page
   if (journey.blockers.length === 0) facts.push({ id: "blockers-none", topic: "blockers", text: "No blockers are recorded for this project." });
-  for (const b of journey.blockers) facts.push({ id: `blocker-${b.id}`, topic: "blockers", text: `Blocker: ${b.label}.`, href: b.href, linkLabel: "Fix this" });
+  for (const b of journey.blockers) facts.push({ id: `blocker-${b.id}`, topic: "blockers", text: `Blocker: ${b.label}.`, href: b.href, linkLabel: labelForHref(b.href) });
   for (const m of journey.missing) unavailable.push({ topic: "blockers", text: `The ${m} information could not be loaded, so blockers related to it are unknown.` });
-  for (const a of journey.actions.slice(0, 5)) facts.push({ id: `next-${a.id}`, topic: "next", text: `Next step from your records: ${a.label}.`, href: a.href, linkLabel: "Go" });
+  for (const a of journey.actions.slice(0, 5)) facts.push({ id: `next-${a.id}`, topic: "next", text: `Next step from your records: ${a.label}.`, href: a.href, linkLabel: labelForHref(a.href) });
   if (journey.actions.length === 0) facts.push({ id: "next-none", topic: "next", text: "No pending steps are recorded for this project." });
 
   return { facts, unavailable };

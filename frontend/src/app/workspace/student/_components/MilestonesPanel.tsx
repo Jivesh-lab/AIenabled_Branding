@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 import { Card, StatusBadge } from "@/components/shared/Surface";
 import { cn } from "@/lib/utils";
 import { formatLongDate } from "@/lib/dates";
+import { istDateOf } from "@/lib/workflowState";
 import type { StatusTone } from "@/types/status";
 import type { Milestone, MilestoneState, MilestonesResponse } from "@/types/student-application";
 import MilestoneProgress from "./MilestoneProgress";
@@ -107,7 +108,7 @@ export default function MilestonesPanel({ applicationId, data }: { applicationId
                 </div>
                 <p className="text-[12px] text-muted-ink">
                   {m.dueDate ? `Target ${formatLongDate(m.dueDate)}` : "No target date"}
-                  {m.completedAt && ` · Completed ${formatLongDate(m.completedAt.slice(0, 10))}`}
+                  {m.completedAt && ` · Completed ${formatLongDate(istDateOf(m.completedAt))}`}
                   {m.state !== "completed" && ` · ${m.completionPct}% done`}
                 </p>
                 {m.description && <p className="text-[13px] text-muted-ink">{m.description}</p>}

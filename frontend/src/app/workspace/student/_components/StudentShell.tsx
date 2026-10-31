@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import BaseWorkspaceLayout from "@/components/shared/BaseWorkspaceLayout";
 import type { NavbarUser } from "@/components/shared/DashboardNavbar";
 import { NavSection } from "@/components/shared/DashboardSidebar";
@@ -28,8 +29,16 @@ const STUDENT_SECTIONS: NavSection[] = [
 
 /** `user` comes from the server-verified session (see ../layout.tsx), not a placeholder. */
 export default function StudentShell({ user, children }: { user: NavbarUser; children: React.ReactNode }) {
+  const router = useRouter();
   return (
-    <BaseWorkspaceLayout sections={STUDENT_SECTIONS} user={user} workspaceLabel="Student Workspace" allowedRole="student">
+    <BaseWorkspaceLayout
+      sections={STUDENT_SECTIONS}
+      user={user}
+      workspaceLabel="Student Workspace"
+      allowedRole="student"
+      searchPlaceholder="Search your projects"
+      onSearch={(query) => router.push(`/workspace/student/projects?q=${encodeURIComponent(query)}`)}
+    >
       {children}
     </BaseWorkspaceLayout>
   );

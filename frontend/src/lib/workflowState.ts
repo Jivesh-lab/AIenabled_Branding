@@ -21,6 +21,19 @@ export function istNow(ms: number = Date.now()): Now {
   return { date: iso.slice(0, 10), time: iso.slice(11, 16) };
 }
 
+/** YYYY-MM-DD in institute time for any timestamp (stored in UTC). */
+export function istDateOf(timestamp: string): string {
+  const ms = Date.parse(timestamp);
+  return Number.isNaN(ms) ? timestamp.slice(0, 10) : istNow(ms).date;
+}
+
+/** "4 Nov 2026, 1:20 am" in institute time, the same on the server and in every browser. */
+export function formatIstDateTime(timestamp: string): string {
+  const ms = Date.parse(timestamp);
+  if (Number.isNaN(ms)) return timestamp;
+  return new Date(ms).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
 export const isIsoDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value));
 const isClock = (value: string) => /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
 

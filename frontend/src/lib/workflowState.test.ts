@@ -108,3 +108,21 @@ test("reminders: nothing is claimed unless an outcome was recorded", () => {
   assert.match(reminderLabel({ status: "pending", at: null })!.text, /being sent/);
   assert.doesNotMatch(reminderLabel({ status: "failed", at: null })!.text, /sent to/);
 });
+
+import { formatIstDateTime, istDateOf } from "./workflowState.ts";
+
+test("dates shown to students are institute (IST) dates, not UTC slices", () => {
+  // 20:50 UTC on 31 Oct is 02:20 IST on 1 Nov: cutting the UTC date would show the wrong day.
+  assert.equal(istDateOf("2026-10-31T20:50:00.000Z"), "2026-11-01");
+  assert.equal(istDateOf("2026-10-31T10:00:00.000Z"), "2026-10-31");
+  assert.equal(istDateOf("2026-10-31T18:29:59Z"), "2026-10-31");
+  assert.equal(istDateOf("2026-10-31T18:30:00Z"), "2026-11-01");
+  assert.equal(istDateOf("not a date"), "not a date");
+});
+
+test("date-times are formatted in IST regardless of the machine's time zone", () => {
+  const out = formatIstDateTime("2026-10-31T20:50:00.000Z");
+  assert.match(out, /1 Nov 2026/);
+  assert.match(out, /2:20/);
+  assert.equal(formatIstDateTime("garbage"), "garbage");
+});

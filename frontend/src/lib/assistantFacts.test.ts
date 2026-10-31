@@ -145,3 +145,15 @@ test("facts are built only from the supplied context (nothing from other project
   assert.doesNotMatch(all, /FOREIGN/);
   assert.match(all, /My Project/);
 });
+
+import { labelForHref } from "./assistantFacts.ts";
+
+test("assistant links have specific labels (never a vague 'Go' or 'Fix this')", () => {
+  assert.equal(labelForHref("/workspace/student/projects/p1#milestones"), "Open milestones");
+  assert.equal(labelForHref("/workspace/student/projects/p1#tasks"), "Open tasks");
+  assert.equal(labelForHref("/workspace/student/submit?applicationId=p1"), "Edit application");
+  assert.equal(labelForHref("/workspace/student/meetings/m1"), "Open meeting");
+  assert.equal(labelForHref("/workspace/student/meetings"), "Open meetings");
+  const all = buildFacts(ctx(project("APPROVED", { total: 1, overdue: 1, progress: 0 }), { mentor: mentor("matched", "X"), tasks: [task()] })).facts;
+  assert.ok(all.every((f) => !f.linkLabel || !/^(Go|Fix this)$/.test(f.linkLabel)));
+});
