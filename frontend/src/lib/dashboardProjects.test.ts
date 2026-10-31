@@ -26,9 +26,9 @@ test("the preview is capped, reports how many are not shown, and never mutates o
   const all = Array.from({ length: 12 }, (_, i) => p(`p${i}`, "SUBMITTED", { updatedAt: `2026-10-${String(10 + i).padStart(2, "0")}` }));
   const copy = [...all];
   const view = dashboardPreview(all);
-  assert.equal(view.shown.length, 4);
+  assert.equal(view.shown.length, 3);
   assert.equal(view.total, 12);
-  assert.equal(view.hidden, 8);
+  assert.equal(view.hidden, 9);
   assert.deepEqual(all, copy, "input is untouched");
   assert.equal(dashboardPreview([p("only", "DRAFT")]).hidden, 0);
   assert.deepEqual(dashboardPreview([]), { shown: [], total: 0, hidden: 0 });

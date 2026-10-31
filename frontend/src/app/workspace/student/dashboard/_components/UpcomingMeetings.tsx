@@ -7,7 +7,7 @@ import { isIsoDate, joinUrl, meetingStatus, MEETING_STATUS_LABEL, type Now } fro
 import type { StudentMeeting } from "@/types/student-workflow";
 import { timeRange } from "../../meetings/_components/MeetingListItem";
 
-/** Confirmed meetings from now onwards, soonest first. Requests still awaiting the host are counted below the list. */
+/** The next two confirmed meetings from now onwards, soonest first. Requests still awaiting the host are counted below the list. */
 export default function UpcomingMeetings({ meetings, now }: { meetings: StudentMeeting[]; now: Now }) {
   const upcoming = meetings
     .filter((m) => ["TODAY", "UPCOMING"].includes(meetingStatus(m, now)))
@@ -22,7 +22,7 @@ export default function UpcomingMeetings({ meetings, now }: { meetings: StudentM
           <EmptyState icon={CalendarDays} title="No upcoming meetings" action={{ label: "Request a meeting", href: "/workspace/student/meetings" }} />
         ) : (
           <ul className="divide-y divide-line">
-            {upcoming.slice(0, 3).map((meeting) => {
+            {upcoming.slice(0, 2).map((meeting) => {
               const join = joinUrl(meeting, now);
               const status = meetingStatus(meeting, now);
               return (

@@ -10,14 +10,15 @@ import type { Journey } from "@/lib/journey";
  * actions the Journey page lists, across all projects. Nothing is invented. Items are de-duplicated per project.
  */
 export default function NextActions({ journeys }: { journeys: Journey[] }) {
+  // Waiting for a review decision is a status, not something the student can do, so it is not listed here.
   const actions = journeys
-    .flatMap((j) => j.actions.map((a) => ({ ...a, project: j.projectName, key: `${j.projectId}-${a.id}` })))
+    .flatMap((j) => j.actions.filter((a) => a.id !== "await").map((a) => ({ ...a, project: j.projectName, key: `${j.projectId}-${a.id}` })))
     .sort((a, b) => Number(b.urgent) - Number(a.urgent))
-    .slice(0, 5);
+    .slice(0, 4);
 
   return (
     <section aria-label="Next actions">
-      <SectionHeading title="Next Actions" />
+      <SectionHeading title="Next Actions" action={{ label: "View journey", href: "/workspace/student/journey" }} />
       <Card>
         {actions.length === 0 ? (
           journeys.length === 0 ? (

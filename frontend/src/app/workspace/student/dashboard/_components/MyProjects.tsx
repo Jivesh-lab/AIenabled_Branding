@@ -24,12 +24,12 @@ export default function MyProjects({
   mentors?: Record<string, MentorResult>;
   journeys: Journey[];
 }) {
-  const { shown, total, hidden } = dashboardPreview(projects);
+  const { shown, total } = dashboardPreview(projects);
   const stageOf = new Map(journeys.map((j) => [j.projectId, j.stages.find((s) => s.id === j.currentStageId)]));
 
   return (
     <section aria-label="My projects">
-      <SectionHeading title="My Projects" action={{ label: hidden > 0 ? `View all ${total}` : "View all", href: "/workspace/student/projects" }} />
+      <SectionHeading title="My Projects" action={{ label: "View all", href: "/workspace/student/projects" }} />
 
       {projects.length === 0 ? (
         <Card>
@@ -93,14 +93,12 @@ export default function MyProjects({
               );
             })}
           </ul>
-          {hidden > 0 && (
-            <p className="mt-3 text-[13px] text-muted-ink">
-              Showing the {shown.length} that need the most attention.{" "}
-              <Link href="/workspace/student/projects" className="font-semibold text-brand hover:underline">
-                View all {total} projects
-              </Link>
-            </p>
-          )}
+          <p className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[13px] text-muted-ink">
+            <span>Showing {shown.length} of {total} {total === 1 ? "project" : "projects"}</span>
+            <Link href="/workspace/student/projects" className="font-semibold text-brand hover:underline">
+              View all projects →
+            </Link>
+          </p>
         </>
       )}
     </section>

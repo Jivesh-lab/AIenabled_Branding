@@ -14,7 +14,7 @@
  */
 import type { StudentProject } from "../types/student-application.ts";
 
-export const DASHBOARD_PROJECT_LIMIT = 4;
+export const DASHBOARD_PROJECT_LIMIT = 3;
 
 export function attentionRank(project: StudentProject): number {
   switch (project.reviewStatus) {

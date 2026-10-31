@@ -79,25 +79,22 @@ export function ActivitySectionSkeleton() {
   );
 }
 
-export function JourneySectionSkeleton() {
+export function OverviewSectionSkeleton() {
   return (
     <section>
-      <SectionHeadingSkeleton />
-      <SkeletonCard className="space-y-5 p-5">
-        <div className="flex items-center justify-between gap-6">
-          <Skeleton className="h-4 w-48" />
-          <Skeleton className="h-1.5 w-40 rounded-full" />
+      <SectionHeadingSkeleton withAction={false} />
+      <Card className="divide-y divide-line">
+        {Array.from({ length: 6 }, (_, i) => (
+          <div key={i} className="flex items-center gap-4 px-5 py-3">
+            <Skeleton className="h-3 w-40 shrink-0" />
+            <Skeleton className="h-1.5 flex-1 rounded-full" />
+            <Skeleton className="h-3 w-6 shrink-0" />
+          </div>
+        ))}
+        <div className="px-5 py-3.5">
+          <Skeleton className="h-3 w-48" />
         </div>
-        <div className="flex items-start">
-          {Array.from({ length: 5 }, (_, i) => (
-            <div key={i} className="flex min-w-[104px] flex-1 flex-col items-center gap-2">
-              <Skeleton className="size-6 rounded-full" />
-              <Skeleton className="h-3 w-16" />
-            </div>
-          ))}
-        </div>
-        <SkeletonText lines={1} widths={["w-2/3"]} />
-      </SkeletonCard>
+      </Card>
     </section>
   );
 }
@@ -106,14 +103,12 @@ export function InsightsSectionSkeleton() {
   return (
     <section>
       <SectionHeadingSkeleton withAction={false} />
-      <Card className="grid grid-cols-1 divide-y divide-line md:grid-cols-2 md:divide-x md:divide-y-0">
-        {Array.from({ length: 2 }, (_, i) => (
-          <div key={i} className="space-y-3 p-5">
-            <Skeleton className="h-3 w-48" />
-            <Skeleton className="h-5 w-2/3" />
-            <SkeletonText lines={2} />
-          </div>
-        ))}
+      <Card className="divide-y divide-line">
+        <div className="space-y-3 p-5">
+          <Skeleton className="h-3 w-48" />
+          <Skeleton className="h-5 w-2/3" />
+          <SkeletonText lines={2} />
+        </div>
       </Card>
     </section>
   );
@@ -144,21 +139,21 @@ export default function DashboardSkeleton() {
       <DashboardLayout
         heading={<PageHeadingSkeleton />}
         kpis={<KpiRowSkeleton />}
-        main={<ProjectsSectionSkeleton />}
-        side={
+        main={
           <>
-            <MeetingsSectionSkeleton />
-            <ActionsSectionSkeleton />
+            <ProjectsSectionSkeleton />
+            <OverviewSectionSkeleton />
             <ActivitySectionSkeleton />
           </>
         }
-        lower={
+        side={
           <>
-            <JourneySectionSkeleton />
+            <ActionsSectionSkeleton />
+            <MeetingsSectionSkeleton />
             <InsightsSectionSkeleton />
-            <FundingSectionSkeleton />
           </>
         }
+        lower={<FundingSectionSkeleton />}
       />
     </LoadingRegion>
   );

@@ -13,7 +13,7 @@ import DashboardHeader from "./_components/DashboardHeader";
 import DashboardLayout from "./_components/DashboardLayout";
 import DashboardSkeleton from "./_components/DashboardSkeleton";
 import FundingOpportunities from "./_components/FundingOpportunities";
-import JourneySummary from "./_components/JourneySummary";
+import IncubationOverview from "./_components/IncubationOverview";
 import KpiRow from "./_components/KpiRow";
 import MyProjects from "./_components/MyProjects";
 import NextActions from "./_components/NextActions";
@@ -107,7 +107,7 @@ export default function DashboardPage() {
   const now = istNow();
   const { projects, meetings, tasks } = overview;
   const journeys = journeysFor(overview, now);
-  const kpis = computeKpis({ projects, meetings }, now);
+  const kpis = computeKpis({ projects, meetings, tasks, journeys }, now);
 
   return (
     <DashboardLayout
@@ -124,14 +124,17 @@ export default function DashboardPage() {
       kpis={<KpiRow kpis={kpis} />}
       main={
         projects.ok ? (
-          <MyProjects projects={projects.data} mentors={overview.mentors} journeys={journeys} />
+          <>
+            <MyProjects projects={projects.data} mentors={overview.mentors} journeys={journeys} />
+            <IncubationOverview projects={projects.data} journeys={journeys} />
+            <RecentActivity projects={projects.data} />
+          </>
         ) : (
           <SectionError title="My Projects" message={projects.message} onRetry={retry} />
         )
       }
       side={
         <>
-          {meetings.ok ? <UpcomingMeetings meetings={meetings.data} now={now} /> : <SectionError title="Upcoming Meetings" message={meetings.message} onRetry={retry} />}
           {projects.ok && (
             <>
               <NextActions journeys={journeys} />
@@ -140,22 +143,13 @@ export default function DashboardPage() {
                   {[!tasks.ok && "Task", !meetings.ok && "Meeting"].filter(Boolean).join(" and ")} actions are unavailable right now, so they are not listed.
                 </p>
               )}
-              <RecentActivity projects={projects.data} />
             </>
           )}
+          {meetings.ok ? <UpcomingMeetings meetings={meetings.data} now={now} /> : <SectionError title="Upcoming Meetings" message={meetings.message} onRetry={retry} />}
+          {projects.ok && <AiInsights projects={projects.data} />}
         </>
       }
-      lower={
-        projects.ok ? (
-          <>
-            <JourneySummary journeys={journeys} />
-            <AiInsights projects={projects.data} />
-            <FundingOpportunities />
-          </>
-        ) : (
-          <FundingOpportunities />
-        )
-      }
+      lower={<FundingOpportunities />}
     />
   );
 }

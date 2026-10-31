@@ -23,7 +23,7 @@ function readAssessment(project: StudentProject): StoredAssessment | null {
 }
 
 /**
- * Only STORED agent output is shown, one insight per project (so nothing repeats), each labelled as an advisory AI
+ * Only STORED agent output is shown, at most two insights, one per project (so nothing repeats), each labelled as an advisory AI
  * assessment made when the application was submitted. No assessment -> an honest empty state, never filler.
  */
 export default function AiInsights({ projects }: { projects: StudentProject[] }) {
@@ -43,8 +43,8 @@ export default function AiInsights({ projects }: { projects: StudentProject[] })
             description="One is produced when you submit an application, if the AI service is available."
           />
         ) : (
-          <ul className="grid grid-cols-1 divide-y divide-line md:grid-cols-2 md:divide-x md:divide-y-0">
-            {insights.slice(0, 4).map(({ project, assessment }) => (
+          <ul className="divide-y divide-line">
+            {insights.slice(0, 2).map(({ project, assessment }) => (
               <li key={project.id} className="p-5">
                 <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-brand-cyan-ink">
                   <Sparkles className="size-3.5" aria-hidden="true" /> AI assessment at submission · advisory

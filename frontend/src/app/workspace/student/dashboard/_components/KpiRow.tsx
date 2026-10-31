@@ -1,29 +1,29 @@
 import Link from "next/link";
-import { CalendarDays, ClipboardCheck, FolderKanban, Target } from "lucide-react";
+import { AlertCircle, CalendarDays, FolderKanban, ListChecks } from "lucide-react";
 import { Card } from "@/components/shared/Surface";
 import { cn } from "@/lib/utils";
 import type { Kpi } from "@/lib/studentKpis";
 
 const ICON = {
   "active-projects": FolderKanban,
-  "pending-reviews": ClipboardCheck,
+  "needs-attention": AlertCircle,
   "upcoming-meetings": CalendarDays,
-  "overdue-milestones": Target,
+  "overdue-tasks": ListChecks,
 } as const;
 
 /** One short line under each number; the full rule is in the tooltip. */
 const HINT = {
   "active-projects": "Submitted, in review or approved",
-  "pending-reviews": "Waiting for a reviewer",
+  "needs-attention": "Actions waiting on you",
   "upcoming-meetings": "Confirmed, today or later",
-  "overdue-milestones": "Past target date",
+  "overdue-tasks": "Past their due date",
 } as const;
 
 const STATE_HINT = { unavailable: "Unavailable right now", "not-tracked": "None recorded yet" } as const;
 
 /**
  * KPI tiles. A number is shown only when its source loaded; otherwise the tile says why it has none
- * ("Unavailable" vs "None recorded"), never 0 as a stand-in. Overdue milestones turn red only when there are some.
+ * ("Unavailable" vs "None recorded"), never 0 as a stand-in. Needs-attention and overdue tiles turn red only when there are some.
  */
 export default function KpiRow({ kpis }: { kpis: Kpi[] }) {
   return (
@@ -31,7 +31,7 @@ export default function KpiRow({ kpis }: { kpis: Kpi[] }) {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {kpis.map((kpi) => {
           const Icon = ICON[kpi.id];
-          const alert = kpi.id === "overdue-milestones" && (kpi.value ?? 0) > 0;
+          const alert = (kpi.id === "overdue-tasks" || kpi.id === "needs-attention") && (kpi.value ?? 0) > 0;
           return (
             <Link key={kpi.id} href={kpi.href} title={`${kpi.definition} Source: ${kpi.source}.`} className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 rounded-xl">
               <Card interactive className="flex h-[112px] items-start justify-between gap-3 p-5">
