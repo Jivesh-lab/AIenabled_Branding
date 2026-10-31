@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getServerSession } from "next-auth/next";
-import { SignJWT } from "jose";
+import { AGENT_SERVICE_URL, createInternalToken } from "@/lib/internalToken";
 import { authOptions } from "@/lib/auth";
 import PageContainer from "@/components/shared/PageContainer";
 import { Card, MaturityTag, ProgressBar, StatusBadge } from "@/components/shared/Surface";
@@ -33,9 +33,6 @@ import {
   type ReviewStatus,
 } from "@/types/status";
 
-const AGENT_SERVICE_URL = process.env.AGENT_SERVICE_URL || "http://127.0.0.1:8000";
-const INTERNAL_JWT_SECRET = process.env.INTERNAL_JWT_SECRET || "test_internal_secret_key_123";
-
 interface ApplicationRecord {
   id: string;
   startup: {
@@ -49,6 +46,7 @@ interface ApplicationRecord {
   status: string;
   aiSummary: string | null;
   aiFeedback: string | null;
+  reviewerComments?: string | null;
   formData: {
     department?: string;
     projectType?: string;
@@ -73,21 +71,10 @@ interface ApplicationRecord {
 
 async function fetchProjectData(id: string): Promise<ApplicationRecord | null> {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id || !INTERNAL_JWT_SECRET) return null;
+  if (!session?.user?.id) return null;
 
   try {
-    const secret = new TextEncoder().encode(INTERNAL_JWT_SECRET);
-    const token = await new SignJWT({
-      sub: session.user.id,
-      role: session.user.role,
-      permissions: ["view_applications"],
-    })
-      .setProtectedHeader({ alg: "HS256" })
-      .setIssuedAt()
-      .setIssuer("next-server")
-      .setAudience("fastapi-internal")
-      .setExpirationTime("1m")
-      .sign(secret);
+    const token = await createInternalToken(session.user, ["view_applications"]);
 
     const res = await fetch(`${AGENT_SERVICE_URL}/api/applications/${id}`, {
       method: "GET",
@@ -242,7 +229,7 @@ export default async function ProjectPage({
               </Link>
               {rawStatus === "REVISION_REQUESTED" && (
                 <Link
-                  href="/workspace/student/submit"
+                  href={`/workspace/student/submit?applicationId=${encodeURIComponent(project.id)}`}
                   className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-amber-700"
                 >
                   <Pencil className="size-3.5" />
@@ -252,6 +239,16 @@ export default async function ProjectPage({
             </div>
           </div>
         </Card>
+
+        {/* AI Application Agent Assessment Dossier */}
+        {rawStatus === "REVISION_REQUESTED" && (
+          <Card className="border-amber-200 bg-amber-50/60 p-5">
+            <h2 className="text-[15px] font-bold text-amber-950">Reviewer feedback</h2>
+            <p className="mt-1 text-[13px] leading-relaxed text-amber-900">
+              {project.reviewerComments || aiFeedbackObj.comments || aiFeedbackObj.reviewer_comments || "Please review the requested changes and resubmit your application."}
+            </p>
+          </Card>
+        )}
 
         {/* AI Application Agent Assessment Dossier */}
         <Card className="overflow-hidden border-indigo-100 bg-gradient-to-b from-indigo-50/40 via-white to-white p-6">

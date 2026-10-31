@@ -9,7 +9,7 @@
  * handful of projects), so recomputing is cheaper than memoising.
  */
 import { useState } from "react";
-import type { StudentProject } from "@/mock/student-projects";
+import type { StudentProject } from "@/types/student-application";
 import {
   countByStatus,
   DEFAULT_FILTERS,
@@ -22,7 +22,7 @@ import ProjectsToolbar from "./ProjectsToolbar";
 import ProjectCard from "./ProjectCard";
 import EmptyState from "./EmptyState";
 
-export default function ProjectPortfolio({ projects }: { projects: StudentProject[] }) {
+export default function ProjectPortfolio({ projects, error }: { projects: StudentProject[]; error?: string | null }) {
   const [filters, setFilters] = useState<ProjectFilters>(DEFAULT_FILTERS);
 
   const counts = countByStatus(projects);
@@ -38,6 +38,9 @@ export default function ProjectPortfolio({ projects }: { projects: StudentProjec
     setFilters((prev) => ({ ...DEFAULT_FILTERS, sort: prev.sort }));
   }
 
+  if (error) {
+    return <div role="alert" className="rounded-xl border border-red-100 bg-red-50 p-6 text-center text-sm text-red-800">{error}</div>;
+  }
   if (projects.length === 0) return <EmptyState kind="no-projects" />;
 
   return (

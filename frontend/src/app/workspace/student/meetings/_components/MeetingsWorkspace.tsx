@@ -12,8 +12,9 @@ import { CalendarPlus, Bot, Video, Mail, CheckCircle, ExternalLink } from "lucid
 import { formatDayLabel } from "@/lib/dates";
 import { Card } from "@/components/shared/Surface";
 import PageHeader from "@/components/shared/PageHeader";
-import { MOCK_NOW, type Meeting } from "@/mock/student-meetings";
-import type { StudentProject } from "@/mock/student-projects";
+import { MOCK_NOW } from "@/mock/student-meetings";
+import type { Meeting } from "@/types/meeting";
+import type { StudentProject } from "@/types/student-application";
 import { groupMeetings, summarize } from "../_lib/meetings";
 import MeetingSummary from "./MeetingSummary";
 import MeetingCalendar from "./MeetingCalendar";

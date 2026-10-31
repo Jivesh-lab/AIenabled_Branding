@@ -27,6 +27,40 @@ type AnnouncementItem = {
   createdAt: string;
 };
 
+type EmailTemplate = {
+  id: string;
+  name: string;
+  subject: string;
+  body: string;
+};
+
+const EMAIL_TEMPLATES: EmailTemplate[] = [
+  {
+    id: "welcome-student",
+    name: "Student Onboarding Welcome",
+    subject: "Welcome to DBIT Incubation Centre - Getting Started",
+    body: `Dear Innovator,\n\nWelcome to the DBIT Incubation Centre! Your student incubation workspace is now active.\n\nYou can now submit new project proposals, collaborate with assigned mentors, track milestone deliverables, and access innovation grants through your unified dashboard.\n\nBest regards,\nDBIT Incubation Directorate`,
+  },
+  {
+    id: "project-approved",
+    name: "Project Approval & Induction",
+    subject: "Congratulations: Your Project Proposal Has Been Approved",
+    body: `Dear Founder,\n\nWe are pleased to inform you that following faculty committee evaluation, your proposal has been accepted for official incubation support.\n\nPlease log in to review your assigned mentor, onboarding roadmap, and milestone targets.\n\nWarm regards,\nIncubation Screening Committee`,
+  },
+  {
+    id: "mentor-assigned",
+    name: "Mentor Assignment Notification",
+    subject: "New Mentorship Match Confirmed",
+    body: `Hello,\n\nA faculty mentor and industry specialist has been paired with your incubation project. You can now schedule your first advisory consultation and review project milestones in your workspace.\n\nBest regards,\nDBIT Incubation Coordination Cell`,
+  },
+  {
+    id: "milestone-reminder",
+    name: "Milestone Due Notice",
+    subject: "Action Required: Upcoming Project Milestone Deadline",
+    body: `Hello Team,\n\nThis is a scheduled reminder that your next progress evaluation milestone is due within 7 days. Please ensure all documentation and prototype demos are uploaded to avoid review delays.\n\nDBIT Incubation Centre Operations`,
+  },
+];
+
 export default function AnnouncementsPage() {
   const [announcements, setAnnouncements] = useState<AnnouncementItem[]>([]);
   const [loading, setLoading] = useState(false);

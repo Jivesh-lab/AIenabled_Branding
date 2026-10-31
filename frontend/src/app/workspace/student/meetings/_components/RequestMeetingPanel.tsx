@@ -5,7 +5,7 @@ import { formatLongDate } from "@/lib/dates";
 import { Card } from "@/components/shared/Surface";
 import { controlClass, describedBy, FormField } from "@/components/shared/form/FormField";
 import { MEETING_TYPE_LABEL, MOCK_NOW, STUDENT_MEETING_PERMISSIONS, type MeetingType } from "@/mock/student-meetings";
-import type { StudentProject } from "@/mock/student-projects";
+import type { StudentProject } from "@/types/student-application";
 
 interface RequestDraft {
   type: MeetingType;

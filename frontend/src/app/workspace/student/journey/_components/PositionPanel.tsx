@@ -9,7 +9,7 @@ import {
   REVIEW_STATUS_LABEL,
   REVIEW_STATUS_TONE,
 } from "@/types/status";
-import { MOCK_TODAY, type StudentProject } from "@/mock/student-projects";
+import type { StudentProject } from "@/types/student-application";
 
 const primaryLink =
   "inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg bg-brand px-4 text-[13px] font-semibold text-white transition-colors duration-150 hover:bg-brand-hover active:bg-brand-active focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 focus-visible:ring-offset-1";
@@ -25,8 +25,9 @@ export default function PositionPanel({ project }: { project: StudentProject }) 
   const isDraft = project.reviewStatus === "DRAFT";
   const isRevision = project.reviewStatus === "REVISION_REQUESTED";
   const next = project.next;
+  const today = new Date().toISOString().slice(0, 10);
   const urgent =
-    isRevision || (!!next?.dueDate && next.kind === "action" && isDueSoon(next.dueDate, MOCK_TODAY));
+    isRevision || (!!next?.dueDate && next.kind === "action" && isDueSoon(next.dueDate, today));
   const NextIcon = urgent ? AlertCircle : next?.kind === "milestone" ? Flag : CircleDot;
 
   return (
@@ -78,7 +79,7 @@ export default function PositionPanel({ project }: { project: StudentProject }) 
               <p className="text-[14px] font-medium leading-snug text-ink">{next.label}</p>
               {next.dueDate && (
                 <p className={cn("mt-0.5 text-[12px]", urgent ? "font-medium text-brand-gold-ink" : "text-muted-ink")}>
-                  {formatDue(next.dueDate, MOCK_TODAY)}
+                  {formatDue(next.dueDate, today)}
                 </p>
               )}
             </div>

@@ -296,7 +296,7 @@ export default function GrantDraftingPage() {
                         <span>Fund Utilisation</span>
                         <span>{grant.utilised}%</span>
                       </div>
-                      <ProgressBar progress={grant.utilised} />
+                      <ProgressBar value={grant.utilised} />
                     </div>
                   )}
                 </div>

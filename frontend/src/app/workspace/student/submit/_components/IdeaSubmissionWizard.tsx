@@ -14,12 +14,14 @@
  * silently restored.
  */
 
-import { useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useSearchParams } from "next/navigation";
 import { FormProvider, useForm, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft, ArrowRight, FileClock, Loader2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/shared/Surface";
+import type { AgentEvaluationData, SubmitApplicationResponse } from "@/types/student-application";
 import { cn } from "@/lib/utils";
 import {
   firstStepWithError,
@@ -75,19 +77,60 @@ export default function IdeaSubmissionWizard() {
   const [draftDecided, setDraftDecided] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [applicationId, setApplicationId] = useState<string | null>(null);
   const [evaluatingValues, setEvaluatingValues] = useState<IdeaFormValues | null>(null);
   const [isPipelineComplete, setIsPipelineComplete] = useState(false);
-  const [pipelineResult, setPipelineResult] = useState<any | null>(null);
+  const [pipelineResult, setPipelineResult] = useState<AgentEvaluationData | null>(null);
   const [submitted, setSubmitted] = useState<{
     name: string;
     referenceId: string;
-    agentEvaluation?: any;
+    agentEvaluation?: AgentEvaluationData | null;
     documentsCount?: number;
     submittedValues?: Record<string, unknown>;
   } | null>(null);
 
   const rawDraft = useSyncExternalStore(subscribeToDraft, readRawDraft, getDraftServerSnapshot);
   const pendingDraft = draftDecided ? null : parseDraft(rawDraft);
+
+  const revisionApplicationId = useSearchParams().get("applicationId");
+
+  useEffect(() => {
+    if (!revisionApplicationId) return;
+    let active = true;
+    async function loadApplication() {
+      try {
+        const response = await fetch(`/api/applications/${revisionApplicationId}`, { cache: "no-store" });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || data.detail || "Unable to load application");
+        // Server drafts carry their wizard position in formData._draft; resume there.
+        const { _draft: draftMeta, ...savedValues } = (data.formData || {}) as Record<string, unknown> & {
+          _draft?: { step?: number; furthestStep?: number };
+        };
+        const isStep = (n: unknown): n is StepIndex => n === 0 || n === 1 || n === 2 || n === 3;
+        const resumeStep: StepIndex = data.status === "DRAFT" && isStep(draftMeta?.step) ? draftMeta.step : 3;
+        const resumeFurthest: StepIndex =
+          data.status === "DRAFT" && isStep(draftMeta?.furthestStep) ? draftMeta.furthestStep : 3;
+        const values = { ...IDEA_DEFAULT_VALUES, ...savedValues, declarationAccepted: false };
+        values.name = data.startup?.name || values.name;
+        values.shortDescription = data.startup?.tagline || values.shortDescription;
+        values.problem = data.startup?.problem || values.problem;
+        values.solution = data.startup?.solution || values.solution;
+        values.domain = data.startup?.sector || values.domain;
+        values.maturity = String(data.startup?.stage || values.maturity).toUpperCase() as IdeaFormValues["maturity"];
+        if (active) {
+          reset(values);
+          setApplicationId(revisionApplicationId);
+          setDraftDecided(true);
+          setStep(resumeStep);
+          setFurthest(Math.max(resumeStep, resumeFurthest) as StepIndex);
+        }
+      } catch (error) {
+        if (active) setSubmitError(error instanceof Error ? error.message : "Unable to load application");
+      }
+    }
+    void loadApplication();
+    return () => { active = false; };
+  }, [revisionApplicationId, reset]);
 
   // -------------------------------------------------------------------------
   // Draft handling
@@ -97,6 +140,23 @@ export default function IdeaSubmissionWizard() {
     setSaveState(at ? { kind: "saved", at } : { kind: "unavailable" });
     // Saving over the stored draft settles the resume-or-discard question.
     setDraftDecided(true);
+    void fetch("/api/applications/draft", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        applicationId,
+        values: getValues(),
+        step: nextStep,
+        furthestStep: nextFurthest,
+      }),
+    }).then(async (response) => {
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || data.detail || "Unable to save draft");
+      if (data.application_id) setApplicationId(String(data.application_id));
+    }).catch((error) => {
+      setSaveState({ kind: "unavailable" });
+      setSubmitError(error instanceof Error ? error.message : "Unable to save draft");
+    });
   }
 
   function resumeDraft() {
@@ -170,17 +230,20 @@ export default function IdeaSubmissionWizard() {
       const response = await fetch("/api/applications/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify({ ...values, ...(applicationId ? { applicationId } : {}) }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || data.detail || "Failed to submit application");
+        const detail = typeof data.detail === "string" ? data.detail : data.detail?.message;
+        const missing = data.detail?.validation?.missing_fields;
+        throw new Error([data.message || detail || "Failed to submit application", missing?.length ? `Missing: ${missing.join(", ")}` : ""].filter(Boolean).join(" "));
       }
 
+      const result = data as SubmitApplicationResponse;
       clearDraft();
-      setPipelineResult(data);
+      setPipelineResult(result.agent_evaluation ?? null);
       setIsPipelineComplete(true);
       setSubmitted({
         name: values.name.trim() || "Untitled idea",
@@ -189,11 +252,11 @@ export default function IdeaSubmissionWizard() {
         documentsCount: values.attachments?.length || 0,
         submittedValues: values,
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Submission error:", error);
       setIsSubmitting(false);
       setEvaluatingValues(null);
-      setSubmitError(error.message || "An error occurred during submission");
+      setSubmitError(error instanceof Error ? error.message : "An error occurred during submission");
       scrollToTop();
     }
   }
@@ -217,6 +280,7 @@ export default function IdeaSubmissionWizard() {
     setEvaluatingValues(null);
     setIsPipelineComplete(false);
     setPipelineResult(null);
+    setApplicationId(null);
     scrollToTop();
   }
 

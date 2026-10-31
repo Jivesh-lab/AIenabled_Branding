@@ -15,6 +15,7 @@ import {
   HelpCircle,
 } from "lucide-react";
 import { Card } from "@/components/shared/Surface";
+import type { AgentEvaluationData } from "@/types/student-application";
 import type { IdeaFormValues } from "../_lib/idea-schema";
 
 export interface ExecutionStep {
@@ -72,7 +73,7 @@ const EXECUTION_STEPS: ExecutionStep[] = [
 interface AgentExecutionPipelineProps {
   ideaValues: IdeaFormValues;
   isComplete: boolean;
-  agentResult: any | null;
+  agentResult: AgentEvaluationData | null;
   onContinue: () => void;
 }
 
@@ -142,16 +143,16 @@ export default function AgentExecutionPipeline({
   }, [currentStepIndex, isComplete, ideaValues]);
 
   // Scores from agent result
-  const assessment = agentResult?.assessment || agentResult?.agent_evaluation?.assessment || {};
-  const readiness = assessment.overall_readiness_score || 85;
-  const clarity = assessment.problem_clarity_score || 88;
-  const feasibility = assessment.technical_feasibility_score || 82;
-  const market = assessment.market_potential_score || 85;
-  const questions = agentResult?.questions || agentResult?.agent_evaluation?.questions || [];
+  const assessment = agentResult?.assessment ?? {};
+  // No placeholder numbers: when the agent returned nothing, show "—".
+  const score = (value?: number) => (typeof value === "number" ? `${value}/100` : "—");
+  const readiness = score(assessment.overall_readiness_score);
+  const clarity = score(assessment.problem_clarity_score);
+  const feasibility = score(assessment.technical_feasibility_score);
+  const market = score(assessment.market_potential_score);
   const recommendation =
     agentResult?.recommendation_summary ||
-    agentResult?.agent_evaluation?.recommendation_summary ||
-    "The application presents a viable concept with a clear problem definition. Recommend progressing to committee interview.";
+    "The automated assessment is not available for this submission. Your application has been submitted and will be reviewed by the faculty panel.";
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 py-4 animate-in fade-in-50 duration-300">
@@ -321,19 +322,19 @@ export default function AgentExecutionPipeline({
               <div className="grid grid-cols-2 gap-2">
                 <div className="rounded-lg border border-indigo-100 bg-white p-2.5 text-center shadow-xs">
                   <span className="text-[11px] text-muted-ink block">Readiness Score</span>
-                  <span className="text-xl font-extrabold text-indigo-600">{readiness}/100</span>
+                  <span className="text-xl font-extrabold text-indigo-600">{readiness}</span>
                 </div>
                 <div className="rounded-lg border border-indigo-100 bg-white p-2.5 text-center shadow-xs">
                   <span className="text-[11px] text-muted-ink block">Problem Clarity</span>
-                  <span className="text-xl font-extrabold text-brand">{clarity}/100</span>
+                  <span className="text-xl font-extrabold text-brand">{clarity}</span>
                 </div>
                 <div className="rounded-lg border border-indigo-100 bg-white p-2.5 text-center shadow-xs">
                   <span className="text-[11px] text-muted-ink block">Feasibility</span>
-                  <span className="text-xl font-extrabold text-emerald-600">{feasibility}/100</span>
+                  <span className="text-xl font-extrabold text-emerald-600">{feasibility}</span>
                 </div>
                 <div className="rounded-lg border border-indigo-100 bg-white p-2.5 text-center shadow-xs">
                   <span className="text-[11px] text-muted-ink block">Market Potential</span>
-                  <span className="text-xl font-extrabold text-purple-600">{market}/100</span>
+                  <span className="text-xl font-extrabold text-purple-600">{market}</span>
                 </div>
               </div>
 

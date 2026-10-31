@@ -16,6 +16,7 @@ export default function DashboardPage() {
   const [projects, setProjects] = useState<any[]>([]);
   const [meetings, setMeetings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadDashboard() {
@@ -29,14 +30,19 @@ export default function DashboardPage() {
         if (appsRes.status === "fulfilled" && appsRes.value.ok) {
           const appsData = await appsRes.value.json();
           setProjects(appsData.projects || appsData.applications || []);
+        } else {
+          setError("Unable to load your applications.");
         }
 
         if (meetingsRes.status === "fulfilled" && meetingsRes.value.ok) {
           const meetData = await meetingsRes.value.json();
           setMeetings(meetData.data || meetData.meetings || []);
+        } else {
+          setError((current) => current || "Unable to load your meetings.");
         }
       } catch (err) {
         console.error("Dashboard data load error:", err);
+        setError("Unable to load your student dashboard.");
       } finally {
         setLoading(false);
       }
@@ -50,6 +56,7 @@ export default function DashboardPage() {
         <DashboardHeader />
 
         <KpiRow projects={projects} meetings={meetings} loading={loading} />
+        {error && <div role="alert" className="rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-800">{error}</div>}
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Primary column */}

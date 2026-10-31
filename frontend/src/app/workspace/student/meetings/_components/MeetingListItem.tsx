@@ -3,7 +3,7 @@ import { MapPin, Video } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatClock, weekdayShort } from "@/lib/dates";
 import { StatusBadge } from "@/components/shared/Surface";
-import { MEETING_TYPE_LABEL, type Meeting } from "@/mock/student-meetings";
+import { MEETING_TYPE_LABEL, type Meeting } from "@/types/meeting";
 import {
   isJoinable,
   MEETING_STATUS_LABEL,

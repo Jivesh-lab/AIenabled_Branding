@@ -1,5 +1,6 @@
 import { getToken } from "next-auth/jwt";
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthSecret } from "@/lib/authSecret";
 
 // ---------------------------------------------------------------------------
 // Role → workspace base path mapping
@@ -31,7 +32,7 @@ export async function proxy(req: NextRequest) {
 
   const token = await getToken({
     req,
-    secret: process.env.NEXTAUTH_SECRET || "fallback_secret_for_dev_only",
+    secret: getAuthSecret(),
   });
 
   const isLoggedIn = !!token;

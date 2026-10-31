@@ -102,24 +102,33 @@ export function MaturityTag({ label }: { label: string }) {
   );
 }
 
-export function ProgressBar({ value, label }: { value: number; label?: string }) {
+export function ProgressBar({
+  value,
+  progress,
+  label,
+}: {
+  value?: number;
+  progress?: number;
+  label?: string;
+}) {
+  const currentVal = value ?? progress ?? 0;
   return (
     <div>
       {label && (
         <div className="mb-1.5 flex items-center justify-between">
           <span className="text-[12px] font-medium text-muted-ink">{label}</span>
-          <span className="text-[12px] font-semibold text-ink">{value}%</span>
+          <span className="text-[12px] font-semibold text-ink">{currentVal}%</span>
         </div>
       )}
       <div
         role="progressbar"
-        aria-valuenow={value}
+        aria-valuenow={currentVal}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-label={label ?? "Progress"}
         className="h-1.5 w-full overflow-hidden rounded-full bg-brand-cyan-soft"
       >
-        <div className="h-full rounded-full bg-brand" style={{ width: `${value}%` }} />
+        <div className="h-full rounded-full bg-brand" style={{ width: `${currentVal}%` }} />
       </div>
     </div>
   );

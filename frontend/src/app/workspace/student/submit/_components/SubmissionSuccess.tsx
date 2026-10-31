@@ -19,33 +19,9 @@ import {
 } from "lucide-react";
 import { Card, StatusBadge } from "@/components/shared/Surface";
 import { PIPELINE_POSITION_LABEL, REVIEW_STATUS_LABEL, REVIEW_STATUS_TONE } from "@/types/status";
+import type { AgentEvaluationData } from "@/types/student-application";
 
-export interface AgentEvaluationData {
-  summary?: {
-    problem?: string;
-    proposed_solution?: string;
-    target_users?: string;
-    innovation_differentiation?: string;
-    business_model?: string;
-    requested_support?: string;
-  };
-  assessment?: {
-    problem_clarity_score?: number;
-    technical_feasibility_score?: number;
-    market_potential_score?: number;
-    overall_readiness_score?: number;
-    strengths?: string[];
-    weaknesses?: string[];
-  };
-  questions?: string[];
-  missing_evidence?: string[];
-  validation?: {
-    is_complete?: boolean;
-    completeness_score?: number;
-    missing_fields?: string[];
-  };
-  recommendation_summary?: string;
-}
+export type { AgentEvaluationData };
 
 interface SubmissionSuccessProps {
   ideaName: string;
@@ -69,28 +45,15 @@ export default function SubmissionSuccess({
   // Extract or compute fallback metrics for display
   const readinessScore =
     agentEvaluation?.assessment?.overall_readiness_score ??
-    agentEvaluation?.validation?.completeness_score ??
-    85;
+    agentEvaluation?.validation?.completeness_score;
 
-  const problemClarity = agentEvaluation?.assessment?.problem_clarity_score ?? 88;
-  const techFeasibility = agentEvaluation?.assessment?.technical_feasibility_score ?? 82;
-  const marketScore = agentEvaluation?.assessment?.market_potential_score ?? 85;
+  const problemClarity = agentEvaluation?.assessment?.problem_clarity_score;
+  const techFeasibility = agentEvaluation?.assessment?.technical_feasibility_score;
+  const marketScore = agentEvaluation?.assessment?.market_potential_score;
 
-  const strengths = agentEvaluation?.assessment?.strengths?.length
-    ? agentEvaluation.assessment.strengths
-    : [
-        "Well-defined technical problem statement with clear campus/regional relevance",
-        "Multi-disciplinary student founder team with assigned project responsibilities",
-        "Documented architecture and clear requirement for incubation lab equipment",
-      ];
+  const strengths = agentEvaluation?.assessment?.strengths || [];
 
-  const questions = agentEvaluation?.questions?.length
-    ? agentEvaluation.questions
-    : [
-        "What are the specific laboratory safety and high-voltage compliance requirements for prototype testing?",
-        "How will the team validate performance metrics against current commercial alternatives?",
-        "What is the projected bill of materials (BOM) cost at small-batch production scale?",
-      ];
+  const questions = agentEvaluation?.questions || [];
 
   const summary = agentEvaluation?.summary || {
     problem: (submittedValues?.problem as string) || "Technical problem defined in submission",
@@ -98,7 +61,7 @@ export default function SubmissionSuccess({
     target_users: (submittedValues?.affectedUsers as string) || "Target beneficiaries identified",
     innovation_differentiation:
       (submittedValues?.differentiation as string) || "Novel application of engineering techniques",
-    requested_support: "Hardware prototyping lab, faculty mentoring, and initial seed grant",
+    requested_support: undefined,
   };
 
   return (
@@ -134,7 +97,7 @@ export default function SubmissionSuccess({
             <dt className="text-[11px] font-medium uppercase tracking-wider text-muted-ink">AI Agent Assessment</dt>
             <dd className="mt-1.5 flex items-center gap-1.5 text-[13px] font-bold text-emerald-600 dark:text-emerald-400">
               <Sparkles className="size-3.5" />
-              Eligible ({readinessScore}/100)
+              {readinessScore === undefined ? "Assessment unavailable" : `Eligible (${readinessScore}/100)`}
             </dd>
           </div>
         </dl>

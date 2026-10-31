@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { SignJWT } from "jose";
 import { authOptions } from "@/lib/auth";
-
-const AGENT_SERVICE_URL = process.env.AGENT_SERVICE_URL || "http://127.0.0.1:8000";
-const INTERNAL_JWT_SECRET = process.env.INTERNAL_JWT_SECRET || "test_internal_secret_key_123";
+import { AGENT_SERVICE_URL, createInternalToken } from "@/lib/internalToken";
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,26 +11,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    if (!INTERNAL_JWT_SECRET) {
-      console.error("[Submit API] INTERNAL_JWT_SECRET is missing");
-      return NextResponse.json({ message: "Internal server configuration error" }, { status: 500 });
-    }
-
     const payload = await req.json();
 
     // 2. Generate a short-lived internal JWT
-    const secret = new TextEncoder().encode(INTERNAL_JWT_SECRET);
-    const token = await new SignJWT({
-      sub: session.user.id,
-      role: session.user.role,
-      permissions: ["submit_application"]
-    })
-      .setProtectedHeader({ alg: "HS256" })
-      .setIssuedAt()
-      .setIssuer("next-server")
-      .setAudience("fastapi-internal")
-      .setExpirationTime("1m") // strictly 60 seconds
-      .sign(secret);
+    const token = await createInternalToken(session.user, ["submit_application"]);
 
     // 3. Forward the submission to FastAPI
     const backendRes = await fetch(`${AGENT_SERVICE_URL}/api/applications/submit`, {

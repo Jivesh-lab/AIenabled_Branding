@@ -6,6 +6,7 @@ import { FieldError } from "@/components/shared/form/FormField";
 import { useSession } from "next-auth/react";
 import type { IdeaFormValues, StepIndex } from "../_lib/idea-schema";
 import { formatBytes } from "@/lib/format";
+import { MATURITY_LABEL } from "@/types/status";
 
 const DECLARATION =
   "I confirm that the information provided is accurate and that this work is my original work or that I have the necessary rights to submit it. I agree to the applicable DBIT Incubation Centre institutional and intellectual-property policies.";
@@ -61,6 +62,7 @@ export default function StepReview({ onEditStep }: { onEditStep: (step: StepInde
 
   const [validating, setValidating] = useState(false);
   const [validationResult, setValidationResult] = useState<any>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const team = v.teamMembers ?? [];
   const technologies = v.technologies ?? [];
@@ -68,18 +70,18 @@ export default function StepReview({ onEditStep }: { onEditStep: (step: StepInde
 
   async function runAiCompletenessCheck() {
     setValidating(true);
+    setValidationError(null);
     try {
       const res = await fetch("/api/applications/validate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(v),
       });
-      if (res.ok) {
-        const data = await res.json();
-        setValidationResult(data.validation);
-      }
-    } catch {
-      // Graceful fallback
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || data.detail || "Completeness validation failed");
+      setValidationResult(data.validation);
+    } catch (error) {
+      setValidationError(error instanceof Error ? error.message : "Completeness validation failed. Try again.");
     } finally {
       setValidating(false);
     }
@@ -113,6 +115,11 @@ export default function StepReview({ onEditStep }: { onEditStep: (step: StepInde
                   <CheckCircle2 className="size-4 text-emerald-600" />
                 ) : (
                   <AlertTriangle className="size-4 text-amber-600" />
+                )}
+                {validationError && (
+                  <div role="alert" className="mt-3 rounded-lg border border-red-200 bg-red-50 p-2.5 text-xs text-red-800">
+                    {validationError} Use “Run AI Completeness Check” to retry.
+                  </div>
                 )}
                 Completeness Score: {validationResult.completeness_score}/100
               </span>

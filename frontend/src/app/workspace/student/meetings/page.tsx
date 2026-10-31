@@ -3,16 +3,14 @@ import PageContainer from "@/components/shared/PageContainer";
 import MeetingsWorkspace from "./_components/MeetingsWorkspace";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import { SignJWT } from "jose";
-import type { Meeting } from "@/mock/student-meetings";
+import { AGENT_SERVICE_URL, createInternalToken } from "@/lib/internalToken";
+import type { Meeting } from "@/types/meeting";
 
 export const metadata: Metadata = {
   title: "Meetings | DBIT Incubation Centre",
 };
 
 const BACKEND_URL = process.env.BACKEND_URL || "http://127.0.0.1:5000";
-const AGENT_SERVICE_URL = process.env.AGENT_SERVICE_URL || "http://127.0.0.1:8000";
-const INTERNAL_JWT_SECRET = process.env.INTERNAL_JWT_SECRET || "test_internal_secret_key_123";
 
 async function getMeetings(): Promise<Meeting[]> {
   try {
@@ -48,21 +46,10 @@ async function getMeetings(): Promise<Meeting[]> {
 
 async function getStudentProjects() {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id || !INTERNAL_JWT_SECRET) return [];
+  if (!session?.user?.id) return [];
 
   try {
-    const secret = new TextEncoder().encode(INTERNAL_JWT_SECRET);
-    const token = await new SignJWT({
-      sub: session.user.id,
-      role: session.user.role,
-      permissions: ["view_applications"],
-    })
-      .setProtectedHeader({ alg: "HS256" })
-      .setIssuedAt()
-      .setIssuer("next-server")
-      .setAudience("fastapi-internal")
-      .setExpirationTime("1m")
-      .sign(secret);
+    const token = await createInternalToken(session.user, ["view_applications"]);
 
     const backendRes = await fetch(`${AGENT_SERVICE_URL}/api/applications/`, {
       method: "GET",

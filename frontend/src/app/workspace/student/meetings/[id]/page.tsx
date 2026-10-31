@@ -12,6 +12,9 @@ import {
   MEETINGS,
   MOCK_NOW,
   STUDENT_MEETING_PERMISSIONS,
+  type Meeting,
+  type MeetingType,
+  type Person,
 } from "@/mock/student-meetings";
 import {
   hasEnded,
@@ -56,7 +59,7 @@ async function fetchMeeting(id: string): Promise<Meeting | null> {
       }
     }
   } catch {}
-  return null;
+  return MEETINGS.find((m) => m.id === id) || null;
 }
 
 type Params = { params: Promise<{ id: string }> };

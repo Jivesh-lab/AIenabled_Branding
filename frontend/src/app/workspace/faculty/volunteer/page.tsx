@@ -5,11 +5,6 @@ import PageContainer from "@/components/shared/PageContainer";
 import { Card, StatusBadge, ProgressBar } from "@/components/shared/Surface";
 import { toast } from "sonner";
 import {
-  INITIAL_PROJECTS,
-  INITIAL_MENTOR_REQUESTS,
-  INITIAL_MEETINGS,
-  INITIAL_TASKS,
-  INITIAL_SUPPORT_REQUESTS,
   IncubationProject,
   MentorAllocationRequest,
   FacultyMeeting,
@@ -43,11 +38,13 @@ import {
 } from "lucide-react";
 
 export default function FacultyVolunteerPage() {
-  const [projects, setProjects] = useState<IncubationProject[]>(INITIAL_PROJECTS);
-  const [mentorRequests, setMentorRequests] = useState<MentorAllocationRequest[]>(INITIAL_MENTOR_REQUESTS);
-  const [meetings, setMeetings] = useState<FacultyMeeting[]>(INITIAL_MEETINGS);
-  const [tasks, setTasks] = useState<FacultyTask[]>(INITIAL_TASKS);
-  const [supportRequests, setSupportRequests] = useState<StudentSupportRequest[]>(INITIAL_SUPPORT_REQUESTS);
+  const [projects, setProjects] = useState<IncubationProject[]>([]);
+  const [mentorRequests, setMentorRequests] = useState<MentorAllocationRequest[]>([]);
+  const [meetings, setMeetings] = useState<FacultyMeeting[]>([]);
+  const [tasks, setTasks] = useState<FacultyTask[]>([]);
+  const [supportRequests, setSupportRequests] = useState<StudentSupportRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Active section tab
   const [activeTab, setActiveTab] = useState<"teams" | "guidance" | "mentors" | "tasks" | "meetings">("teams");
@@ -75,13 +72,17 @@ export default function FacultyVolunteerPage() {
           fetchSupportRequests(),
         ]);
         if (!isMounted) return;
-        if (overviewRes.projects && overviewRes.projects.length > 0) setProjects(overviewRes.projects);
-        if (overviewRes.mentorRequests && overviewRes.mentorRequests.length > 0) setMentorRequests(overviewRes.mentorRequests);
-        if (overviewRes.meetings && overviewRes.meetings.length > 0) setMeetings(overviewRes.meetings);
-        if (overviewRes.tasks && overviewRes.tasks.length > 0) setTasks(overviewRes.tasks);
-        if (supportRes && supportRes.length > 0) setSupportRequests(supportRes);
+        setProjects(overviewRes.projects || []);
+        setMentorRequests(overviewRes.mentorRequests || []);
+        setMeetings(overviewRes.meetings || []);
+        setTasks(overviewRes.tasks || []);
+        setSupportRequests(supportRes);
       } catch (err) {
-        console.warn("[Volunteer] Backend fetch notice:", err);
+        if (isMounted) {
+          setLoadError(err instanceof Error ? err.message : "Unable to load volunteer data.");
+        }
+      } finally {
+        if (isMounted) setLoading(false);
       }
     }
     loadData();
@@ -195,6 +196,9 @@ export default function FacultyVolunteerPage() {
       description="Direct hands-on mentoring of assigned student founders, guidance logging, milestone reviews, and mentor recommendations."
     >
       <div className="space-y-6">
+        {loading && <div className="rounded-xl border border-line bg-canvas p-4 text-center text-sm text-muted-ink">Loading live volunteer data from the database…</div>}
+        {loadError && <div className="rounded-xl border border-red-100 bg-red-50 p-4 text-center"><AlertCircle className="size-6 text-danger mx-auto mb-1" /><p className="text-sm font-semibold text-danger">Unable to load volunteer data</p><p className="text-xs text-muted-ink mt-1">{loadError}</p></div>}
+        {!loading && !loadError && projects.length === 0 && mentorRequests.length === 0 && meetings.length === 0 && tasks.length === 0 && supportRequests.length === 0 && <div className="rounded-xl border border-line bg-canvas p-6 text-center text-sm text-muted-ink">No volunteer data is available in the database yet.</div>}
         {/* Volunteer Identity Header */}
         <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-900 via-brand-deep to-brand text-white shadow-sm border border-brand/20 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">

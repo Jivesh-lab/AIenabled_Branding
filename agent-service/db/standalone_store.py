@@ -43,11 +43,14 @@ def init_standalone_db() -> None:
                 startup_id TEXT NOT NULL,
                 applicant_id TEXT NOT NULL,
                 status TEXT DEFAULT 'submitted',
+                completeness INTEGER DEFAULT 0,
+                eligibility_ok INTEGER,
                 documents TEXT DEFAULT '[]',
                 form_data TEXT DEFAULT '{}',
                 ai_summary TEXT,
                 ai_feedback TEXT,
                 reviewer_id TEXT,
+                reviewer_comments TEXT,
                 submitted_at TEXT,
                 reviewed_at TEXT,
                 created_at TEXT,
@@ -65,6 +68,13 @@ def init_standalone_db() -> None:
                 created_at TEXT
             );
         """)
+        columns = {row["name"] for row in conn.execute("PRAGMA table_info(applications)").fetchall()}
+        if "completeness" not in columns:
+            conn.execute("ALTER TABLE applications ADD COLUMN completeness INTEGER DEFAULT 0")
+        if "eligibility_ok" not in columns:
+            conn.execute("ALTER TABLE applications ADD COLUMN eligibility_ok INTEGER")
+        if "reviewer_comments" not in columns:
+            conn.execute("ALTER TABLE applications ADD COLUMN reviewer_comments TEXT")
 
 # Initialize on module import
 init_standalone_db()
@@ -86,8 +96,19 @@ def standalone_submit_application(
     with get_connection() as conn:
         cursor = conn.cursor()
         
-        # Multiple applications per student are allowed —
-        # DBIT Incubation Centre evaluates each idea independently.
+        cursor.execute(
+            """
+            SELECT a.id FROM applications a
+            JOIN startups s ON s.id = a.startup_id
+            WHERE a.applicant_id = ? AND lower(s.name) = lower(?)
+              AND a.status IN ('submitted', 'under_review', 'revision_requested')
+            LIMIT 1
+            """,
+            (applicant_id, startup_name),
+        )
+        duplicate = cursor.fetchone()
+        if duplicate:
+            raise HTTPException(status_code=409, detail="An active application for this idea already exists")
 
         startup_id = str(uuid.uuid4())
         application_id = str(uuid.uuid4())
@@ -102,8 +123,8 @@ def standalone_submit_application(
 
         cursor.execute(
             """
-            INSERT INTO applications (id, startup_id, applicant_id, status, documents, form_data, ai_summary, ai_feedback, submitted_at, created_at, updated_at)
-            VALUES (?, ?, ?, 'submitted', ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO applications (id, startup_id, applicant_id, status, completeness, documents, form_data, ai_summary, ai_feedback, submitted_at, created_at, updated_at)
+            VALUES (?, ?, ?, 'submitted', 100, ?, ?, ?, ?, ?, ?, ?)
             """,
             (application_id, startup_id, applicant_id, json.dumps(documents), json.dumps(form_data), ai_summary, ai_feedback, now_iso, now_iso, now_iso)
         )
@@ -111,13 +132,87 @@ def standalone_submit_application(
 
         return application_id
 
+def standalone_save_draft(
+    applicant_id: str,
+    values: Dict[str, Any],
+    step: int,
+    furthest_step: int,
+    application_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    now_iso = datetime.now(timezone.utc).isoformat()
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        if application_id:
+            cursor.execute("SELECT id, applicant_id, status FROM applications WHERE id = ?", (application_id,))
+            row = cursor.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Application not found")
+            if row["applicant_id"] != applicant_id:
+                raise HTTPException(status_code=403, detail="You do not own this application")
+            if row["status"] in ("approved", "rejected"):
+                raise HTTPException(status_code=409, detail="This application cannot be edited")
+            cursor.execute(
+                "UPDATE applications SET form_data = ?, status = 'draft', updated_at = ? WHERE id = ?",
+                (json.dumps({**values, "_draft": {"step": step, "furthestStep": furthest_step}}), now_iso, application_id),
+            )
+        else:
+            startup_id = str(uuid.uuid4())
+            application_id = str(uuid.uuid4())
+            cursor.execute(
+                """
+                INSERT INTO startups (id, user_id, name, tagline, problem, solution, stage, sector, status, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)
+                """,
+                (startup_id, applicant_id, values.get("name") or "Untitled Draft", values.get("shortDescription", ""), values.get("problem", ""), values.get("solution", ""), str(values.get("maturity", "IDEA")).lower(), values.get("domain", ""), now_iso, now_iso),
+            )
+            cursor.execute(
+                """
+                INSERT INTO applications (id, startup_id, applicant_id, status, form_data, created_at, updated_at)
+                VALUES (?, ?, ?, 'draft', ?, ?, ?)
+                """,
+                (application_id, startup_id, applicant_id, json.dumps({**values, "_draft": {"step": step, "furthestStep": furthest_step}}), now_iso, now_iso),
+            )
+        conn.commit()
+        return {"application_id": application_id, "status": "draft", "values": values, "step": step, "furthestStep": furthest_step}
+
+def standalone_update_application(application_id: str, applicant_id: str, values: Dict[str, Any], ai_feedback: Optional[str] = None) -> Dict[str, Any]:
+    now_iso = datetime.now(timezone.utc).isoformat()
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT startup_id, applicant_id, status FROM applications WHERE id = ?", (application_id,))
+        row = cursor.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Application not found")
+        if row["applicant_id"] != applicant_id:
+            raise HTTPException(status_code=403, detail="You do not own this application")
+        if row["status"] in ("approved", "rejected"):
+            raise HTTPException(status_code=409, detail="This application cannot be resubmitted")
+        cursor.execute(
+            """
+            UPDATE startups SET name = ?, tagline = ?, problem = ?, solution = ?, stage = ?, sector = ?, updated_at = ?
+            WHERE id = ?
+            """,
+            (values["name"], values["shortDescription"], values["problem"], values["solution"], values["maturity"].lower(), values["domain"], now_iso, row["startup_id"]),
+        )
+        cursor.execute(
+            """
+            UPDATE applications
+            SET status = 'submitted', form_data = ?, documents = ?, ai_feedback = ?, completeness = 100,
+                submitted_at = ?, reviewed_at = NULL, reviewer_id = NULL, updated_at = ?
+            WHERE id = ?
+            """,
+            (json.dumps(values), json.dumps(values.get("attachments", [])), ai_feedback, now_iso, now_iso, application_id),
+        )
+        conn.commit()
+        return {"success": True, "application_id": application_id, "status": "submitted"}
+
 def standalone_get_applications(applicant_id: str) -> List[Dict[str, Any]]:
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(
             """
             SELECT 
-                a.id as app_id, a.status as review_status, a.form_data, a.submitted_at,
+                a.id as app_id, a.status as review_status, a.completeness, a.form_data, a.submitted_at, a.updated_at,
                 s.id as startup_id, s.name, s.tagline as short_description, s.sector as domain, s.stage as maturity,
                 s.status as pipeline_position
             FROM applications a
@@ -137,7 +232,7 @@ def standalone_get_applications(applicant_id: str) -> List[Dict[str, Any]]:
                 except Exception:
                     pass
             team_size = len(form.get('teamMembers', [])) if form.get('teamMembers') else 1
-            sub_date = r['submitted_at'][:10] if r['submitted_at'] else "2026-09-15"
+            sub_date = (r['updated_at'] or r['submitted_at'])[:10] if (r['updated_at'] or r['submitted_at']) else None
 
             projects.append({
                 "id": str(r['app_id']),
@@ -145,13 +240,18 @@ def standalone_get_applications(applicant_id: str) -> List[Dict[str, Any]]:
                 "shortDescription": r['short_description'],
                 "domain": r['domain'],
                 "reviewStatus": str(r['review_status']).upper(),
-                "pipelinePosition": str(r['pipeline_position']).upper() if r['pipeline_position'] else None,
+                "pipelinePosition": "FACULTY_REVIEW" if r['review_status'] in ("submitted", "under_review", "revision_requested") else None,
                 "maturity": str(r['maturity']).upper(),
-                "progress": 100 if r['review_status'] == 'submitted' else 50,
+                "progress": r['completeness'] if r['review_status'] == 'draft' else 100 if r['review_status'] == 'submitted' else 50,
                 "facultyGuide": None,
                 "teamSize": team_size,
                 "updatedAt": sub_date,
-                "next": {"kind": "action", "label": "Awaiting review"} if r['review_status'] == 'submitted' else None
+                "next": (
+                    {"kind": "action", "label": "Complete your draft"} if r['review_status'] == 'draft'
+                    else {"kind": "action", "label": "Address reviewer feedback"} if r['review_status'] == 'revision_requested'
+                    else {"kind": "action", "label": "Awaiting review"} if r['review_status'] == 'submitted'
+                    else None
+                )
             })
         return projects
 
@@ -183,13 +283,13 @@ def standalone_get_application_queue() -> List[Dict[str, Any]]:
             })
         return queue
 
-def standalone_get_application_details(application_id: str) -> Dict[str, Any]:
+def standalone_get_application_details(application_id: str, requester_id: str, can_review: bool = False) -> Dict[str, Any]:
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(
             """
             SELECT 
-                a.id as app_id, a.status as review_status, a.form_data, a.documents, a.ai_summary, a.ai_feedback, a.submitted_at,
+                a.id as app_id, a.status as review_status, a.applicant_id, a.form_data, a.documents, a.ai_summary, a.ai_feedback, a.reviewer_comments, a.submitted_at,
                 s.name as startup_name, s.tagline, s.problem, s.solution, s.sector, s.stage
             FROM applications a
             JOIN startups s ON a.startup_id = s.id
@@ -200,6 +300,8 @@ def standalone_get_application_details(application_id: str) -> Dict[str, Any]:
         record = cursor.fetchone()
         if not record:
             raise HTTPException(status_code=404, detail="Application not found")
+        if not can_review and record["applicant_id"] != requester_id:
+            raise HTTPException(status_code=403, detail="You do not have access to this application")
 
         form = {}
         if record['form_data']:
@@ -228,9 +330,19 @@ def standalone_get_application_details(application_id: str) -> Dict[str, Any]:
             "status": str(record['review_status']).upper(),
             "aiSummary": record['ai_summary'],
             "aiFeedback": record['ai_feedback'],
-            "formData": form,
+            "formData": {
+                **form,
+                "name": record["startup_name"],
+                "shortDescription": record["tagline"],
+                "problem": record["problem"],
+                "solution": record["solution"],
+                "domain": record["sector"],
+                "maturity": str(record["stage"]).upper(),
+            },
             "documents": docs,
             "submittedAt": record['submitted_at']
+            ,"applicantId": record["applicant_id"]
+            ,"reviewerComments": record["reviewer_comments"]
         }
 
 def standalone_decide_application(application_id: str, decision: str, reviewer_id: str, comments: Optional[str] = None) -> Dict[str, Any]:
@@ -249,10 +361,10 @@ def standalone_decide_application(application_id: str, decision: str, reviewer_i
         cursor.execute(
             """
             UPDATE applications 
-            SET status = ?, reviewer_id = ?, reviewed_at = ?, updated_at = ?
+            SET status = ?, reviewer_id = ?, reviewer_comments = ?, reviewed_at = ?, updated_at = ?
             WHERE id = ?
             """,
-            (decision, reviewer_id, now_iso, now_iso, application_id)
+            (decision, reviewer_id, comments, now_iso, now_iso, application_id)
         )
 
         audit_id = str(uuid.uuid4())

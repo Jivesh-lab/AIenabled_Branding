@@ -4,7 +4,8 @@
  */
 import { addDays, daysFrom } from "@/lib/dates";
 import type { StatusTone } from "@/types/status";
-import { MOCK_NOW, type Meeting } from "@/mock/student-meetings";
+import { MOCK_NOW } from "@/mock/student-meetings";
+import type { Meeting } from "@/types/meeting";
 
 export type MeetingStatus = "UPCOMING" | "TODAY" | "COMPLETED" | "CANCELLED" | "ACTION_REQUIRED";
 

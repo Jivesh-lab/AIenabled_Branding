@@ -12,8 +12,8 @@ import { cn } from "@/lib/utils";
 import { Card } from "@/components/shared/Surface";
 import { controlClass } from "@/components/shared/form/FormField";
 import { REVIEW_STATUS_LABEL } from "@/types/status";
-import type { StudentProject } from "@/mock/student-projects";
-import type { JourneyEvent } from "@/mock/student-journey";
+import type { StudentProject } from "@/types/student-application";
+import type { JourneyEvent } from "@/types/journey";
 import {
   buildTimeline,
   currentStageSummary,
@@ -28,14 +28,25 @@ import PositionPanel from "./PositionPanel";
 export default function JourneyView({
   projects,
   events,
+  error,
 }: {
   projects: StudentProject[];
   events: JourneyEvent[];
+  error?: string | null;
 }) {
   const selectId = useId();
   const [selectedId, setSelectedId] = useState(() => defaultProjectId(projects));
 
   const project = projects.find((p) => p.id === selectedId);
+
+  if (error) {
+    return (
+      <Card className="px-6 py-12 text-center">
+        <h2 className="text-[16px] font-semibold text-ink">Unable to load your journey</h2>
+        <p className="mt-1 text-[14px] text-muted-ink">{error}</p>
+      </Card>
+    );
+  }
 
   if (!project) {
     return (

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, CalendarClock, UserRound, FolderKanban, Plus, Loader2 } from "lucide-react";
 import { Card, ProgressBar, SectionHeading, StatusBadge } from "@/components/shared/Surface";
+import { REVIEW_STATUS_LABEL, REVIEW_STATUS_TONE } from "@/types/status";
 
 export default function MyProjects({ projects = [], loading = false }: { projects?: any[]; loading?: boolean }) {
   return (
@@ -33,7 +34,7 @@ export default function MyProjects({ projects = [], loading = false }: { project
             const name = project.title || project.name || "Untitled Project";
             const domain = project.domain || "Deep Tech";
             const mentor = project.mentor || "Mentor TBD";
-            const stage = project.stage || "Under Review";
+            const reviewStatus = String(project.reviewStatus || "SUBMITTED").toUpperCase() as keyof typeof REVIEW_STATUS_LABEL;
             const progress = project.progress ?? (project.readiness_score || 25);
             const nextMilestone = project.nextMilestone || "Faculty Vetting";
             const dueDate = project.dueDate || "Pending";
@@ -47,8 +48,8 @@ export default function MyProjects({ projects = [], loading = false }: { project
                     <p className="mt-1 text-[13px] text-muted-ink">{domain}</p>
                   </div>
                   <StatusBadge
-                    label={stage}
-                    tone={stage === "Incubated" ? "success" : stage === "In Review" ? "progress" : "info"}
+                    label={REVIEW_STATUS_LABEL[reviewStatus] || reviewStatus}
+                    tone={REVIEW_STATUS_TONE[reviewStatus] || "info"}
                   />
                 </div>
 
@@ -59,7 +60,7 @@ export default function MyProjects({ projects = [], loading = false }: { project
 
                 {/* Progress */}
                 <div className="mt-4">
-                  <ProgressBar progress={progress} />
+                  <ProgressBar value={progress} />
                 </div>
 
                 {/* What is next */}

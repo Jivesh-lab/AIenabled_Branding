@@ -4,32 +4,21 @@ import PageHeader from "@/components/shared/PageHeader";
 import JourneyView from "./_components/JourneyView";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import { SignJWT } from "jose";
+import { AGENT_SERVICE_URL, createInternalToken } from "@/lib/internalToken";
+import type { StudentProject } from "@/types/student-application";
 
 export const metadata: Metadata = {
   title: "Journey Timeline | DBIT Incubation Centre",
 };
 
-const AGENT_SERVICE_URL = process.env.AGENT_SERVICE_URL || "http://127.0.0.1:8000";
-const INTERNAL_JWT_SECRET = process.env.INTERNAL_JWT_SECRET || "test_internal_secret_key_123";
-
-async function getStudentProjects() {
+async function getStudentProjects(): Promise<{ projects: StudentProject[]; error: string | null }> {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id || !INTERNAL_JWT_SECRET) return [];
+  if (!session?.user?.id) {
+    return { projects: [], error: "Authentication is required to load your journey." };
+  }
 
   try {
-    const secret = new TextEncoder().encode(INTERNAL_JWT_SECRET);
-    const token = await new SignJWT({
-      sub: session.user.id,
-      role: session.user.role,
-      permissions: ["view_applications"],
-    })
-      .setProtectedHeader({ alg: "HS256" })
-      .setIssuedAt()
-      .setIssuer("next-server")
-      .setAudience("fastapi-internal")
-      .setExpirationTime("1m")
-      .sign(secret);
+    const token = await createInternalToken(session.user, ["view_applications"]);
 
     const backendRes = await fetch(`${AGENT_SERVICE_URL}/api/applications/`, {
       method: "GET",
@@ -37,18 +26,18 @@ async function getStudentProjects() {
       cache: "no-store",
     });
 
-    if (!backendRes.ok) return [];
+    if (!backendRes.ok) return { projects: [], error: "Unable to load your journey." };
 
     const data = await backendRes.json();
-    return data.projects || [];
+    return { projects: (data.projects || []) as StudentProject[], error: null };
   } catch (error) {
     console.error("[Journey Page] Error fetching projects:", error);
-    return [];
+    return { projects: [], error: "Unable to load your journey. Please try again." };
   }
 }
 
 export default async function JourneyPage() {
-  const projects = await getStudentProjects();
+  const { projects, error } = await getStudentProjects();
 
   return (
     <PageContainer>
@@ -57,7 +46,7 @@ export default async function JourneyPage() {
           title="Journey Timeline"
           description="Track the progress of your projects through the DBIT Incubation Centre journey."
         />
-        <JourneyView projects={projects} events={[]} />
+        <JourneyView projects={projects} events={[]} error={error} />
       </div>
     </PageContainer>
   );

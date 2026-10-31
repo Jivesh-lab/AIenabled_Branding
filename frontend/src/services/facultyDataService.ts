@@ -496,51 +496,32 @@ export async function fetchFacultyOverview(): Promise<{
   meetings?: FacultyMeeting[];
   tasks?: FacultyTask[];
 }> {
-  try {
-    const res = await fetch(`${API_BASE}/api/faculty/overview`, {
-      credentials: "include",
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.success && data.data) {
-        return data.data;
-      }
-    }
-  } catch (err) {
-    console.warn("[FacultyAPI] fetchFacultyOverview fallback:", err);
+  const res = await fetch(`${API_BASE}/api/faculty/overview`, {
+    credentials: "include",
+  });
+  const data = await res.json();
+  if (!res.ok || !data.success || !data.data) {
+    throw new Error(data.message || `Faculty overview request failed (${res.status})`);
   }
-  return {
-    projects: INITIAL_PROJECTS,
-    mentorRequests: INITIAL_MENTOR_REQUESTS,
-    meetings: INITIAL_MEETINGS,
-    tasks: INITIAL_TASKS,
-  };
+  return data.data;
 }
 
 export async function fetchFacultyProjects(): Promise<IncubationProject[]> {
-  try {
-    const res = await fetch(`${API_BASE}/api/faculty/projects`, { credentials: "include" });
-    if (res.ok) {
-      const json = await res.json();
-      if (json.success && Array.isArray(json.data)) return json.data;
-    }
-  } catch (err) {
-    console.warn("[FacultyAPI] fetchFacultyProjects fallback:", err);
+  const res = await fetch(`${API_BASE}/api/faculty/projects`, { credentials: "include" });
+  const json = await res.json();
+  if (!res.ok || !json.success || !Array.isArray(json.data)) {
+    throw new Error(json.message || `Faculty projects request failed (${res.status})`);
   }
-  return INITIAL_PROJECTS;
+  return json.data;
 }
 
 export async function fetchMentorAllocations(): Promise<MentorAllocationRequest[]> {
-  try {
-    const res = await fetch(`${API_BASE}/api/faculty/mentor-allocations`, { credentials: "include" });
-    if (res.ok) {
-      const json = await res.json();
-      if (json.success && Array.isArray(json.data)) return json.data;
-    }
-  } catch (err) {
-    console.warn("[FacultyAPI] fetchMentorAllocations fallback:", err);
+  const res = await fetch(`${API_BASE}/api/faculty/mentor-allocations`, { credentials: "include" });
+  const json = await res.json();
+  if (!res.ok || !json.success || !Array.isArray(json.data)) {
+    throw new Error(json.message || `Mentor allocations request failed (${res.status})`);
   }
-  return INITIAL_MENTOR_REQUESTS;
+  return json.data;
 }
 
 export async function submitMentorAllocationRequest(payload: {
@@ -592,16 +573,12 @@ export async function decideMentorAllocation(
 }
 
 export async function fetchFacultyMeetings(): Promise<FacultyMeeting[]> {
-  try {
-    const res = await fetch(`${API_BASE}/api/faculty/meetings`, { credentials: "include" });
-    if (res.ok) {
-      const json = await res.json();
-      if (json.success && Array.isArray(json.data)) return json.data;
-    }
-  } catch (err) {
-    console.warn("[FacultyAPI] fetchFacultyMeetings fallback:", err);
+  const res = await fetch(`${API_BASE}/api/faculty/meetings`, { credentials: "include" });
+  const json = await res.json();
+  if (!res.ok || !json.success || !Array.isArray(json.data)) {
+    throw new Error(json.message || `Faculty meetings request failed (${res.status})`);
   }
-  return INITIAL_MEETINGS;
+  return json.data;
 }
 
 export async function createFacultyMeeting(payload: Partial<FacultyMeeting>): Promise<FacultyMeeting | null> {
@@ -623,16 +600,12 @@ export async function createFacultyMeeting(payload: Partial<FacultyMeeting>): Pr
 }
 
 export async function fetchFacultyTasks(): Promise<FacultyTask[]> {
-  try {
-    const res = await fetch(`${API_BASE}/api/faculty/tasks`, { credentials: "include" });
-    if (res.ok) {
-      const json = await res.json();
-      if (json.success && Array.isArray(json.data)) return json.data;
-    }
-  } catch (err) {
-    console.warn("[FacultyAPI] fetchFacultyTasks fallback:", err);
+  const res = await fetch(`${API_BASE}/api/faculty/tasks`, { credentials: "include" });
+  const json = await res.json();
+  if (!res.ok || !json.success || !Array.isArray(json.data)) {
+    throw new Error(json.message || `Faculty tasks request failed (${res.status})`);
   }
-  return INITIAL_TASKS;
+  return json.data;
 }
 
 export async function createFacultyTask(payload: Partial<FacultyTask>): Promise<FacultyTask | null> {
@@ -669,16 +642,12 @@ export async function updateFacultyTaskStatus(id: string, status: string): Promi
 }
 
 export async function fetchSupportRequests(): Promise<StudentSupportRequest[]> {
-  try {
-    const res = await fetch(`${API_BASE}/api/faculty/support-requests`, { credentials: "include" });
-    if (res.ok) {
-      const json = await res.json();
-      if (json.success && Array.isArray(json.data)) return json.data;
-    }
-  } catch (err) {
-    console.warn("[FacultyAPI] fetchSupportRequests fallback:", err);
+  const res = await fetch(`${API_BASE}/api/faculty/support-requests`, { credentials: "include" });
+  const json = await res.json();
+  if (!res.ok || !json.success || !Array.isArray(json.data)) {
+    throw new Error(json.message || `Support requests failed (${res.status})`);
   }
-  return INITIAL_SUPPORT_REQUESTS;
+  return json.data;
 }
 
 export async function respondSupportRequest(id: string, response: string): Promise<boolean> {

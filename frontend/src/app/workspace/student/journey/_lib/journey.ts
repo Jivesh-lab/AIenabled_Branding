@@ -20,8 +20,8 @@ import {
   PIPELINE_POSITIONS,
   type PipelinePosition,
 } from "@/types/status";
-import type { StudentProject } from "@/mock/student-projects";
-import type { JourneyEvent } from "@/mock/student-journey";
+import type { StudentProject } from "@/types/student-application";
+import type { JourneyEvent } from "@/types/journey";
 
 export type StageState = "complete" | "current" | "revision" | "rejected" | "approved" | "upcoming" | "closed";
 
@@ -236,6 +236,6 @@ export function defaultProjectId(projects: StudentProject[]): string | undefined
   if (needsAttention) return needsAttention.id;
   const submitted = projects
     .filter((p) => p.reviewStatus !== "DRAFT")
-    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    .sort((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""));
   return (submitted[0] ?? projects[0])?.id;
 }

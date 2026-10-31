@@ -3,7 +3,7 @@
  * No React here — the page derives its visible list from this on each render.
  */
 import type { Maturity, ReviewStatus } from "@/types/status";
-import type { StudentProject } from "@/mock/student-projects";
+import type { StudentProject } from "@/types/student-application";
 
 export type StatusFilter = "ALL" | ReviewStatus;
 export type MaturityFilter = "ALL" | Maturity;
@@ -51,7 +51,7 @@ export function filterProjects(projects: StudentProject[], f: ProjectFilters): S
   return [...matched].sort((a, b) => {
     if (f.sort === "name") return a.name.localeCompare(b.name);
     if (f.sort === "progress") return b.progress - a.progress;
-    return b.updatedAt.localeCompare(a.updatedAt); // ISO dates sort lexically
+    return (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""); // ISO dates sort lexically
   });
 }
 

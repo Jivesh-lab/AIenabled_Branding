@@ -10,7 +10,7 @@ import {
   REVIEW_STATUS_TONE,
   type ReviewStatus,
 } from "@/types/status";
-import { MOCK_TODAY, type StudentProject } from "@/mock/student-projects";
+import type { StudentProject } from "@/types/student-application";
 
 /** How the pipeline position reads next to each review status. */
 const PIPELINE_PREFIX: Partial<Record<ReviewStatus, string>> = {
@@ -24,10 +24,11 @@ function NextStep({ project }: { project: StudentProject }) {
   const { next, reviewStatus } = project;
   if (!next) return <span className="text-[13px] text-muted-ink">No pending actions</span>;
 
-  const due = next.dueDate ? formatDue(next.dueDate, MOCK_TODAY) : null;
+  const today = new Date().toISOString().slice(0, 10);
+  const due = next.dueDate ? formatDue(next.dueDate, today) : null;
   const needsAttention =
     reviewStatus === "REVISION_REQUESTED" ||
-    (next.kind === "action" && !!next.dueDate && isDueSoon(next.dueDate, MOCK_TODAY));
+    (next.kind === "action" && !!next.dueDate && isDueSoon(next.dueDate, today));
 
   const Icon = needsAttention ? AlertCircle : next.kind === "milestone" ? Flag : CircleDot;
 
@@ -58,7 +59,8 @@ function NextStep({ project }: { project: StudentProject }) {
 export default function ProjectCard({ project }: { project: StudentProject }) {
   const isDraft = project.reviewStatus === "DRAFT";
   const prefix = PIPELINE_PREFIX[project.reviewStatus];
-  const primaryHref = isDraft ? "/workspace/student/submit" : `/workspace/student/projects/${project.id}`;
+  const primaryHref = isDraft ? `/workspace/student/submit?applicationId=${encodeURIComponent(project.id)}` : `/workspace/student/projects/${project.id}`;
+  const today = new Date().toISOString().slice(0, 10);
 
   return (
     <Card className="transition-colors duration-150 hover:border-brand-cyan/40">
@@ -102,7 +104,7 @@ export default function ProjectCard({ project }: { project: StudentProject }) {
                 <dt className="sr-only">Team and last update</dt>
                 <dd>
                   {project.teamSize} team {project.teamSize === 1 ? "member" : "members"} · Updated{" "}
-                  {formatUpdated(project.updatedAt, MOCK_TODAY)}
+                  {project.updatedAt ? formatUpdated(project.updatedAt, today) : "Not yet submitted"}
                 </dd>
               </div>
             </dl>
