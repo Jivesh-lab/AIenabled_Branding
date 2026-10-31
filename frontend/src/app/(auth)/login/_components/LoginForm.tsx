@@ -428,7 +428,7 @@ export default function LoginForm() {
           <button
             type="button"
             onClick={() => {
-              setValue("email", "omkargotawade05@gmail.com");
+              setValue("email", "student@aai-dbitic.edu");
               setValue("password", "Student#2026!Pass");
               setRequire2FA(false);
               setTwoFactorCode("");
@@ -436,7 +436,7 @@ export default function LoginForm() {
             className="flex flex-col items-start rounded-lg border border-emerald-200 bg-emerald-50/50 p-2 text-left hover:border-emerald-300 hover:bg-emerald-100/60 transition-colors"
           >
             <span className="text-[11px] font-bold text-emerald-800">🚀 Student Founder</span>
-            <span className="text-[10px] text-emerald-600 font-mono">omkar@...</span>
+            <span className="text-[10px] text-emerald-600 font-mono">student@...</span>
             <span className="text-[9px] text-slate-500 mt-0.5">Student#2026!Pass</span>
           </button>
         </div>

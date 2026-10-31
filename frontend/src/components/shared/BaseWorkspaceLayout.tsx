@@ -76,6 +76,7 @@ export default function BaseWorkspaceLayout({
           user={user}
           notificationCount={4}
           onMenuClick={openMobile}
+          allowedRole={allowedRole}
         />
         <main className="flex-1">{children}</main>
       </div>

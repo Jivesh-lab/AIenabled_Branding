@@ -8,16 +8,15 @@
  *   LEFT:   mobile menu trigger (mobile only) - brand (mobile only, the sidebar
  *           owns the brand on desktop) - workspace label
  *   CENTER: global search
- *   RIGHT:  + New Idea - Help - Notifications - Profile
+ *   RIGHT:  + New Idea (STUDENTS ONLY) - Help - Notifications - Profile
  *
  * Ocean Royale tokens: bg-white - border-line - text-ink - text-muted-ink
  *                       primary: bg-brand / hover:bg-brand-hover
- *
- * TODO: wire notification count and profile menu actions during backend integration.
  */
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import {
@@ -48,6 +47,7 @@ interface DashboardNavbarProps {
   notificationCount?: number;
   /** Opens the mobile navigation drawer. */
   onMenuClick?: () => void;
+  allowedRole?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -262,7 +262,15 @@ export default function DashboardNavbar({
   user,
   notificationCount = 0,
   onMenuClick,
+  allowedRole,
 }: DashboardNavbarProps) {
+  const pathname = usePathname();
+
+  // Show "+ New Idea" button only on the Student workspace
+  const isStudent =
+    allowedRole === "student" ||
+    (pathname ? pathname.startsWith("/workspace/student") : false);
+
   return (
     <header className="sticky top-0 z-30 flex h-[60px] shrink-0 items-center gap-2 border-b border-line bg-white px-4 lg:px-6">
       {/* LEFT */}
@@ -301,18 +309,20 @@ export default function DashboardNavbar({
 
       {/* RIGHT */}
       <div className="ml-auto flex shrink-0 items-center gap-1.5">
-        <button
-          type="button"
-          className={cn(
-            "hidden h-9 items-center gap-1.5 rounded-[8px] px-3.5 sm:inline-flex",
-            "bg-brand text-[13px] font-semibold text-white",
-            "transition-colors duration-150 hover:bg-brand-hover active:bg-brand-active",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 focus-visible:ring-offset-1"
-          )}
-        >
-          <Plus className="-ml-0.5 size-4" aria-hidden="true" />
-          <span>New Idea</span>
-        </button>
+        {isStudent && (
+          <Link
+            href="/workspace/student/submit"
+            className={cn(
+              "hidden h-9 items-center gap-1.5 rounded-[8px] px-3.5 sm:inline-flex",
+              "bg-brand text-[13px] font-semibold text-white",
+              "transition-colors duration-150 hover:bg-brand-hover active:bg-brand-active",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 focus-visible:ring-offset-1"
+            )}
+          >
+            <Plus className="-ml-0.5 size-4" aria-hidden="true" />
+            <span>New Idea</span>
+          </Link>
+        )}
 
         <IconButton label="Help and support" className="hidden sm:flex">
           <CircleHelp className="size-[18px]" strokeWidth={2} aria-hidden="true" />
