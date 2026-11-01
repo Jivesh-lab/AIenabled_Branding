@@ -2,9 +2,8 @@
 
 /**
  * SuperAdminWorkflowDashboard.tsx
- * Super Admin – Workflow Agent Technical Governance
- * Shows raw queue metrics, worker health, DLQ, service connectivity, and execution logs.
- * Read-only for super_admin. Data from /api/super-admin/agents/workflow/governance.
+ * Super Admin – Workflow Technical Operations & Event Bus Governance
+ * Shows event queue metrics, worker health, DLQ, service connectivity, and execution logs.
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -16,7 +15,6 @@ import {
 } from "@/services/superAdminAgentService";
 import {
   Activity,
-  Zap,
   Server,
   AlertTriangle,
   CheckCircle2,
@@ -25,36 +23,9 @@ import {
   Clock,
   Cpu,
   Wifi,
-  WifiOff,
   RotateCcw,
-  FileText,
+  Search,
 } from "lucide-react";
-
-/* ─── helpers ───────────────────────────────────────────────────────────── */
-
-function badge(label: string, variant: "green" | "amber" | "red" | "sky" | "slate") {
-  const cls = {
-    green: "bg-green-100 text-green-800",
-    amber: "bg-amber-100 text-amber-800",
-    red: "bg-red-100 text-red-800",
-    sky: "bg-sky-100 text-sky-800",
-    slate: "bg-slate-100 text-slate-600",
-  }[variant];
-  return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${cls}`}>
-      {label}
-    </span>
-  );
-}
-
-function statusBadge(status: string) {
-  const s = (status ?? "").toLowerCase();
-  if (s === "completed" || s === "delivered" || s === "healthy") return badge(status, "green");
-  if (s === "pending" || s === "processing") return badge(status, "sky");
-  if (s === "failed" || s === "dead_letter" || s === "unhealthy") return badge(status, "red");
-  if (s === "retrying") return badge(status, "amber");
-  return badge(status, "slate");
-}
 
 function fmtBytes(mb: number) {
   return mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${mb.toFixed(0)} MB`;
@@ -67,44 +38,6 @@ function fmtUptime(s: number) {
   return h > 0 ? `${h}h ${m}m` : m > 0 ? `${m}m ${sec}s` : `${sec}s`;
 }
 
-/* ─── KPI card ─────────────────────────────────────────────────────────── */
-function KpiCard({
-  label,
-  value,
-  icon: Icon,
-  sub,
-  accent = "slate",
-}: {
-  label: string;
-  value: string | number;
-  icon: React.ElementType;
-  sub?: string;
-  accent?: "slate" | "sky" | "green" | "amber" | "red";
-}) {
-  const iconCls = {
-    slate: "bg-slate-100 text-slate-600",
-    sky: "bg-sky-100 text-sky-600",
-    green: "bg-green-100 text-green-600",
-    amber: "bg-amber-100 text-amber-700",
-    red: "bg-red-100 text-red-600",
-  }[accent];
-  return (
-    <div className="rounded-xl border border-line bg-canvas p-5 shadow-sm">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-ink">{label}</p>
-          <p className="mt-1 text-2xl font-bold text-ink">{value}</p>
-          {sub && <p className="mt-0.5 text-xs text-muted-ink">{sub}</p>}
-        </div>
-        <span className={`rounded-lg p-2 ${iconCls}`}>
-          <Icon className="size-5" />
-        </span>
-      </div>
-    </div>
-  );
-}
-
-/* ─── main component ────────────────────────────────────────────────────── */
 export default function SuperAdminWorkflowDashboard() {
   const [data, setData] = useState<SuperAdminWorkflowGovernance | null>(null);
   const [loading, setLoading] = useState(true);
@@ -128,7 +61,6 @@ export default function SuperAdminWorkflowDashboard() {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
   }, [load]);
 
@@ -156,9 +88,9 @@ export default function SuperAdminWorkflowDashboard() {
   if (loading) {
     return (
       <div className="flex min-h-64 items-center justify-center">
-        <div className="flex flex-col items-center gap-3 text-muted-ink">
-          <RefreshCw className="size-8 animate-spin" />
-          <p className="text-sm">Loading workflow governance data…</p>
+        <div className="flex flex-col items-center gap-2 text-muted-ink">
+          <RefreshCw className="size-6 animate-spin text-brand" />
+          <p className="text-xs">Loading workflow telemetry...</p>
         </div>
       </div>
     );
@@ -166,12 +98,12 @@ export default function SuperAdminWorkflowDashboard() {
 
   if (error || !data) {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center">
-        <XCircle className="mx-auto mb-2 size-8 text-red-400" />
-        <p className="text-sm font-medium text-red-700">{error ?? "No data available"}</p>
+      <div className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-center">
+        <XCircle className="mx-auto mb-2 size-6 text-rose-500" />
+        <p className="text-xs font-semibold text-rose-800">{error ?? "No data available"}</p>
         <button
           onClick={load}
-          className="mt-3 rounded-lg bg-red-600 px-4 py-2 text-xs font-semibold text-white hover:bg-red-700"
+          className="mt-3 rounded-lg bg-rose-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-rose-700"
         >
           Retry
         </button>
@@ -198,282 +130,276 @@ export default function SuperAdminWorkflowDashboard() {
   });
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-6">
+      {/* Precision Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-ink">Workflow Agent — Technical Governance</h1>
-          <p className="mt-1 text-sm text-muted-ink">
-            Queue health · worker metrics · service connectivity · dead-letter queue
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-ink">
+            <span>Governance</span>
+            <span>/</span>
+            <span className="text-brand">Workflow & Queue Telemetry</span>
+          </div>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-ink">
+            Workflow Engine Governance
+          </h1>
+          <p className="mt-1 max-w-2xl text-xs text-muted-ink">
+            Event bus queue telemetry, background worker process health, and dead-letter queue recovery.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+
+        <div className="flex items-center gap-2">
           {pingLatency !== null && (
-            <span className={`text-xs font-mono ${pingLatency < 0 ? "text-red-600" : "text-green-600"}`}>
-              {pingLatency < 0 ? "ping failed" : `ping ${pingLatency}ms`}
+            <span className={`text-xs font-mono tabular-nums ${pingLatency < 0 ? "text-rose-600" : "text-emerald-700"}`}>
+              {pingLatency < 0 ? "Ping error" : `${pingLatency}ms latency`}
             </span>
           )}
           <button
             onClick={handlePing}
-            className="flex items-center gap-1.5 rounded-lg border border-line bg-canvas px-3 py-2 text-xs font-medium text-ink hover:bg-slate-50"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-white px-3 py-2 text-xs font-medium text-ink shadow-2xs hover:bg-slate-50"
           >
-            <Wifi className="size-3.5" /> Ping Service
+            <Wifi className="size-3.5 text-muted-ink" /> Ping Agent Service
           </button>
           <button
             onClick={load}
-            className="flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-xs font-semibold text-white hover:bg-brand/90"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3.5 py-2 text-xs font-semibold text-white shadow-2xs hover:bg-brand-hover"
           >
             <RefreshCw className="size-3.5" /> Refresh
           </button>
         </div>
       </div>
 
-      {/* Health banner */}
-      <div
-        className={`flex items-center gap-3 rounded-xl border px-5 py-4 ${
-          isHealthy ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"
-        }`}
-      >
-        {isHealthy ? (
-          <CheckCircle2 className="size-6 text-green-500" />
-        ) : (
-          <AlertTriangle className="size-6 text-red-500" />
-        )}
-        <div>
-          <p className={`font-semibold ${isHealthy ? "text-green-800" : "text-red-800"}`}>
-            Agent Health: {data.agentHealth}
-          </p>
-          <p className={`text-xs ${isHealthy ? "text-green-700" : "text-red-700"}`}>
-            Scheduler: {sched.status} · Poll: {(sched.pollingIntervalMs / 1000).toFixed(0)}s · Batch:{" "}
-            {sched.batchSize} · Lock: {sched.lockDurationSeconds}s
-          </p>
+      {/* Scheduler & Health Strip */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-line bg-white p-4 shadow-2xs text-xs">
+        <div className="flex items-center gap-2.5">
+          <span className={`size-2.5 rounded-full ${isHealthy ? "bg-emerald-500" : "bg-rose-500"}`} />
+          <span className="font-bold text-ink">Engine Status: {data.agentHealth}</span>
+          <span className="text-muted-ink">•</span>
+          <span className="text-muted-ink">
+            Scheduler: <strong className="text-ink">{sched.status}</strong>
+          </span>
+        </div>
+        <div className="flex items-center gap-3 text-[11px] text-muted-ink font-mono">
+          <span>Poll Interval: {(sched.pollingIntervalMs / 1000).toFixed(0)}s</span>
+          <span>•</span>
+          <span>Batch Size: {sched.batchSize}</span>
+          <span>•</span>
+          <span>Lock Duration: {sched.lockDurationSeconds}s</span>
         </div>
       </div>
 
-      {/* KPIs */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <KpiCard label="Total Events" value={q.totalEvents} icon={Activity} accent="slate" />
-        <KpiCard label="Pending" value={q.pendingEvents} icon={Clock} accent="sky" />
-        <KpiCard label="Processing" value={q.processingEvents} icon={Zap} accent="amber" />
-        <KpiCard label="Completed" value={q.completedEvents} icon={CheckCircle2} accent="green" />
-        <KpiCard label="Failed" value={q.failedEvents} icon={XCircle} accent="red" />
-        <KpiCard
-          label="Dead Letter"
-          value={q.deadLetterCount}
-          icon={AlertTriangle}
-          accent={q.deadLetterCount > 0 ? "red" : "slate"}
-        />
-      </div>
-
-      {/* Worker + Service connectivity */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Worker health */}
-        <div className="rounded-xl border border-line bg-canvas shadow-sm">
-          <div className="border-b border-line px-5 py-4">
-            <h2 className="flex items-center gap-2 text-sm font-semibold text-ink">
-              <Cpu className="size-4 text-brand" /> Worker Process Health
-            </h2>
-          </div>
-          <div className="divide-y divide-line">
-            {[
-              { label: "PID", value: w.pid },
-              { label: "Uptime", value: fmtUptime(w.uptimeSeconds) },
-              { label: "Node Version", value: w.nodeVersion },
-              { label: "Heap Used", value: fmtBytes(w.memoryUsageMb.heapUsed) },
-              { label: "Heap Total", value: fmtBytes(w.memoryUsageMb.heapTotal) },
-              { label: "RSS", value: fmtBytes(w.memoryUsageMb.rss) },
-            ].map((row) => (
-              <div key={row.label} className="flex items-center justify-between px-5 py-3">
-                <span className="text-xs text-muted-ink">{row.label}</span>
-                <span className="font-mono text-xs font-semibold text-ink">{row.value}</span>
-              </div>
-            ))}
-          </div>
+      {/* Unified Queue Telemetry Strip */}
+      <div className="grid grid-cols-2 divide-y divide-line rounded-xl border border-line bg-white shadow-2xs sm:grid-cols-3 lg:grid-cols-6 sm:divide-x sm:divide-y-0">
+        <div className="p-4">
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-ink">Total Events</div>
+          <div className="mt-1 font-mono text-2xl font-bold tracking-tight text-ink tabular-nums">{q.totalEvents}</div>
+          <div className="mt-0.5 text-[11px] text-muted-ink">Persisted lifecycle events</div>
         </div>
-
-        {/* Service connectivity */}
-        <div className="rounded-xl border border-line bg-canvas shadow-sm">
-          <div className="border-b border-line px-5 py-4">
-            <h2 className="flex items-center gap-2 text-sm font-semibold text-ink">
-              <Server className="size-4 text-brand" /> Service Connectivity
-            </h2>
-          </div>
-          <div className="divide-y divide-line">
-            {[
-              {
-                label: "Express API",
-                ok: conn.expressApi.status === "connected",
-                detail: `port ${conn.expressApi.port}`,
-              },
-              {
-                label: "Agent Service (FastAPI)",
-                ok: conn.agentService.status === "connected",
-                detail: `port ${conn.agentService.port} · ${conn.agentService.latencyMs}ms`,
-              },
-              {
-                label: "MongoDB",
-                ok: conn.mongodb.status === "connected",
-                detail: conn.mongodb.status,
-              },
-              {
-                label: "SQLite Fallback",
-                ok: conn.sqliteFallback.status === "connected",
-                detail: conn.sqliteFallback.status,
-              },
-            ].map((row) => (
-              <div key={row.label} className="flex items-center justify-between px-5 py-3">
-                <div className="flex items-center gap-2">
-                  {row.ok ? (
-                    <Wifi className="size-3.5 text-green-500" />
-                  ) : (
-                    <WifiOff className="size-3.5 text-red-500" />
-                  )}
-                  <span className="text-xs text-ink">{row.label}</span>
-                </div>
-                <span className="font-mono text-xs text-muted-ink">{row.detail}</span>
-              </div>
-            ))}
-          </div>
+        <div className="p-4">
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-ink">Pending</div>
+          <div className="mt-1 font-mono text-2xl font-bold tracking-tight text-ink tabular-nums">{q.pendingEvents}</div>
+          <div className="mt-0.5 text-[11px] text-muted-ink">In queue awaiting pickup</div>
         </div>
-      </div>
-
-      {/* Dead-Letter Queue */}
-      <div className="rounded-xl border border-line bg-canvas shadow-sm">
-        <div className="border-b border-line px-5 py-4">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-ink">
-            <AlertTriangle className="size-4 text-red-500" /> Dead-Letter Queue
-            {dlq.length > 0 && (
-              <span className="ml-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
-                {dlq.length}
+        <div className="p-4">
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-ink">In Flight</div>
+          <div className="mt-1 font-mono text-2xl font-bold tracking-tight text-ink tabular-nums">{q.processingEvents}</div>
+          <div className="mt-0.5 text-[11px] text-muted-ink">Currently executing</div>
+        </div>
+        <div className="p-4">
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-ink">Completed</div>
+          <div className="mt-1 font-mono text-2xl font-bold tracking-tight text-ink tabular-nums">{q.completedEvents}</div>
+          <div className="mt-0.5 text-[11px] text-muted-ink">Delivered idempotently</div>
+        </div>
+        <div className="p-4">
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-ink">Failed</div>
+          <div className="mt-1 font-mono text-2xl font-bold tracking-tight text-ink tabular-nums">{q.failedEvents}</div>
+          <div className="mt-0.5 text-[11px] text-muted-ink">Under retry policy</div>
+        </div>
+        <div className="p-4">
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-ink">Dead Letter (DLQ)</div>
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className="font-mono text-2xl font-bold tracking-tight text-ink tabular-nums">{q.deadLetterCount}</span>
+            {q.deadLetterCount > 0 && (
+              <span className="rounded bg-rose-50 border border-rose-200 px-1.5 py-0.2 text-[10px] font-semibold text-rose-800">
+                Action required
               </span>
             )}
-          </h2>
+          </div>
+          <div className="mt-0.5 text-[11px] text-muted-ink">Exhausted retry threshold</div>
         </div>
-        {dlq.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-muted-ink">
-            <CheckCircle2 className="mb-2 size-8 text-green-400" />
-            <p className="text-sm">No dead-letter events. Queue is clear.</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b border-line bg-slate-50 text-left">
-                  {["Event Type", "Aggregate", "Attempts", "Last Error", "Created", "Action"].map((h) => (
-                    <th key={h} className="px-4 py-3 font-semibold text-muted-ink">
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line">
-                {dlq.map((ev) => (
-                  <tr key={ev.eventId} className="hover:bg-slate-50">
-                    <td className="px-4 py-3 font-mono text-ink">{ev.eventType}</td>
-                    <td className="px-4 py-3 text-muted-ink">{ev.aggregateType}</td>
-                    <td className="px-4 py-3 font-semibold text-red-600">
-                      {ev.attempts}/{ev.maxAttempts}
-                    </td>
-                    <td className="max-w-xs truncate px-4 py-3 text-red-700">{ev.lastError || "—"}</td>
-                    <td className="px-4 py-3 text-muted-ink">
-                      {new Date(ev.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-3">
-                      <button
-                        disabled={reprocessing === ev.eventId}
-                        onClick={() => handleReprocess(ev.eventId)}
-                        className="flex items-center gap-1 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 disabled:opacity-50"
-                      >
-                        <RotateCcw className="size-3" />
-                        {reprocessing === ev.eventId ? "Reprocessing…" : "Reprocess"}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
       </div>
 
-      {/* Execution Log */}
-      <div className="rounded-xl border border-line bg-canvas shadow-sm">
-        <div className="flex flex-col gap-3 border-b border-line px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-ink">
-            <FileText className="size-4 text-brand" /> Execution Log
-            <span className="text-xs font-normal text-muted-ink">({logs.length} records)</span>
-          </h2>
+      {/* Two Column Grid: Worker Process Health & Service Connectivity */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {/* Worker Process Health */}
+        <div className="rounded-xl border border-line bg-white p-5 shadow-2xs">
+          <div className="border-b border-line pb-3">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-muted-ink">
+              Worker Runtime Process
+            </h2>
+            <p className="mt-0.5 text-xs text-ink font-semibold">Node.js background event consumer telemetry</p>
+          </div>
+
+          <div className="mt-3 divide-y divide-line text-xs">
+            {[
+              { label: "Process ID (PID)", value: w.pid },
+              { label: "Worker Uptime", value: fmtUptime(w.uptimeSeconds) },
+              { label: "Node.js Runtime", value: w.nodeVersion },
+              { label: "V8 Heap Used", value: fmtBytes(w.memoryUsageMb.heapUsed) },
+              { label: "V8 Heap Total", value: fmtBytes(w.memoryUsageMb.heapTotal) },
+              { label: "Resident Set Size (RSS)", value: fmtBytes(w.memoryUsageMb.rss) },
+            ].map((row) => (
+              <div key={row.label} className="flex items-center justify-between py-2.5">
+                <span className="text-muted-ink">{row.label}</span>
+                <span className="font-mono font-semibold text-ink">{row.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* External Service Connectivity */}
+        <div className="rounded-xl border border-line bg-white p-5 shadow-2xs">
+          <div className="border-b border-line pb-3">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-muted-ink">
+              Service Mesh & Subsystems
+            </h2>
+            <p className="mt-0.5 text-xs text-ink font-semibold">Live connection status across persistence and agent microservices</p>
+          </div>
+
+          <div className="mt-3 divide-y divide-line text-xs">
+            {[
+              { label: "Express Backend API", status: conn?.expressApi?.status, port: conn?.expressApi?.port },
+              { label: "FastAPI Agent Service", status: conn?.agentService?.status, port: conn?.agentService?.port, latency: conn?.agentService?.latencyMs },
+              { label: "MongoDB Document Store", status: conn?.mongodb?.status },
+              { label: "SQLite Local Fallback", status: conn?.sqliteFallback?.status },
+            ].map((svc) => {
+              const connected = (svc.status ?? "").toLowerCase() === "connected" || (svc.status ?? "").toLowerCase() === "healthy";
+              return (
+                <div key={svc.label} className="flex items-center justify-between py-2.5">
+                  <span className="font-medium text-ink">{svc.label}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className={`size-1.5 rounded-full ${connected ? "bg-emerald-500" : "bg-rose-500"}`} />
+                    <span className={`font-mono text-[11px] font-medium ${connected ? "text-emerald-800" : "text-rose-700"}`}>
+                      {svc.status || "Unknown"} {svc.port ? `(:${svc.port})` : ""} {svc.latency ? `[${svc.latency}ms]` : ""}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Dead Letter Queue Inspection */}
+      {dlq.length > 0 && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50/20 p-5 shadow-2xs">
+          <div className="flex items-center justify-between border-b border-amber-200/60 pb-3">
+            <div>
+              <h2 className="text-xs font-bold uppercase tracking-wider text-amber-900">
+                Dead-Letter Queue (DLQ)
+              </h2>
+              <p className="text-xs text-amber-800">Events that failed max retry attempts. Inspect and trigger reprocessing.</p>
+            </div>
+            <span className="font-mono text-xs font-bold text-amber-900">{dlq.length} in DLQ</span>
+          </div>
+
+          <div className="mt-3 divide-y divide-amber-200/40 text-xs">
+            {dlq.map((ev) => (
+              <div key={ev.eventId} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-[11px] font-semibold text-slate-700">{ev.eventId.slice(-8)}</span>
+                    <strong className="text-ink">{ev.eventType}</strong>
+                    <span className="text-muted-ink">• Attempts: {ev.attempts}/{ev.maxAttempts}</span>
+                  </div>
+                  <div className="mt-0.5 text-[11px] text-rose-700 font-mono">
+                    {ev.lastError || "Execution timeout or unhandled exception"}
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => handleReprocess(ev.eventId)}
+                  disabled={reprocessing === ev.eventId}
+                  className="inline-flex items-center gap-1 rounded border border-line bg-white px-3 py-1.5 text-xs font-semibold text-ink hover:bg-slate-50 shadow-2xs"
+                >
+                  <RotateCcw className={`size-3 ${reprocessing === ev.eventId ? "animate-spin" : ""}`} />
+                  {reprocessing === ev.eventId ? "Reprocessing..." : "Reprocess Event"}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Execution Audit Trail */}
+      <div className="rounded-xl border border-line bg-white p-5 shadow-2xs">
+        <div className="flex flex-col gap-3 border-b border-line pb-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-muted-ink">
+              Execution Event Log
+            </h2>
+            <p className="mt-0.5 text-xs text-ink font-semibold">Granular dispatch trail of tasks, meetings, reminders, and alerts</p>
+          </div>
+
           <div className="flex items-center gap-2">
-            <input
-              type="text"
-              placeholder="Search action / project / target…"
-              value={logSearch}
-              onChange={(e) => setLogSearch(e.target.value)}
-              className="w-48 rounded-lg border border-line px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand/30"
-            />
             <select
               value={logFilter}
               onChange={(e) => setLogFilter(e.target.value)}
-              className="rounded-lg border border-line px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand/30"
+              className="rounded-lg border border-line bg-white px-2 py-1.5 text-xs text-ink focus:border-brand focus:outline-none"
             >
-              <option value="all">All statuses</option>
+              <option value="all">All Statuses</option>
               <option value="completed">Completed</option>
-              <option value="delivered">Delivered</option>
               <option value="pending">Pending</option>
               <option value="failed">Failed</option>
-              <option value="retrying">Retrying</option>
-              <option value="dead_letter">Dead Letter</option>
             </select>
+
+            <div className="relative w-48">
+              <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-ink" />
+              <input
+                type="text"
+                placeholder="Filter logs..."
+                value={logSearch}
+                onChange={(e) => setLogSearch(e.target.value)}
+                className="w-full rounded-lg border border-line bg-white pl-8 pr-2.5 py-1.5 text-xs text-ink placeholder:text-muted-ink focus:border-brand focus:outline-none"
+              />
+            </div>
           </div>
         </div>
-        {filteredLogs.length === 0 ? (
-          <div className="py-10 text-center text-sm text-muted-ink">No matching records</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b border-line bg-slate-50 text-left">
-                  {["Action Type", "Project", "Target", "Status", "Retries", "Created", "Delivered"].map(
-                    (h) => (
-                      <th key={h} className="px-4 py-3 font-semibold text-muted-ink">
-                        {h}
-                      </th>
-                    )
-                  )}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line">
-                {filteredLogs.slice(0, 100).map((log) => (
-                  <tr key={log.id} className="hover:bg-slate-50">
-                    <td className="px-4 py-3 font-mono text-ink">{log.actionType}</td>
-                    <td className="max-w-[160px] truncate px-4 py-3 text-muted-ink">
-                      {log.projectTitle || log.projectId}
-                    </td>
-                    <td className="px-4 py-3 text-muted-ink">
-                      <span className="capitalize">{log.targetRole}</span>
-                      {log.targetName ? ` · ${log.targetName}` : ""}
-                    </td>
-                    <td className="px-4 py-3">{statusBadge(log.status)}</td>
-                    <td className="px-4 py-3 font-mono">
-                      {log.retryCount}/{log.maxRetries}
-                    </td>
-                    <td className="px-4 py-3 text-muted-ink">
-                      {new Date(log.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-3 text-muted-ink">
-                      {log.deliveredAt ? new Date(log.deliveredAt).toLocaleDateString() : "—"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {filteredLogs.length > 100 && (
-              <p className="border-t border-line px-5 py-3 text-center text-xs text-muted-ink">
-                Showing first 100 of {filteredLogs.length} records
-              </p>
-            )}
-          </div>
-        )}
+
+        <div className="mt-3 divide-y divide-line text-xs">
+          {filteredLogs.slice(0, 10).map((l) => (
+            <div key={l.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-[11px] font-semibold text-slate-500">{l.id.slice(-8)}</span>
+                  <span className="font-semibold text-ink">{l.actionType}</span>
+                  <span className="text-muted-ink">•</span>
+                  <span className="text-slate-600">{l.projectTitle || "Center Operation"}</span>
+                  <span
+                    className={`rounded px-1.5 py-0.2 text-[10px] font-medium ${
+                      l.status === "completed"
+                        ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                        : l.status === "failed"
+                        ? "bg-rose-50 text-rose-800 border border-rose-200"
+                        : "bg-slate-100 text-slate-700 border border-slate-200"
+                    }`}
+                  >
+                    {l.status}
+                  </span>
+                </div>
+                {l.targetName && (
+                  <div className="mt-0.5 text-[11px] text-muted-ink">Target: {l.targetName}</div>
+                )}
+              </div>
+
+              <div className="text-right text-[11px] text-muted-ink font-mono tabular-nums">
+                {new Date(l.createdAt).toLocaleTimeString()}
+              </div>
+            </div>
+          ))}
+          {filteredLogs.length === 0 && (
+            <div className="py-8 text-center text-xs text-muted-ink">No execution logs match the filter.</div>
+          )}
+        </div>
       </div>
     </div>
   );

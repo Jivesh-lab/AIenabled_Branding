@@ -210,7 +210,7 @@ function ProfileDropdown({ user }: { user: NavbarUser }) {
       >
         <div
           aria-hidden="true"
-          className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand text-[12px] font-semibold leading-none text-white"
+          className="flex size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-brand to-brand-hover text-[12px] font-bold leading-none text-white shadow-xs ring-2 ring-brand-soft"
         >
           {user.initials}
         </div>
@@ -234,7 +234,7 @@ function ProfileDropdown({ user }: { user: NavbarUser }) {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-full z-50 mt-2 w-60 overflow-hidden rounded-lg border border-line bg-white py-1 shadow-lg shadow-slate-200/60"
+          className="absolute right-0 top-full z-50 mt-2 w-60 overflow-hidden rounded-xl border border-line bg-white py-1 shadow-xl shadow-slate-900/10 backdrop-blur-md animate-in fade-in-50 zoom-in-95 duration-100"
         >
           <div className="border-b border-line px-4 py-3">
             <p className="break-words text-[13px] font-semibold text-ink">{user.name}</p>
@@ -331,7 +331,7 @@ export default function DashboardNavbar({
     (allowedRole === "student" || Boolean(pathname?.startsWith("/workspace/student")));
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-line bg-white px-4 lg:px-6">
+    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-line bg-white/95 backdrop-blur-md px-4 lg:px-6 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
       {/* LEFT */}
       <div className="flex shrink-0 items-center gap-3 lg:pr-2">
         <IconButton label="Open navigation" onClick={onMenuClick} className="-ml-1.5 md:hidden">
@@ -380,8 +380,8 @@ export default function DashboardNavbar({
             aria-label="Submit Proposal"
             className={cn(
               "mr-2 inline-flex h-9 items-center justify-center gap-1.5 rounded-lg px-2.5 sm:px-3.5",
-              "bg-brand text-[13px] font-semibold text-white",
-              "transition-colors duration-150 hover:bg-brand-hover active:bg-brand-active",
+              "bg-brand text-[13px] font-semibold text-white shadow-sm shadow-brand/25",
+              "transition-all duration-150 hover:bg-brand-hover hover:shadow-md hover:shadow-brand/30 active:scale-[0.98]",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 focus-visible:ring-offset-1"
             )}
           >

@@ -76,7 +76,7 @@ function SidebarBrand({ isExpanded }: { isExpanded: boolean }) {
     <div className="flex h-16 shrink-0 items-center overflow-hidden px-5">
       <div className="flex items-center gap-2.5">
         {/* The mark keeps the Ocean Royale identity without darkening the rail. */}
-        <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-brand-deep">
+        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-deep shadow-sm shadow-brand-deep/20">
           <svg viewBox="0 0 20 20" className="size-4 text-brand-cyan" fill="none" aria-hidden="true">
             <path d="M10 2L17 6V14L10 18L3 14V6L10 2Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
             <path d="M10 7L13 9V13L10 15L7 13V9L10 7Z" fill="currentColor" opacity="0.5" />
@@ -164,7 +164,7 @@ function SidebarItem({
   const wrapperClass = cn(
     "group relative flex h-11 w-full items-center rounded-lg px-3 outline-none transition-colors duration-150",
     "focus-visible:ring-2 focus-visible:ring-brand/40",
-    isActive ? "bg-brand" : "hover:bg-nav-hover"
+    isActive ? "bg-brand text-white shadow-sm shadow-brand/25 font-semibold" : "hover:bg-nav-hover text-ink"
   );
 
   return (

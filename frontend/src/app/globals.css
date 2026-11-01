@@ -14,26 +14,35 @@
   /* --- OCEAN ROYALE BRAND TOKENS (single source of truth) ---------------
      Generates utilities: bg-brand, text-brand-deep, border-line, ring-brand/50 ...
      Do NOT hardcode brand hex values in components; use these tokens. */
-  --color-brand-deep: #0B192C;       /* PRIMARY_DEEP  - logo mark, auth brand panels */
-  --color-brand: #1D4ED8;            /* PRIMARY       - CTAs, links, active, focus */
-  --color-brand-hover: #1E40AF;
-  --color-brand-active: #1E3A8A;
-  --color-brand-soft: #E7EEFD;       /* SOFT_BLUE     - active nav, progress track, soft badges */
-  --color-brand-cyan: #0D9488;       /* ACCENT_CYAN   - AI features, charts */
-  --color-brand-cyan-soft: #CCFBF1;  /* LIGHT_CYAN    - soft backgrounds */
-  --color-brand-cyan-ink: #0F766E;   /* readable cyan TEXT on a cyan tint */
-  --color-brand-gold: #F59E0B;       /* ACCENT_GOLD   - warm emphasis */
-  --color-brand-gold-ink: #B45309;   /* readable gold TEXT on a gold tint */
-  --color-ink: #0F172A;              /* TEXT */
-  --color-muted-ink: #64748B;        /* MUTED_TEXT */
-  --color-line: #E2E8F0;             /* BORDER */
-  --color-canvas: #F8FAFC;           /* BACKGROUND */
-  --color-icon: #475569;             /* resting navigation / control icons */
-  --color-nav-hover: #F1F5F9;        /* navigation row hover on a light surface */
+  --color-brand-deep: #101B35;       /* Deep navy: logo mark, auth & dark accelerator panels */
+  --color-brand: #315FE8;            /* Primary blue: CTAs, links, active, focus */
+  --color-brand-hover: #2548C9;
+  --color-brand-active: #1D3BB0;
+  --color-brand-soft: #EBF1FE;       /* Soft blue: active nav, progress track, soft badges */
+  --color-brand-cyan: #13B8A6;       /* Teal: AI features, telemetry, positive highlights */
+  --color-brand-cyan-soft: #E6F8F6;  /* Soft teal tint */
+  --color-brand-cyan-ink: #0D8275;   /* Readable teal text on light teal */
+  --color-brand-gold: #F39B58;       /* Warm orange: emphasis, milestones, attention */
+  --color-brand-gold-soft: #FDF4ED;  /* Soft orange background */
+  --color-brand-gold-ink: #C26720;   /* Readable orange text */
+  --color-ink: #17233C;              /* Primary text */
+  --color-muted-ink: #68758B;        /* Secondary text */
+  --color-line: #E5E9F0;             /* Clean border line */
+  --color-canvas: #F5F7FA;           /* Light workspace background */
+  --color-icon: #5B6B82;             /* Resting navigation / control icons */
+  --color-nav-hover: #EEF2F6;        /* Navigation row hover on light surface */
+
+  /* Dark Accelerator Theme Tokens */
+  --color-dark-canvas: #0A1124;
+  --color-dark-panel: #101B35;
+  --color-dark-surface: #172545;
+  --color-dark-border: rgba(255, 255, 255, 0.09);
+  --color-dark-text: #F1F5F9;
+  --color-dark-muted: #94A3B8;
 
   /* Semantic state colours - state only, never decoration */
-  --color-success: #16A34A;          /* APPROVED */
-  --color-danger: #DC2626;           /* REJECTED, validation errors */
+  --color-success: #10B981;          /* APPROVED */
+  --color-danger: #EF4444;           /* REJECTED, validation errors */
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -80,7 +89,7 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
   /* Ocean Royale PRIMARY (#023EBA) */
-  --primary: #1D4ED8;
+  --primary: #315FE8;
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -100,12 +109,12 @@
   --radius: 0.5rem;
   --sidebar: #FFFFFF;
   --sidebar-foreground: #0F172A;
-  --sidebar-primary: #1D4ED8;
+  --sidebar-primary: #315FE8;
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: #E8EFFC;
-  --sidebar-accent-foreground: #1D4ED8;
+  --sidebar-accent: #EBF1FE;
+  --sidebar-accent-foreground: #315FE8;
   --sidebar-border: #E2E8F0;
-  --sidebar-ring: #1D4ED8;
+  --sidebar-ring: #315FE8;
 }
 
 
