@@ -3,9 +3,16 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import DbitLogo from "@/components/shared/DbitLogo";
-import { ArrowDownRight, ArrowRight, ArrowUpRight, BarChart3, Building2, FileText, Lightbulb, Menu, Presentation, Search, Send, Tag, Users, X } from "lucide-react";
+import { Activity, ArrowDownRight, ArrowRight, ArrowUpRight, BarChart3, Bot, Building2, FileCheck, Lightbulb, Menu, Search, Send, TrendingUp, Users, Workflow, X } from "lucide-react";
 
-const agents = [["Research Agent", "Finds research, patents and existing solutions", Search, "blue"], ["Innovation Agent", "Evaluates uniqueness and feasibility", Lightbulb, "purple"], ["Market Agent", "Analyses market size, competitors and trends", BarChart3, "violet"], ["Branding Agent", "Generates name, tagline, logo and identity", Tag, "rose"], ["Business Agent", "Creates business model and revenue plan", FileText, "lavender"], ["Pitch Agent", "Builds investor-ready pitch deck", Presentation, "sky"], ["Mentor Agent", "Recommends mentors, investors and programs", Users, "indigo"]] as const;
+const agents = [
+  ["AI Incubation Assistant", "Answers student questions, provides incubation guidance and retrieves information using RAG.", Bot, "blue"],
+  ["Application Agent", "Validates startup applications, generates summaries, evaluates completeness and prepares assessments.", FileCheck, "purple"],
+  ["Mentor-Matching Agent", "Recommends suitable faculty and industry mentors based on startup requirements and expertise.", Users, "indigo"],
+  ["Workflow Agent", "Coordinates tasks, meeting requests, deadlines, reminders and progress-report requests.", Workflow, "sky"],
+  ["Monitoring Agent", "Tracks startup milestones, overdue activities, progress velocity and potential risks.", Activity, "violet"],
+  ["Investor Matchmaking", "Evaluates investor preferences and ranks approved startups using sector, stage, thesis and readiness.", TrendingUp, "rose"],
+] as const;
 const demoProjects = [["Make-a-thon", "A hands-on platform for turning problems into prototypes", "Ideation + building", "Researcher teams in action", "https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=1200&q=85"], ["Startup Forum", "Conversations that connect researchers with the startup ecosystem", "Mentors + investors", "Ideas meet experience", "https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=1200&q=85"], ["Brand Challenge", "A practical challenge in positioning, storytelling, and business", "Brand + strategy", "Skills built through practice", "https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1200&q=85"]] as const;
 const pathways = [["RESEARCH / PROJECT OWNERS", "Start with a question, a prototype, or a research insight and move it toward a useful venture.", "Research to venture", Lightbulb, "research-product-owners", "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=900&q=85"], ["FACULTY COORDINATORS", "Coordinate projects, programmes, reviews, and the people helping ideas progress.", "Coordinate a programme", Building2, "faculty-coordinators", "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=900&q=85"], ["INVESTORS", "Discover researched opportunities and support the next generation of ventures.", "Explore opportunities", BarChart3, "investors", "https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=900&q=85"], ["MENTORS", "Share hard-earned perspective at the moment a researcher team needs it most.", "Become a mentor", Send, "industry-guides", "https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=900&q=85"]] as const;
 const images = { hero: "https://images.unsplash.com/photo-1564981797816-1043664bf78d?auto=format&fit=crop&w=2200&q=85", lab: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1800&q=85", office: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1800&q=85", campus: "https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?auto=format&fit=crop&w=1800&q=85" };
@@ -161,13 +168,14 @@ export default function RootPage() {
 
       <section id="agents" className="agents-section section-light">
         <div className="agents-intro">
-          <div className="section-kicker">AGENTIC AI</div>
-          <h2>DON&apos;T JUST ASK AI.<br />LET AI <em>ACT.</em></h2>
-          <p>A team of specialized AI agents works together to evaluate, validate and build your idea into a real startup.</p>
+          <div className="section-kicker">AGENTIC AI ARCHITECTURE</div>
+          <h2>DON&apos;T JUST ASK AI.<br />LET AGENTS <em>COORDINATE.</em></h2>
+          <p>Six specialized AI agents orchestrated by a central LangGraph Supervisor work together to guide, validate, match, and scale researcher startups.</p>
         </div>
         <div className="agent-orbit">
           <div className={activeAgent ? "agent-core is-active" : "agent-core"}>
-            AI<br /><span>AGENTS</span>
+            <small style={{ fontSize: "9px", letterSpacing: "0.14em", color: "#a5e2ff", display: "block", marginBottom: "2px" }}>AI CORE</small>
+            LANGGRAPH<br /><span>ORCHESTRATOR</span>
           </div>
           <div className="agent-lines" />
           {agents.map(([name, description, Icon, color]) => (

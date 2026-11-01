@@ -325,10 +325,11 @@
 @keyframes orbit-float { 0%, 100% { margin-top: 0; } 50% { margin-top: -11px; } }
 .agents-section { grid-template-columns: .7fr 1.3fr; gap: 70px; background: #eef6fd; }
 .agents-intro h2 { color: #102544; text-transform: uppercase; }.agents-intro h2 em { color: #087fe5; }.agents-intro .section-kicker { color: #087fe5; }
-.agent-orbit { min-height: 570px; position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 170px minmax(0, 1fr); grid-template-rows: repeat(4, minmax(83px, auto)); gap: 14px 18px; align-content: center; padding: 22px; }
-.agent-core { z-index: 2; width: 142px; height: 142px; background: radial-gradient(circle at 35% 25%, #a7e4ff, #0d70d8 55%, #062354); box-shadow: 0 0 60px rgba(8, 127, 229, .35); }
+.agent-orbit { min-height: 480px; position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 170px minmax(0, 1fr); grid-template-rows: repeat(3, minmax(88px, auto)); gap: 14px 18px; align-content: center; padding: 22px; }
+.agent-core { z-index: 2; width: 148px; height: 148px; background: radial-gradient(circle at 35% 25%, #a7e4ff, #0d70d8 55%, #062354); box-shadow: 0 0 60px rgba(8, 127, 229, .35); font-size: 11px; }
+.agent-core span { font-size: 9px; letter-spacing: .08em; }
 .agent-core.is-active { transform: translate(-50%, -50%) scale(1.08) translateZ(80px); box-shadow: 0 0 85px rgba(8, 127, 229, .55); }
-.agent-lines { position: absolute; inset: 20%; border: 1px solid rgba(8, 127, 229, .23); border-radius: 50%; transform: rotateX(65deg); }
+.agent-lines { position: absolute; inset: 15%; border: 1px solid rgba(8, 127, 229, .23); border-radius: 50%; transform: rotateX(65deg); }
 .agent-card { position: relative; z-index: 1; min-height: 83px; display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px solid #d5e6f2; background: rgba(255, 255, 255, .86); box-shadow: 0 10px 25px rgba(20, 70, 100, .06); transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease; }
 .agent-card:nth-of-type(1) { grid-column: 1; grid-row: 1; }
 .agent-card:nth-of-type(2) { grid-column: 3; grid-row: 1; }
@@ -336,7 +337,6 @@
 .agent-card:nth-of-type(4) { grid-column: 3; grid-row: 2; }
 .agent-card:nth-of-type(5) { grid-column: 1; grid-row: 3; }
 .agent-card:nth-of-type(6) { grid-column: 3; grid-row: 3; }
-.agent-card:nth-of-type(7) { grid-column: 1; grid-row: 4; }
 .agent-card:hover, .agent-card.active { z-index: 3; border-color: #087fe5; transform: translateZ(35px) scale(1.04); box-shadow: 0 16px 32px rgba(8, 127, 229, .18); }
 .agent-card strong { color: #173251; font-size: 10px; }.agent-card p { color: #6a7b8c; }.agent-card small { display: none; color: #087fe5; font-size: 9px; margin-top: 7px; align-items: center; gap: 4px; }.agent-card:hover small, .agent-card.active small { display: inline-flex; }
 @media (max-width: 800px) { .ecosystem-section { padding: 66px 6%; }.ecosystem-heading { display: block; }.ecosystem-heading p { margin-top: 24px; }.pathways-carousel { margin-top: 38px; margin-left: -6%; margin-right: -6%; padding-left: 6%; padding-right: 6%; }.pathway-card, .pathway-card.active { flex-basis: 78vw; }.journey-track { margin-top: 42px; overflow-x: auto; padding-bottom: 18px; }.journey-stages { width: 1050px; grid-template-columns: repeat(10, 1fr); }.multimodal-section { display: block; min-height: 800px; }.multimodal-stage { margin-top: 30px; min-height: 500px; }.format-orbit { width: 100px; }.agents-section { display: block; }.agent-orbit { display: grid; grid-template-columns: 1fr; grid-template-rows: auto; gap: 12px; margin-top: 32px; min-height: 0; padding: 0; }.agent-core, .agent-core.is-active { position: relative; top: auto; left: auto; grid-column: 1; grid-row: 1; width: 120px; height: 120px; margin: 0 auto 12px; transform: none; }.agent-lines { display: none; }.agent-card, .agent-card:nth-of-type(1), .agent-card:nth-of-type(2), .agent-card:nth-of-type(3), .agent-card:nth-of-type(4), .agent-card:nth-of-type(5), .agent-card:nth-of-type(6), .agent-card:nth-of-type(7) { grid-column: 1; grid-row: auto; min-height: 74px; }.agent-card:nth-of-type(2n) { transform: translateX(8px); } }
