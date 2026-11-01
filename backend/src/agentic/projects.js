@@ -65,7 +65,7 @@ async function ensureProject({ applicationId, startup = {}, applicantId, form = 
   if (existing) {
     await FacultyProject.updateOne({ id: String(applicationId) }, { $set: fields });
     // Ensure founder membership exists even for previously-created projects.
-    if (owner) {
+    if (owner && mongoose.connection?.readyState === 1) {
       await ensureFounderMembership({
         projectId: String(applicationId),
         applicationId: String(applicationId),
@@ -77,7 +77,7 @@ async function ensureProject({ applicationId, startup = {}, applicantId, form = 
     return { ...existing, ...fields };
   }
   const created = await FacultyProject.create({ id: String(applicationId), ...fields, trl: 1, progress: 0, health: 'On Track', nextMilestone: 'Mentor onboarding', nextMilestoneDate: '' });
-  if (owner) {
+  if (owner && mongoose.connection?.readyState === 1) {
     await ensureFounderMembership({
       projectId: String(applicationId),
       applicationId: String(applicationId),

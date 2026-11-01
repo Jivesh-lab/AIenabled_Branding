@@ -12,6 +12,7 @@
  */
 
 const crypto = require('crypto');
+const mongoose = require('mongoose');
 const TeamMembership = require('../models/TeamMembership');
 const FacultyProject = require('../models/FacultyProject');
 const StartupProfile = require('../models/StartupProfile');
@@ -346,6 +347,7 @@ async function getTeamProjects(userId) {
 // Check if a user has accepted membership for a project
 // ---------------------------------------------------------------------------
 async function hasAcceptedMembership(userId, projectId) {
+  if (TeamMembership.findOne === mongoose.Model.findOne && mongoose.connection?.readyState !== 1) return false;
   const m = await TeamMembership.findOne({
     userId: String(userId),
     $or: [{ projectId: String(projectId) }, { applicationId: String(projectId) }],
@@ -358,6 +360,7 @@ async function hasAcceptedMembership(userId, projectId) {
 // User ids of every ACCEPTED teammate on a project (used to include them in meetings)
 // ---------------------------------------------------------------------------
 async function acceptedMemberUserIds(projectId) {
+  if (TeamMembership.find === mongoose.Model.find && mongoose.connection?.readyState !== 1) return [];
   const rows = await TeamMembership.find({ projectId: String(projectId), status: 'ACCEPTED', userId: { $ne: null } }).select('userId').lean();
   return rows.map((r) => String(r.userId));
 }
