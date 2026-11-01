@@ -121,9 +121,8 @@ export default function FacultyDashboardPage() {
               <AgentActivityFeed title="Agent activity on your startups" limit={12} />
               <AttentionPanel title="Escalations for your startups" />
             </div>
-
             <SectionDivider label="Meetings" />
-            <AgentMeetings title="Meetings the agents arranged" canRecord />
+            <AgentMeetings title="Meetings the agents arranged" canRecord canManage />
           </div>
         )}
 

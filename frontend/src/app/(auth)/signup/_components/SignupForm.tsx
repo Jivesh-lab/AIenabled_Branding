@@ -12,8 +12,8 @@
  */
 
 import Link from "next/link";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { toast } from "sonner";
 import { Eye, EyeOff, CheckCircle, ArrowLeft } from "lucide-react";
@@ -23,6 +23,9 @@ import { z } from "zod";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import GoogleIcon from "@/components/icons/GoogleIcon";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 // ---------------------------------------------------------------------------
 // Role definitions — matches the reference mockup exactly
@@ -252,6 +255,20 @@ function StepRoleSelect({
         Continue
       </button>
 
+      {/* Sign up with Google: Google proves who you are, then you finish your profile here */}
+      <div className="mt-4 flex items-center gap-3" aria-hidden="true">
+        <span className="h-px flex-1 bg-slate-200" />
+        <span className="text-[11px] uppercase tracking-wide text-slate-400">or</span>
+        <span className="h-px flex-1 bg-slate-200" />
+      </div>
+      <button
+        type="button"
+        onClick={() => { window.location.href = `${API_URL}/api/auth/google/start?mode=signup`; }}
+        className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/40"
+      >
+        <GoogleIcon /> Sign up with Google
+      </button>
+
       {/* Switch to login */}
       <div className="mt-4 text-center">
         <Link
@@ -273,10 +290,13 @@ function StepBasicInfo({
   onBack,
   onNext,
   defaultValues,
+  lockEmail = false,
 }: {
   onBack: () => void;
   onNext: (values: BasicValues) => void;
   defaultValues?: Partial<BasicValues>;
+  /** Google-verified e-mail: shown, but not editable. */
+  lockEmail?: boolean;
 }) {
   const {
     register,
@@ -322,11 +342,14 @@ function StepBasicInfo({
             type="email"
             autoComplete="email"
             placeholder="you@example.com"
+            readOnly={lockEmail}
+            aria-readonly={lockEmail}
             aria-invalid={!!errors.email}
             aria-describedby={errors.email ? "s-email-err" : undefined}
             className={inputCls(!!errors.email)}
             {...register("email")}
           />
+          {lockEmail && <p className="text-xs text-slate-500">Verified by Google. This is the address your account will use.</p>}
           <FieldError id="s-email-err" message={errors.email?.message} />
         </div>
 
@@ -623,10 +646,29 @@ function StepPassword({
 function StepAccountStatus({
   email,
   role,
+  pendingApproval = false,
 }: {
   email: string;
   role: RoleValue | null;
+  pendingApproval?: boolean;
 }) {
+  if (pendingApproval) {
+    return (
+      <div className="text-center py-4">
+        <div className="flex justify-center mb-4">
+          <div className="flex size-12 items-center justify-center rounded-full bg-amber-50 border border-amber-200">
+            <CheckCircle className="size-6 text-amber-600" aria-hidden="true" />
+          </div>
+        </div>
+        <h2 className="text-2xl font-bold text-slate-900 tracking-tight mb-2">Waiting for approval</h2>
+        <p className="text-sm font-semibold text-slate-900 mb-2">{email}</p>
+        <p className="text-xs text-slate-500 max-w-sm mx-auto mb-6 leading-relaxed">
+          Your {role ? `${role} ` : ""}profile was saved. An administrator reviews new accounts of this type before they can sign in. Once approved, choose &ldquo;Continue with Google&rdquo; on the sign-in page.
+        </p>
+        <Link href="/login" className="inline-flex items-center justify-center h-11 rounded-xl px-6 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors">Back to sign in</Link>
+      </div>
+    );
+  }
   return (
     <div className="text-center py-4">
       <div className="flex justify-center mb-4">
@@ -669,11 +711,72 @@ export default function SignupForm() {
   const [step, setStep] = useState<0 | 1 | 2 | 3 | 4>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // Google flow: the backend verified a Google identity and gave us a one-time ticket. No password is asked for.
+  const [googleTicket, setGoogleTicket] = useState<string | null>(null);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [pendingApproval, setPendingApproval] = useState(false);
+  const ticketRead = useRef(false);
   const [formState, setFormState] = useState<FormState>({
     role: "student",
     basic: null,
     roleSpecific: null,
   });
+
+  useEffect(() => {
+    if (ticketRead.current) return;
+    const ticket = searchParams.get("googleTicket");
+    if (!ticket) return;
+    ticketRead.current = true;
+    const clean = new URLSearchParams(searchParams.toString());
+    clean.delete("googleTicket");
+    window.history.replaceState(null, "", `${window.location.pathname}${clean.toString() ? `?${clean.toString()}` : ""}`);
+    setGoogleLoading(true);
+    fetch(`${API_URL}/api/auth/google/pending?ticket=${encodeURIComponent(ticket)}`)
+      .then(async (res) => {
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(body.message || "This Google sign-up link has expired. Please start again.");
+        setGoogleTicket(ticket);
+        setFormState((s) => ({ ...s, basic: { fullName: body.data.name || "", email: body.data.email } }));
+        toast.success("Google verified your e-mail. Choose your account type and finish your profile.");
+      })
+      .catch((error: Error) => toast.error(error.message))
+      .finally(() => setGoogleLoading(false));
+  }, [searchParams]);
+
+  async function handleGoogleSubmit(roleSpecific: RoleSpecificValues) {
+    if (!googleTicket || !formState.role || !formState.basic) return;
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`${API_URL}/api/auth/google/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ticket: googleTicket, name: formState.basic.fullName, role: formState.role, profile: roleSpecific }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.message || "We could not finish your registration. Please try again.");
+        if (res.status === 410 || res.status === 409) setGoogleTicket(null);
+        return;
+      }
+      if (data.status === "pending") {
+        setPendingApproval(true);
+        setStep(4);
+        return;
+      }
+      toast.success("Account created successfully!");
+      const result = await signIn("credentials", { redirect: false, googleTicket: data.ticket });
+      if (result?.ok) {
+        router.replace(`/workspace/${formState.role}/dashboard`);
+        return;
+      }
+      setStep(4);
+    } catch {
+      toast.error("Network error. Please check your connection and try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   async function handleFinalSubmit(passwordValues: PasswordValues) {
     if (!formState.role || !formState.basic) return;
@@ -728,8 +831,17 @@ export default function SignupForm() {
     }
   }
 
+  if (googleLoading) {
+    return <div role="status" aria-label="Checking your Google sign-in" className="h-64 animate-pulse rounded-xl bg-slate-100" />;
+  }
+
   return (
     <div className="w-full">
+      {googleTicket && formState.basic && step < 4 && (
+        <p className="mb-4 flex items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-slate-600">
+          <GoogleIcon /> Signing up with Google as <strong className="text-slate-900">{formState.basic.email}</strong>. You will not need a password.
+        </p>
+      )}
       {step === 0 && (
         <StepRoleSelect
           selectedRole={formState.role}
@@ -748,6 +860,7 @@ export default function SignupForm() {
             setStep(2);
           }}
           defaultValues={formState.basic ?? undefined}
+          lockEmail={Boolean(googleTicket)}
         />
       )}
 
@@ -757,6 +870,10 @@ export default function SignupForm() {
           onBack={() => setStep(1)}
           onNext={(roleSpecific) => {
             setFormState((s) => ({ ...s, roleSpecific }));
+            if (googleTicket) {
+              void handleGoogleSubmit(roleSpecific);
+              return;
+            }
             setStep(3);
           }}
           defaultValues={formState.roleSpecific ?? undefined}
@@ -775,6 +892,7 @@ export default function SignupForm() {
         <StepAccountStatus
           email={formState.basic?.email ?? ""}
           role={formState.role}
+          pendingApproval={pendingApproval}
         />
       )}
     </div>

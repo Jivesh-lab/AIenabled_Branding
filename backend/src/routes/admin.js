@@ -825,7 +825,7 @@ router.post('/applications/:id/sync-startup', async (req, res) => {
     const profile = await StartupProfile.findOneAndUpdate(
       { applicationId: String(applicationId) },
       { $set: profileData },
-      { upsert: true, new: true, runValidators: true }
+      { upsert: true, returnDocument: 'after', runValidators: true }
     );
 
     // If approved, also synchronize to FacultyProject for Faculty Coordinator Control Center

@@ -78,7 +78,7 @@ async function claim(entry) {
   const retry = await ReminderLog.findOneAndUpdate(
     { key: entry.key, status: 'failed', attempts: { $lt: MAX_ATTEMPTS } },
     { $set: { status: 'pending' }, $inc: { attempts: 1 } },
-    { new: true }
+    { returnDocument: 'after' }
   );
   return Boolean(retry);
 }

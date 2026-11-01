@@ -33,6 +33,10 @@ const facultyMeetingSchema = new mongoose.Schema(
     kind: { type: String, default: 'general' },
     responses: { type: mongoose.Schema.Types.Mixed, default: {} },
     dedupeKey: { type: String, default: undefined },
+    calendarSyncStatus: { type: String, enum: ['synced', 'pending', 'failed', 'not_applicable'], default: 'not_applicable' },
+    calendarSyncError: { type: String, default: null },
+    cancelledAt: { type: Date, default: null },
+    cancelledBy: { type: String, default: null },
   },
   { timestamps: true }
 );

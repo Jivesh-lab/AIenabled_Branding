@@ -21,7 +21,7 @@ router.patch('/:id/read', authenticate, async (req, res) => {
     const notification = await AgentNotification.findOneAndUpdate(
       { _id: req.params.id, recipientUserId: String(req.user.id) },
       { $set: { readAt: new Date() } },
-      { new: true }
+      { returnDocument: 'after' }
     ).lean();
     if (!notification) return res.status(404).json({ success: false, message: 'Notification not found.' });
     return res.json({ success: true, data: notification });

@@ -131,6 +131,11 @@ function googleReady() {
   return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.GOOGLE_REDIRECT_URI && process.env.INTEGRATIONS_ENCRYPTION_KEY);
 }
 
+/** Google sign-in only needs the OAuth client; storing calendar tokens additionally needs the encryption key. */
+function googleSignInReady() {
+  return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.GOOGLE_REDIRECT_URI);
+}
+
 function llmReady() {
   return Boolean(process.env.LLM_API_KEY || process.env.OPENROUTER_API_KEY);
 }
@@ -139,6 +144,7 @@ function integrationStatus() {
   const forced = demoModeForced();
   return {
     demoMode: forced,
+    googleSignIn: { configured: googleSignInReady() },
     email: { configured: smtpReady(), mode: smtpReady() && !forced ? 'live' : 'sandbox', missing: smtpReady() ? [] : ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASSWORD'] },
     calendar: {
       configured: googleReady(),
@@ -149,4 +155,4 @@ function integrationStatus() {
   };
 }
 
-module.exports = { TIER, ACTION_TIERS, tierFor, getConfig, integrationStatus, demoModeForced, smtpReady, googleReady, llmReady, DAY, HOUR };
+module.exports = { TIER, ACTION_TIERS, tierFor, getConfig, integrationStatus, demoModeForced, smtpReady, googleReady, googleSignInReady, llmReady, DAY, HOUR };

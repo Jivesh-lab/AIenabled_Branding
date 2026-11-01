@@ -112,7 +112,7 @@ async function respond({ requestId, user, decision, note: text = '' }) {
   if (request.status !== 'pending') throw Object.assign(new Error(`This request was already ${request.status.replace('_', ' ')}.`), { status: 409 });
   if (new Date(request.dueAt) < new Date()) throw Object.assign(new Error('This request has expired. The coordinator will be in touch if it is still needed.'), { status: 410 });
   const status = decision === 'accept' ? 'accepted' : 'declined';
-  const updated = await MentorRequest.findOneAndUpdate({ _id: request._id, status: 'pending' }, { $set: { status, respondedAt: new Date(), responseNote: String(text).slice(0, 500) } }, { new: true }).lean();
+  const updated = await MentorRequest.findOneAndUpdate({ _id: request._id, status: 'pending' }, { $set: { status, respondedAt: new Date(), responseNote: String(text).slice(0, 500) } }, { returnDocument: 'after' }).lean();
   if (!updated) throw Object.assign(new Error('This request was just answered.'), { status: 409 });
   const ctx = makeCtx(AGENT, { trigger: { type: 'user', ref: String(user.id) }, projectId: request.projectId, applicationId: request.applicationId });
   await note({ ...ctx, action: 'mentor.request', status: 'success', tool: 'mentor_response', summary: `${cleanName(user.name || request.mentorName)} ${status === 'accepted' ? 'accepted' : 'declined'} the request to mentor ${request.projectTitle}${text ? ` - "${String(text).slice(0, 100)}"` : ''}.`, audience: { userIds: [], roles: ['faculty', 'admin'] }, projectId: request.projectId });
@@ -267,7 +267,7 @@ async function handleMatching(job, { now, config }) {
   if (current && current.status === 'pending') {
     const due = new Date(current.dueAt).getTime();
     if (now.getTime() >= due) {
-      await MentorRequest.findOneAndUpdate({ _id: current._id, status: 'pending' }, { $set: { status: 'timed_out', respondedAt: now } }, { new: true });
+      await MentorRequest.findOneAndUpdate({ _id: current._id, status: 'pending' }, { $set: { status: 'timed_out', respondedAt: now } }, { returnDocument: 'after' });
       await emit('mentor.timed_out', { aggregateId: project.id, projectId: project.id, applicationId: project.applicationId, payload: { mentorUserId: String(current.mentorUserId) }, dedupe: String(current._id), correlationId: ctx.correlationId });
       await note({ ...ctx, action: 'mentor.request', status: 'success', projectId: project.id, summary: `${current.mentorName} did not reply to the request for ${project.title} in time; the request was closed.`, audience: { userIds: [], roles: ['faculty', 'admin'] } });
       tried.push({ name: current.mentorName, outcome: 'no reply' });
