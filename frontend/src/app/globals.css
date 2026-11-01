@@ -538,3 +538,18 @@
   0% { transform: translateX(-100%); }
   100% { transform: translateX(300%); }
 }
+
+/* Student portal: no visible scrollbars anywhere (page, sidebar, drawers, tabs, lists). Scrolling still works. */
+html:has(.student-portal),
+.student-portal,
+.student-portal * {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+html:has(.student-portal)::-webkit-scrollbar,
+.student-portal::-webkit-scrollbar,
+.student-portal *::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}

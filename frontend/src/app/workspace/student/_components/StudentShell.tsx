@@ -36,16 +36,19 @@ const STUDENT_SECTIONS: NavSection[] = [
 /** `user` comes from the server-verified session (see ../layout.tsx), not a placeholder. */
 export default function StudentShell({ user, children }: { user: NavbarUser; children: React.ReactNode }) {
   const router = useRouter();
+  // `student-portal` scopes the "no visible scrollbars" rule in globals.css to this workspace only.
   return (
-    <BaseWorkspaceLayout
-      sections={STUDENT_SECTIONS}
-      user={user}
-      workspaceLabel="Student Workspace"
-      allowedRole="student"
-      searchPlaceholder="Search your projects"
-      onSearch={(query) => router.push(`/workspace/student/projects?q=${encodeURIComponent(query)}`)}
-    >
-      {children}
-    </BaseWorkspaceLayout>
+    <div className="student-portal">
+      <BaseWorkspaceLayout
+        sections={STUDENT_SECTIONS}
+        user={user}
+        workspaceLabel="Student Workspace"
+        allowedRole="student"
+        searchPlaceholder="Search your projects"
+        onSearch={(query) => router.push(`/workspace/student/projects?q=${encodeURIComponent(query)}`)}
+      >
+        {children}
+      </BaseWorkspaceLayout>
+    </div>
   );
 }

@@ -7,7 +7,7 @@
  * the selected date. Status, grouping and counts are derived from props on
  * every render; nothing is copied into state.
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { CalendarDaysIcon } from "@heroicons/react/24/outline";
 import { formatDayLabel } from "@/lib/dates";
 import { Card } from "@/components/shared/Surface";
@@ -21,28 +21,16 @@ import MeetingCalendar from "./MeetingCalendar";
 import MeetingListItem from "./MeetingListItem";
 import RequestMeetingPanel from "./RequestMeetingPanel";
 
-/** One labelled group of rows. The surrounding schedule card supplies the border, so rows are separated by hairlines. */
-function MeetingSection({ title, meetings, now, empty }: { title: string; meetings: StudentMeeting[]; now: Now; empty?: string }) {
-  if (meetings.length === 0 && !empty) return null;
-  return (
-    <section aria-label={title}>
-      <h3 className="border-b border-line bg-canvas/60 px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.06em] text-muted-ink">
-        {title} <span className="font-medium tabular-nums">({meetings.length})</span>
-      </h3>
-      {meetings.length === 0 ? (
-        <p className="px-4 py-6 text-center text-[13px] text-muted-ink">{empty}</p>
-      ) : (
-        <ul className="divide-y divide-line">
-          {meetings.map((m) => (
-            <li key={m.id}>
-              <MeetingListItem meeting={m} now={now} />
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  );
-}
+type ScheduleTab = "upcoming" | "requested" | "past";
+
+const TAB_LABEL: Record<ScheduleTab, string> = { upcoming: "Upcoming", requested: "Requested", past: "Past" };
+const TAB_EMPTY: Record<ScheduleTab, string> = {
+  upcoming: "No upcoming meetings. Use Request Meeting to schedule one.",
+  requested: "No meeting requests are waiting for a response.",
+  past: "No past meetings yet.",
+};
+/** How many rows each tab shows before "View all meetings". */
+const PREVIEW_COUNT = 3;
 
 export default function MeetingsWorkspace({
   meetings,
@@ -57,7 +45,6 @@ export default function MeetingsWorkspace({
   const [view, setView] = useState({ year: todayDate.getUTCFullYear(), month: todayDate.getUTCMonth() });
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [requestOpen, setRequestOpen] = useState(false);
-  const panelRef = useRef<HTMLDivElement>(null);
 
   const summary = summarize(meetings, now);
   const groups = groupMeetings(meetings, now);
@@ -71,10 +58,19 @@ export default function MeetingsWorkspace({
     ? meetings.filter((m) => m.date === selectedDate).sort((a, b) => a.startTime.localeCompare(b.startTime))
     : [];
 
+  const [tab, setTab] = useState<ScheduleTab>("upcoming");
+  const [showAll, setShowAll] = useState(false);
+  // "Requested" also carries meetings whose date is still to be confirmed, so no record is hidden by the tabs.
+  const byTab: Record<ScheduleTab, StudentMeeting[]> = {
+    upcoming: [...groups.today, ...groups.upcoming],
+    requested: [...groups.requested, ...groups.unscheduled],
+    past: groups.past,
+  };
+  const tabMeetings = selectedDate ? onSelectedDate : byTab[tab];
+  const visibleMeetings = showAll || selectedDate ? tabMeetings : tabMeetings.slice(0, PREVIEW_COUNT);
+
   function openRequest() {
     setRequestOpen(true);
-    // Bring the panel into view on small screens, where it opens below the fold.
-    requestAnimationFrame(() => panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
   }
 
   function selectDate(iso: string) {
@@ -109,7 +105,7 @@ export default function MeetingsWorkspace({
           <button
             type="button"
             onClick={openRequest}
-            aria-expanded={requestOpen}
+            aria-haspopup="dialog"
             className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-brand px-4 text-[14px] font-semibold text-white transition-colors duration-150 hover:bg-brand-hover active:bg-brand-active focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 focus-visible:ring-offset-1"
           >
             <CalendarDaysIcon className="size-4" aria-hidden="true" />
@@ -121,19 +117,85 @@ export default function MeetingsWorkspace({
       {/* KPI summary — directly below the header. */}
       <MeetingSummary {...summary} />
 
-      {requestOpen && (
-        <div ref={panelRef} className="scroll-mt-24">
-          <RequestMeetingPanel projects={projects} today={now.date} onClose={() => setRequestOpen(false)} />
-        </div>
-      )}
+      <RequestMeetingPanel open={requestOpen} projects={projects} today={now.date} onClose={() => setRequestOpen(false)} />
 
-      {/* AI-coordinated investor discovery - a distinct section; these records live in their own collection. */}
-      {investorMeetings.length > 0 && <InvestorDocket introductions={investorMeetings} />}
+      {/* Your schedule - meeting list (about 70%) with a compact calendar navigator (about 30%). */}
+      <section aria-label="Your schedule" className="flex flex-col gap-3">
+        <h2 className="text-[13px] font-semibold uppercase tracking-[0.06em] text-muted-ink">Your Schedule</h2>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)] lg:items-start">
+          {/* Primary: upcoming meetings */}
+          <div className="min-w-0 overflow-hidden rounded-xl border border-line bg-white shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-4 py-2.5">
+              {selectedDate ? (
+                <p className="text-[14px] font-semibold text-ink" aria-live="polite">
+                  {formatDayLabel(selectedDate, now.date)}
+                  <span className="ml-2 font-normal tabular-nums text-muted-ink">({onSelectedDate.length})</span>
+                </p>
+              ) : (
+                <div role="tablist" aria-label="Meeting filter" className="flex gap-1">
+                  {(Object.keys(TAB_LABEL) as ScheduleTab[]).map((key) => {
+                    const selected = tab === key;
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        role="tab"
+                        aria-selected={selected}
+                        onClick={() => {
+                          setTab(key);
+                          setShowAll(false);
+                        }}
+                        className={
+                          "rounded-lg px-3 py-1.5 text-[13px] outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-brand/40 " +
+                          (selected ? "bg-brand-soft font-semibold text-brand" : "font-medium text-muted-ink hover:bg-nav-hover hover:text-ink")
+                        }
+                      >
+                        {TAB_LABEL[key]} <span className="tabular-nums">({byTab[key].length})</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              {selectedDate && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedDate(null)}
+                  className="rounded-md px-1.5 py-0.5 text-[13px] font-medium text-brand transition-colors hover:text-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+                >
+                  Clear date filter
+                </button>
+              )}
+            </div>
 
-      {/* Your meeting schedule - calendar (about a third) and the student's own mentor/faculty meetings. */}
-      <section aria-label="Your meeting schedule" className="flex flex-col gap-3">
-        <h2 className="text-[13px] font-semibold uppercase tracking-[0.06em] text-muted-ink">Your Meeting Schedule</h2>
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start">
+            {visibleMeetings.length === 0 ? (
+              <p className="px-4 py-8 text-center text-[13px] text-muted-ink">
+                {selectedDate ? "No meetings on this day." : TAB_EMPTY[tab]}
+              </p>
+            ) : (
+              <ul className="divide-y divide-line">
+                {visibleMeetings.map((m) => (
+                  <li key={m.id}>
+                    <MeetingListItem meeting={m} now={now} />
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {!selectedDate && tabMeetings.length > PREVIEW_COUNT && (
+              <div className="border-t border-line px-4 py-2.5">
+                <button
+                  type="button"
+                  onClick={() => setShowAll((v) => !v)}
+                  aria-expanded={showAll}
+                  className="rounded-md text-[13px] font-semibold text-brand transition-colors hover:text-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+                >
+                  {showAll ? "Show fewer meetings" : `View all meetings (${tabMeetings.length}) \u2192`}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Secondary: compact calendar navigator */}
           <Card className="p-4 lg:sticky lg:top-[84px]">
             <MeetingCalendar
               year={view.year}
@@ -144,42 +206,28 @@ export default function MeetingsWorkspace({
               onMonthChange={(year, month) => setView({ year, month })}
               onSelect={selectDate}
             />
-            <p className="mt-3 flex items-center gap-1.5 border-t border-line pt-3 text-[12px] text-muted-ink">
-              <span aria-hidden="true" className="size-1.5 rounded-full bg-brand-cyan" />
-              Days with meetings. Select a date to filter.
-            </p>
+            <div className="mt-3 flex items-center justify-between gap-2 border-t border-line pt-3 text-[12px] text-muted-ink">
+              <span className="flex items-center gap-1.5">
+                <span aria-hidden="true" className="size-1.5 rounded-full bg-brand-cyan" />
+                Days with meetings
+              </span>
+              {selectedDate && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedDate(null)}
+                  className="rounded font-semibold text-brand hover:text-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+                >
+                  All upcoming
+                </button>
+              )}
+            </div>
           </Card>
-
-          {/* Meeting list - one surface, hairline-separated rows */}
-          <div className="min-w-0 overflow-hidden rounded-xl border border-line bg-white shadow-sm">
-            {selectedDate ? (
-              <>
-                <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-2.5">
-                  <p className="text-[14px] font-semibold text-ink" aria-live="polite">
-                    {formatDayLabel(selectedDate, now.date)}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedDate(null)}
-                    className="rounded-md px-1.5 py-0.5 text-[13px] font-medium text-brand transition-colors hover:text-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-                  >
-                    Show all meetings
-                  </button>
-                </div>
-                <MeetingSection title="Meetings on this day" meetings={onSelectedDate} now={now} empty="No meetings on this day." />
-              </>
-            ) : (
-              <>
-                <MeetingSection title="Today" meetings={groups.today} now={now} />
-                <MeetingSection title="Upcoming" meetings={groups.upcoming} now={now} empty="No upcoming meetings. Use Request Meeting to schedule one." />
-                <MeetingSection title="Awaiting confirmation" meetings={groups.requested} now={now} />
-                <MeetingSection title="Date to be confirmed" meetings={groups.unscheduled} now={now} />
-                <MeetingSection title="Past meetings" meetings={groups.past} now={now} />
-              </>
-            )}
-          </div>
         </div>
       </section>
+
+      {/* AI-coordinated investor discovery - a distinct section; these records live in their own collection. */}
+      {investorMeetings.length > 0 && <InvestorDocket introductions={investorMeetings} />}
+
     </div>
   );
 }

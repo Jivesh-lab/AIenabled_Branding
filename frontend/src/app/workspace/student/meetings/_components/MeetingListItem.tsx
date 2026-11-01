@@ -90,6 +90,12 @@ export default function MeetingListItem({ meeting, now }: { meeting: StudentMeet
             {!isIsoDate(meeting.date) && ` · ${meeting.date}`}
           </p>
 
+          {meeting.participants.length > 0 && (
+            <p className="mt-0.5 truncate text-[12px] text-muted-ink">
+              With <span className="font-medium text-ink">{meeting.participants.join(", ")}</span>
+            </p>
+          )}
+
           {(meeting.location || meeting.agenda || reminder) && (
             <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[12px] text-muted-ink">
               {meeting.location && (
