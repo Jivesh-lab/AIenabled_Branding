@@ -6,6 +6,7 @@ import LoadError from "../../_components/LoadError";
 import MentorCard from "../../_components/MentorCard";
 import TaskList from "../../_components/TaskList";
 import MilestonesPanel from "../../_components/MilestonesPanel";
+import TeamManagementPanel from "../_components/TeamManagementPanel";
 import MonitoringCard from "../../_components/MonitoringCard";
 import { getProjectMonitoring } from "@/lib/projectMonitoring";
 import { fetchBackend } from "@/lib/backendProxy";
@@ -589,6 +590,8 @@ export default async function ProjectPage({
               </div>
             </div>
           </Card>
+
+          <TeamManagementPanel projectId={project.id} roster={teamMembers} />
         </div>
       </div>
     </PageContainer>

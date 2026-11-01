@@ -13,6 +13,7 @@ const notificationsRouter = require('./routes/notifications');
 const superAdminRouter = require('./routes/superAdmin');
 const agenticRouter = require('./routes/agentic');
 const integrationsRouter = require('./routes/integrations');
+const teamRouter = require('./routes/team');
 
 const app = express();
 
@@ -65,6 +66,7 @@ app.use('/api/notifications', notificationsRouter);
 app.use('/api/super-admin', superAdminRouter);
 app.use('/api/agentic', agenticRouter);
 app.use('/api/integrations', integrationsRouter);
+app.use('/api/team', teamRouter);
 
 // Health check
 app.get('/api/health', (_request, response) => {

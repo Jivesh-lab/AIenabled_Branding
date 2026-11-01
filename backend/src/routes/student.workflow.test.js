@@ -12,6 +12,7 @@ const FacultyMeeting = require('../models/FacultyMeeting');
 const FacultyTask = require('../models/FacultyTask');
 const ReminderLog = require('../models/ReminderLog');
 const User = require('../models/User');
+const TeamMembership = require('../models/TeamMembership');
 const studentRouter = require('./student');
 const { runReminderSweep, MAX_ATTEMPTS } = require('../services/reminderService');
 
@@ -32,6 +33,7 @@ function reset() {
     reminders: new Map(),
     users: { [OWNER]: { _id: OWNER, name: 'Asha Rao', email: 'asha@example.edu' } },
     saved: [],
+    memberships: [],
   };
 }
 reset();
@@ -48,6 +50,7 @@ StartupProfile.findOne = (q) => {
   return chain(hit || null);
 };
 FacultyProject.findOne = () => chain({ title: 'Smart Irrigation' });
+TeamMembership.find = (q) => chain(db.memberships.filter((m) => m.userId === q.userId && m.status === q.status));
 User.findById = (id) => chain(db.users[id] || null);
 User.findOne = (q) => chain(db.users[String(q._id)] || null);
 
@@ -136,6 +139,22 @@ test('meetings: a student sees only meetings of projects they founded', async ()
   assert.deepStrictEqual(theirs.body.data.map((m) => m.id), ['m2']);
   const nobody = await api('GET', '/api/student/meetings', tokenFor('650000000000000000000099'));
   assert.deepStrictEqual(nobody.body.data, []);
+});
+
+test('team: only an ACCEPTED teammate sees the project meetings and tasks', async () => {
+  reset();
+  const MATE = '650000000000000000000006';
+  const PENDING_USER = '650000000000000000000007';
+  db.meetings = [meeting()];
+  db.memberships = [
+    { userId: MATE, projectId: APP, applicationId: APP, status: 'ACCEPTED' },
+    { userId: PENDING_USER, projectId: APP, applicationId: APP, status: 'PENDING' },
+  ];
+  const mate = await api('GET', '/api/student/meetings', tokenFor(MATE));
+  assert.deepStrictEqual(mate.body.data.map((m) => m.id), ['m1']);
+  // A pending invitee has no accepted membership, so nothing is returned for them.
+  const pending = await api('GET', '/api/student/meetings', tokenFor(PENDING_USER));
+  assert.deepStrictEqual(pending.body.data, []);
 });
 
 test('meetings: notes are released only after the host logs the meeting as held', async () => {

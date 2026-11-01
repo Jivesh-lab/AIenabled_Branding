@@ -394,7 +394,14 @@ def standalone_get_application_queue() -> List[Dict[str, Any]]:
         ]
 
 
-def standalone_get_application_details(application_id: str, requester_id: str, can_review: bool = False) -> Dict[str, Any]:
+def standalone_applicant_id(application_id: str) -> Optional[str]:
+    """The applicant of an application, or None when it does not exist."""
+    with get_connection() as conn:
+        row = conn.execute("SELECT applicant_id FROM applications WHERE id = ?", (application_id,)).fetchone()
+        return str(row["applicant_id"]) if row else None
+
+
+def standalone_get_application_details(application_id: str, requester_id: str, can_review: bool = False, is_member: bool = False) -> Dict[str, Any]:
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(
@@ -412,7 +419,7 @@ def standalone_get_application_details(application_id: str, requester_id: str, c
         record = cursor.fetchone()
         if not record:
             raise HTTPException(status_code=404, detail="Application not found")
-        if not can_review and record["applicant_id"] != requester_id:
+        if not can_review and not is_member and record["applicant_id"] != requester_id:
             raise HTTPException(status_code=403, detail="You do not have access to this application")
 
         form = _load_json(record["form_data"], {})
@@ -488,6 +495,13 @@ def standalone_owned_application(application_id: str, applicant_id: str) -> Dict
     with get_connection() as conn:
         row = _load_owned(conn.cursor(), application_id, applicant_id)
         return {"startup_id": row["startup_id"], "status": row["status"]}
+
+
+def standalone_application_stub(application_id: str) -> Optional[Dict[str, Any]]:
+    """{startup_id, status} for any application (callers must authorise first), or None."""
+    with get_connection() as conn:
+        row = conn.execute("SELECT startup_id, status FROM applications WHERE id = ?", (application_id,)).fetchone()
+        return {"startup_id": row["startup_id"], "status": row["status"]} if row else None
 
 
 def standalone_list_milestones(startup_id: str) -> List[Dict[str, Any]]:
