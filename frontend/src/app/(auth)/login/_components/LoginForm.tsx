@@ -106,6 +106,17 @@ export default function LoginForm() {
       }
 
       if (result.error) {
+        try {
+          const healthRes = await fetch("/api/health", { cache: "no-store", signal: AbortSignal.timeout(1500) });
+          if (!healthRes.ok) {
+            toast.error("Cannot connect to backend server. Please verify the Express backend is running on port 5000.");
+            return;
+          }
+        } catch {
+          toast.error("Cannot connect to backend server. Please verify the Express backend is running on port 5000.");
+          return;
+        }
+
         toast.error(
           result.error === "CredentialsSignin"
             ? "Invalid credentials or 2FA code. (Use 123456 for Super Admin)"

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MapPin, Video } from "lucide-react";
+import { MapPinIcon, VideoCameraIcon } from "@heroicons/react/24/outline";
 import { cn } from "@/lib/utils";
 import { formatClock, weekdayShort } from "@/lib/dates";
 import { StatusBadge } from "@/components/shared/Surface";
@@ -92,7 +92,7 @@ export default function MeetingListItem({ meeting, now }: { meeting: StudentMeet
 
         {meeting.location && (
           <p className="mt-1 flex items-center gap-1.5 text-[12px] text-muted-ink">
-            {online ? <Video className="size-3.5 shrink-0" aria-hidden="true" /> : <MapPin className="size-3.5 shrink-0" aria-hidden="true" />}
+            {online ? <VideoCameraIcon className="size-3.5 shrink-0" aria-hidden="true" /> : <MapPinIcon className="size-3.5 shrink-0" aria-hidden="true" />}
             <span className="truncate">{online ? "Online meeting" : meeting.location}</span>
           </p>
         )}
@@ -114,7 +114,7 @@ export default function MeetingListItem({ meeting, now }: { meeting: StudentMeet
           </Link>
           {join && (
             <a href={join} target="_blank" rel="noopener noreferrer" className={joinLinkClass}>
-              <Video className="size-3.5" aria-hidden="true" />
+              <VideoCameraIcon className="size-3.5" aria-hidden="true" />
               Join Meeting
             </a>
           )}

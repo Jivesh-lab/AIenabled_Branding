@@ -1,6 +1,5 @@
 import { Card } from "@/components/shared/Surface";
 import {
-  KpiCardSkeleton,
   ListItemSkeleton,
   LoadingRegion,
   PageHeadingSkeleton,
@@ -16,9 +15,15 @@ import DashboardLayout from "./DashboardLayout";
 
 export function KpiRowSkeleton() {
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
       {Array.from({ length: 4 }, (_, i) => (
-        <KpiCardSkeleton key={i} />
+        <div key={i} className="flex items-start justify-between gap-3 rounded-xl border border-line bg-white p-4 shadow-sm">
+          <div className="min-w-0 flex-1 space-y-2">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-6 w-12" />
+          </div>
+          <Skeleton className="size-[18px] shrink-0 rounded" />
+        </div>
       ))}
     </div>
   );

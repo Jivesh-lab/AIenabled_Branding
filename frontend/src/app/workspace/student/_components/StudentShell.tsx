@@ -4,25 +4,31 @@ import { useRouter } from "next/navigation";
 import BaseWorkspaceLayout from "@/components/shared/BaseWorkspaceLayout";
 import type { NavbarUser } from "@/components/shared/DashboardNavbar";
 import { NavSection } from "@/components/shared/DashboardSidebar";
-import { LayoutDashboard, FolderKanban, Route, CalendarDays, Coins } from "lucide-react";
+import {
+  BanknotesIcon,
+  CalendarDaysIcon,
+  FolderIcon,
+  MapIcon,
+  Squares2X2Icon,
+} from "@heroicons/react/24/outline";
 
 const STUDENT_SECTIONS: NavSection[] = [
   {
     label: "Overview",
-    items: [{ label: "Dashboard", icon: LayoutDashboard, href: "/workspace/student/dashboard" }],
+    items: [{ label: "Dashboard", icon: Squares2X2Icon, href: "/workspace/student/dashboard" }],
   },
   {
     label: "Innovation",
     items: [
-      { label: "My Projects", icon: FolderKanban, href: "/workspace/student/projects" },
-      { label: "Funding & Grants", icon: Coins, href: "/workspace/student/funding" },
+      { label: "My Projects", icon: FolderIcon, href: "/workspace/student/projects" },
+      { label: "Funding & Grants", icon: BanknotesIcon, href: "/workspace/student/funding" },
     ],
   },
   {
     label: "Collaboration",
     items: [
-      { label: "Journey Timeline", icon: Route, href: "/workspace/student/journey" },
-      { label: "Meetings", icon: CalendarDays, href: "/workspace/student/meetings" },
+      { label: "Journey Timeline", icon: MapIcon, href: "/workspace/student/journey" },
+      { label: "Meetings", icon: CalendarDaysIcon, href: "/workspace/student/meetings" },
     ],
   },
 ];

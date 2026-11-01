@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { ArrowRight, FolderKanban } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Card, ProgressBar, SectionHeading, StatusBadge } from "@/components/shared/Surface";
-import { EmptyState } from "@/components/shared/loading/primitives";
 import { dashboardPreview } from "@/lib/dashboardProjects";
 import type { Journey } from "@/lib/journey";
 import type { MentorResult } from "@/lib/mentorState";
@@ -10,6 +9,12 @@ import type { StudentProject } from "@/types/student-application";
 import { MentorLine } from "../../_components/MentorCard";
 import MilestoneProgress from "../../_components/MilestoneProgress";
 import { projectHref } from "../../_lib/project-links";
+
+const LAUNCH_STEPS = [
+  { title: "Pitch your idea", detail: "Describe the problem, solution and team." },
+  { title: "Screening and review", detail: "AI pre-screening, then faculty review." },
+  { title: "Mentor allocation", detail: "Approved teams are matched with a mentor." },
+] as const;
 
 /**
  * Dashboard preview of the projects that most need attention (see lib/dashboardProjects.ts). The complete list,
@@ -32,13 +37,30 @@ export default function MyProjects({
       <SectionHeading title="My Projects" action={{ label: "View all", href: "/workspace/student/projects" }} />
 
       {projects.length === 0 ? (
-        <Card>
-          <EmptyState
-            icon={FolderKanban}
-            title="No projects yet"
-            description="Submit your idea to start the review and incubation journey."
-            action={{ label: "Submit New Idea", href: "/workspace/student/submit" }}
-          />
+        <Card className="p-6">
+          <h3 className="text-[16px] font-semibold text-ink">Ready to turn your idea into a venture?</h3>
+          <p className="mt-1 max-w-xl text-[13px] text-muted-ink">
+            Submit a proposal to begin. Each stage below is tracked here once your idea is in.
+          </p>
+          <ol className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {LAUNCH_STEPS.map((step, i) => (
+              <li key={step.title} className="flex gap-3">
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-line bg-canvas text-[12px] font-semibold text-ink">
+                  {i + 1}
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-[13px] font-semibold text-ink">{step.title}</span>
+                  <span className="mt-0.5 block text-[12px] text-muted-ink">{step.detail}</span>
+                </span>
+              </li>
+            ))}
+          </ol>
+          <Link
+            href="/workspace/student/submit"
+            className="mt-6 inline-flex h-9 items-center rounded-lg bg-brand px-4 text-[13px] font-semibold text-white transition-colors hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 focus-visible:ring-offset-1"
+          >
+            Submit Proposal
+          </Link>
         </Card>
       ) : (
         <>
@@ -56,10 +78,10 @@ export default function MyProjects({
                       <StatusBadge label={REVIEW_STATUS_LABEL[project.reviewStatus]} tone={REVIEW_STATUS_TONE[project.reviewStatus]} />
                     </div>
 
-                    <div className="mt-3 flex flex-col gap-1 text-[13px] sm:flex-row sm:flex-wrap sm:gap-x-6">
+                    <div className="mt-3 flex flex-col gap-1 text-[13px] sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4">
                       <MentorLine result={mentors?.[project.id]} />
                       {stage && (
-                        <p className="min-w-0 truncate text-muted-ink">
+                        <p className="min-w-0 truncate text-muted-ink sm:border-l sm:border-line sm:pl-4">
                           <span className="font-medium text-ink">Stage:</span> {stage.label}
                         </p>
                       )}
@@ -68,7 +90,10 @@ export default function MyProjects({
                     <div className="mt-4">
                       {project.reviewStatus === "DRAFT" ? (
                         <>
-                          <p className="mb-1 text-[12px] text-muted-ink">Submission complete</p>
+                          <p className="mb-1 flex items-center justify-between text-[12px] text-muted-ink">
+                            <span>Draft progress</span>
+                            <span className="font-semibold tabular-nums text-ink">{project.progress}%</span>
+                          </p>
                           <ProgressBar value={project.progress} />
                         </>
                       ) : (

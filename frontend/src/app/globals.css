@@ -14,20 +14,20 @@
   /* --- OCEAN ROYALE BRAND TOKENS (single source of truth) ---------------
      Generates utilities: bg-brand, text-brand-deep, border-line, ring-brand/50 ...
      Do NOT hardcode brand hex values in components; use these tokens. */
-  --color-brand-deep: #142B4A;       /* PRIMARY_DEEP  - logo mark, auth brand panels */
-  --color-brand: #2458D3;            /* PRIMARY       - CTAs, links, active, focus */
-  --color-brand-hover: #1D49B0;
-  --color-brand-active: #173A8E;
-  --color-brand-soft: #E8EFFC;       /* SOFT_BLUE     - active nav, progress track, soft badges */
+  --color-brand-deep: #0B192C;       /* PRIMARY_DEEP  - logo mark, auth brand panels */
+  --color-brand: #1D4ED8;            /* PRIMARY       - CTAs, links, active, focus */
+  --color-brand-hover: #1E40AF;
+  --color-brand-active: #1E3A8A;
+  --color-brand-soft: #E7EEFD;       /* SOFT_BLUE     - active nav, progress track, soft badges */
   --color-brand-cyan: #0D9488;       /* ACCENT_CYAN   - AI features, charts */
   --color-brand-cyan-soft: #CCFBF1;  /* LIGHT_CYAN    - soft backgrounds */
   --color-brand-cyan-ink: #0F766E;   /* readable cyan TEXT on a cyan tint */
-  --color-brand-gold: #FBB02D;       /* ACCENT_GOLD   - warm emphasis */
-  --color-brand-gold-ink: #A16207;   /* readable gold TEXT on a gold tint */
-  --color-ink: #172B4D;              /* TEXT */
+  --color-brand-gold: #F59E0B;       /* ACCENT_GOLD   - warm emphasis */
+  --color-brand-gold-ink: #B45309;   /* readable gold TEXT on a gold tint */
+  --color-ink: #0F172A;              /* TEXT */
   --color-muted-ink: #64748B;        /* MUTED_TEXT */
   --color-line: #E2E8F0;             /* BORDER */
-  --color-canvas: #F5F7FA;           /* BACKGROUND */
+  --color-canvas: #F8FAFC;           /* BACKGROUND */
   --color-icon: #475569;             /* resting navigation / control icons */
   --color-nav-hover: #F1F5F9;        /* navigation row hover on a light surface */
 
@@ -80,7 +80,7 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
   /* Ocean Royale PRIMARY (#023EBA) */
-  --primary: #2458D3;
+  --primary: #1D4ED8;
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -91,7 +91,7 @@
   --destructive: oklch(0.577 0.245 27.325);
   --border: #E2E8F0;
   --input: #E2E8F0;
-  --ring: color-mix(in oklch, #2458D3 40%, transparent);
+  --ring: color-mix(in oklch, #1D4ED8 40%, transparent);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -100,12 +100,12 @@
   --radius: 0.5rem;
   --sidebar: #FFFFFF;
   --sidebar-foreground: #0F172A;
-  --sidebar-primary: #2458D3;
+  --sidebar-primary: #1D4ED8;
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: #E8EFFC;
-  --sidebar-accent-foreground: #2458D3;
+  --sidebar-accent-foreground: #1D4ED8;
   --sidebar-border: #E2E8F0;
-  --sidebar-ring: #2458D3;
+  --sidebar-ring: #1D4ED8;
 }
 
 

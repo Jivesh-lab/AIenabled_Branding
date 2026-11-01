@@ -8,7 +8,13 @@
  * every render; nothing is copied into state.
  */
 import { useEffect, useRef, useState } from "react";
-import { CalendarPlus, Bot, Video, Mail, CheckCircle, ExternalLink } from "lucide-react";
+import {
+  ArrowTopRightOnSquareIcon,
+  CalendarDaysIcon,
+  EnvelopeIcon,
+  SparklesIcon,
+  VideoCameraIcon,
+} from "@heroicons/react/24/outline";
 import { formatDayLabel } from "@/lib/dates";
 import { Card } from "@/components/shared/Surface";
 import PageHeader from "@/components/shared/PageHeader";
@@ -121,80 +127,14 @@ export default function MeetingsWorkspace({
             aria-expanded={requestOpen}
             className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-brand px-4 text-[14px] font-semibold text-white transition-colors duration-150 hover:bg-brand-hover active:bg-brand-active focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 focus-visible:ring-offset-1"
           >
-            <CalendarPlus className="size-4" aria-hidden="true" />
+            <CalendarDaysIcon className="size-4" aria-hidden="true" />
             Request Meeting
           </button>
         }
       />
 
-      {/* AI Scheduled Investor Meetings Banner */}
-      {investorMeetings.length > 0 && (
-        <div className="rounded-2xl border border-brand/20 bg-gradient-to-r from-brand/5 via-brand/10 to-transparent p-5 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="p-1.5 rounded-lg bg-brand text-white">
-                <Bot className="size-4" />
-              </span>
-              <div>
-                <h3 className="text-sm font-bold text-ink">
-                  AI-Scheduled Investor Discovery Meetings ({investorMeetings.length})
-                </h3>
-                <p className="text-xs text-muted-ink">
-                  Meetings coordinated automatically by the AI Agent upon accredited investor interest.
-                </p>
-              </div>
-            </div>
-            <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-100 border border-emerald-300 px-2.5 py-1 rounded-full flex items-center gap-1">
-              <CheckCircle className="size-3" /> Confirmed
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-            {investorMeetings.map((item) => (
-              <div key={item._id} className="p-4 rounded-xl bg-white border border-line shadow-sm space-y-2">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-brand px-2 py-0.5 rounded bg-brand/10">
-                      {item.startupId?.name || "Startup"}
-                    </span>
-                    <h4 className="text-sm font-bold text-ink mt-1">
-                      {item.investorId?.name || "Accredited Investor"}
-                    </h4>
-                    <p className="text-xs text-muted-ink flex items-center gap-1 mt-0.5">
-                      <Mail className="size-3" /> {item.investorId?.email}
-                    </p>
-                  </div>
-                </div>
-
-                {item.scheduledMeeting && (
-                  <div className="text-xs text-ink bg-canvas/60 p-2.5 rounded-lg border border-line space-y-1">
-                    <p className="font-semibold text-brand flex items-center gap-1.5">
-                      <CalendarPlus className="size-3.5" />
-                      {item.scheduledMeeting.date} &bull; {item.scheduledMeeting.time} ({item.scheduledMeeting.timeZone})
-                    </p>
-                    {item.scheduledMeeting.meetingLink && (
-                      <a
-                        href={item.scheduledMeeting.meetingLink}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-brand hover:underline mt-1"
-                      >
-                        <Video className="size-3" /> Join AI Meeting Room <ExternalLink className="size-2.5" />
-                      </a>
-                    )}
-                  </div>
-                )}
-
-                {item.message && (
-                  <p className="text-xs text-slate-600 italic line-clamp-2">
-                    &ldquo;{item.message}&rdquo;
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* KPI summary — directly below the header. */}
+      <MeetingSummary {...summary} />
 
       {requestOpen && (
         <div ref={panelRef} className="scroll-mt-24">
@@ -202,29 +142,101 @@ export default function MeetingsWorkspace({
         </div>
       )}
 
-      <MeetingSummary {...summary} />
+      {/* AI-coordinated investor discovery — a distinct section; these records live in their own collection. */}
+      {investorMeetings.length > 0 && (
+        <section aria-label="AI-coordinated investor discovery">
+          <div className="mb-3 flex items-start gap-2.5">
+            <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand">
+              <SparklesIcon className="size-4" aria-hidden="true" />
+            </span>
+            <div className="min-w-0">
+              <h2 className="text-[13px] font-semibold uppercase tracking-[0.06em] text-muted-ink">
+                AI-Coordinated Investor Discovery <span className="font-medium tabular-nums">({investorMeetings.length})</span>
+              </h2>
+              <p className="mt-0.5 text-[12px] text-muted-ink">
+                Arranged through the incubation discovery process when an accredited investor expresses interest.
+              </p>
+            </div>
+          </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[19.5rem_minmax(0,1fr)] lg:items-start">
-        {/* Calendar — compact, never the dominant element */}
-        <Card className="p-4 lg:sticky lg:top-[84px]">
-          <MeetingCalendar
-            year={view.year}
-            month={view.month}
-            today={now.date}
-            selected={selectedDate}
-            meetingDates={meetingDates}
-            onMonthChange={(year, month) => setView({ year, month })}
-            onSelect={selectDate}
-          />
-          <p className="mt-3 flex items-center gap-1.5 border-t border-line pt-3 text-[12px] text-muted-ink">
-            <span aria-hidden="true" className="size-1.5 rounded-full bg-brand-cyan" />
-            Days with meetings. Select a date to filter.
-          </p>
-        </Card>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            {investorMeetings.map((item) => (
+              <div key={item._id} className="space-y-2 rounded-xl border border-line bg-white p-4 shadow-sm">
+                <div>
+                  <span className="rounded bg-brand/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand">
+                    {item.startupId?.name || "Startup"}
+                  </span>
+                  <h3 className="mt-1 text-sm font-bold text-ink">
+                    {item.investorId?.name || "Accredited Investor"}
+                  </h3>
+                  {item.investorId?.email && (
+                    <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-ink">
+                      <EnvelopeIcon className="size-3" aria-hidden="true" /> {item.investorId.email}
+                    </p>
+                  )}
+                </div>
 
-        {/* Meeting list */}
-        <div className="flex min-w-0 flex-col gap-6">
-          {selectedDate ? (
+                {item.scheduledMeeting?.date || item.scheduledMeeting?.time ? (
+                  <div className="space-y-1 rounded-lg border border-line bg-canvas/60 p-2.5 text-xs text-ink">
+                    <p className="flex items-center gap-1.5 font-semibold text-brand">
+                      <CalendarDaysIcon className="size-3.5" aria-hidden="true" />
+                      {/* Join only the parts that exist, and append the zone only when the time string doesn't already carry it. */}
+                      {[item.scheduledMeeting.date, item.scheduledMeeting.time].filter(Boolean).join(" · ")}
+                      {item.scheduledMeeting.timeZone && !(item.scheduledMeeting.time ?? "").includes(item.scheduledMeeting.timeZone)
+                        ? ` (${item.scheduledMeeting.timeZone})`
+                        : ""}
+                    </p>
+                    {item.scheduledMeeting.meetingLink && (
+                      <a
+                        href={item.scheduledMeeting.meetingLink}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-brand hover:underline"
+                      >
+                        <VideoCameraIcon className="size-3" aria-hidden="true" /> Join AI Meeting Room
+                        <ArrowTopRightOnSquareIcon className="size-2.5" aria-hidden="true" />
+                      </a>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-ink">Awaiting a scheduled time.</p>
+                )}
+
+                {item.message && (
+                  <p className="line-clamp-2 text-xs italic text-muted-ink">
+                    &ldquo;{item.message}&rdquo;
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Your meeting schedule — calendar and the student's own mentor/faculty meetings. */}
+      <section aria-label="Your meeting schedule" className="flex flex-col gap-4">
+        <h2 className="text-[13px] font-semibold uppercase tracking-[0.06em] text-muted-ink">Your Meeting Schedule</h2>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[19.5rem_minmax(0,1fr)] lg:items-start">
+          {/* Calendar — compact, never the dominant element */}
+          <Card className="p-4 lg:sticky lg:top-[84px]">
+            <MeetingCalendar
+              year={view.year}
+              month={view.month}
+              today={now.date}
+              selected={selectedDate}
+              meetingDates={meetingDates}
+              onMonthChange={(year, month) => setView({ year, month })}
+              onSelect={selectDate}
+            />
+            <p className="mt-3 flex items-center gap-1.5 border-t border-line pt-3 text-[12px] text-muted-ink">
+              <span aria-hidden="true" className="size-1.5 rounded-full bg-brand-cyan" />
+              Days with meetings. Select a date to filter.
+            </p>
+          </Card>
+
+          {/* Meeting list */}
+          <div className="flex min-w-0 flex-col gap-6">
+            {selectedDate ? (
             <>
               <div className="flex items-center justify-between gap-3">
                 <p className="text-[14px] font-semibold text-ink" aria-live="polite">
@@ -249,8 +261,9 @@ export default function MeetingsWorkspace({
               <MeetingSection title="Past meetings" meetings={groups.past} now={now} />
             </>
           )}
+          </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }

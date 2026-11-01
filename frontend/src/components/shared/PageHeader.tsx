@@ -22,8 +22,9 @@ export default function PageHeader({
   return (
     <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0">
-        <h1 className="text-[28px] font-bold leading-tight tracking-tight text-ink">{title}</h1>
-        {description && <p className="mt-1.5 text-[14px] text-muted-ink">{description}</p>}
+        {/* Matches the Student Dashboard heading (DashboardHeader) so every page title reads the same. */}
+        <h1 className="text-[20px] font-semibold leading-tight tracking-tight text-ink sm:text-[22px]">{title}</h1>
+        {description && <p className="mt-1 text-[13px] text-muted-ink">{description}</p>}
       </div>
 
       {actions && <div className="flex shrink-0 items-center gap-2 self-start">{actions}</div>}

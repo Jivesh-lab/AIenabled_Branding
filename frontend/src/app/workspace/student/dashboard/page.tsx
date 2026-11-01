@@ -140,7 +140,7 @@ export default function DashboardPage() {
               <NextActions journeys={journeys} />
               {(!tasks.ok || !meetings.ok) && (
                 <p role="status" className="-mt-4 text-[12px] text-muted-ink">
-                  {[!tasks.ok && "Task", !meetings.ok && "Meeting"].filter(Boolean).join(" and ")} actions are unavailable right now, so they are not listed.
+                  {[!tasks.ok && "Tasks", !meetings.ok && "meetings"].filter(Boolean).join(" and ")} couldn&apos;t be loaded, so they are not listed. Refresh to try again.
                 </p>
               )}
             </>

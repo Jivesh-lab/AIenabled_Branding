@@ -11,7 +11,7 @@
  *   surface   bg-white          border  border-line (#D8EAF0)
  *   text      text-ink          muted   text-muted-ink
  *   icons     text-icon         hover   bg-nav-hover (#F1FAFC)
- *   active    bg-brand-soft (#CAF0F8) + text/icon/indicator brand (#023EBA)
+ *   active    bg-brand-soft + text/icon/left indicator in brand
  *   AI accent text-brand-cyan (#00B4D8)
  *   logo mark bg-brand-deep (#03045E) with a cyan glyph
  *
@@ -27,8 +27,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
-import { ChevronDown, PanelLeft, X } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { ChevronDownIcon, Bars3BottomLeftIcon, XMarkIcon } from "@heroicons/react/24/outline";
 
 export const SIDEBAR_WIDTH_EXPANDED = 248;
 export const SIDEBAR_WIDTH_COLLAPSED = 68;
@@ -43,7 +42,8 @@ export interface NavSubItem {
 
 export interface NavItem {
   label: string;
-  icon: LucideIcon;
+  /** Any icon component that takes a className (Heroicons or Lucide while roles migrate). */
+  icon: React.ElementType;
   href?: string;
   isAI?: boolean;
   subItems?: NavSubItem[];
@@ -141,7 +141,7 @@ function SidebarItem({
             {item.label}
           </span>
           {hasSubItems && (
-            <ChevronDown
+            <ChevronDownIcon
               className={cn(
                 "size-[14px] transition-transform duration-150",
                 isActive ? "text-white" : "text-muted-ink",
@@ -271,7 +271,7 @@ export default function DashboardSidebar({
                   {user.role}
                 </span>
               </div>
-              <ChevronDown className="size-[14px] shrink-0 text-muted-ink" aria-hidden="true" />
+              <ChevronDownIcon className="size-[14px] shrink-0 text-muted-ink" aria-hidden="true" />
             </>
           )}
         </button>
@@ -295,7 +295,7 @@ export default function DashboardSidebar({
           aria-label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
           className={cn("absolute hidden size-8 items-center justify-center rounded-md text-muted-ink transition-colors hover:bg-nav-hover hover:text-ink md:flex", isExpanded ? "right-3 top-4" : "left-[18px] top-[72px]")}
         >
-          <PanelLeft className="size-[18px]" aria-hidden="true" />
+          <Bars3BottomLeftIcon className="size-5" aria-hidden="true" />
         </button>
       </aside>
 
@@ -325,7 +325,7 @@ export default function DashboardSidebar({
                 aria-label="Close navigation"
                 className="absolute -right-11 top-3 flex size-9 items-center justify-center rounded-full bg-brand-deep text-white"
               >
-                <X className="size-5" aria-hidden="true" />
+                <XMarkIcon className="size-5" aria-hidden="true" />
               </button>
             </motion.aside>
           </>
