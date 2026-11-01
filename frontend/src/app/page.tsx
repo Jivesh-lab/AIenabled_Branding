@@ -3,10 +3,9 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import DbitLogo from "@/components/shared/DbitLogo";
-import { ArrowDownRight, ArrowRight, ArrowUpRight, BarChart3, BookOpen, Building2, FileText, Lightbulb, Menu, Presentation, Search, Send, Tag, Users, X } from "lucide-react";
+import { ArrowDownRight, ArrowRight, ArrowUpRight, BarChart3, Building2, FileText, Lightbulb, Menu, Presentation, Search, Send, Tag, Users, X } from "lucide-react";
 
 const agents = [["Research Agent", "Finds research, patents and existing solutions", Search, "blue"], ["Innovation Agent", "Evaluates uniqueness and feasibility", Lightbulb, "purple"], ["Market Agent", "Analyses market size, competitors and trends", BarChart3, "violet"], ["Branding Agent", "Generates name, tagline, logo and identity", Tag, "rose"], ["Business Agent", "Creates business model and revenue plan", FileText, "lavender"], ["Pitch Agent", "Builds investor-ready pitch deck", Presentation, "sky"], ["Mentor Agent", "Recommends mentors, investors and programs", Users, "indigo"]] as const;
-const outputs = [["Innovation report", "A clear read on novelty, feasibility and next steps", Lightbulb], ["Competitor analysis", "Market context your team can actually act on", BarChart3], ["Patent + research analysis", "Evidence, whitespace and relevant prior art", Search], ["Business model", "A practical path from idea to revenue", BookOpen], ["Startup branding", "Name, story, identity and positioning", Tag], ["Pitch deck", "A sharper case for mentors and investors", Presentation], ["Go-to-market strategy", "Channels, audiences and launch sequence", Send], ["Mentor recommendations", "The right people for the next milestone", Users]] as const;
 const demoProjects = [["Make-a-thon", "A hands-on platform for turning problems into prototypes", "Ideation + building", "Researcher teams in action", "https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=1200&q=85"], ["Startup Forum", "Conversations that connect researchers with the startup ecosystem", "Mentors + investors", "Ideas meet experience", "https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=1200&q=85"], ["Brand Challenge", "A practical challenge in positioning, storytelling, and business", "Brand + strategy", "Skills built through practice", "https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1200&q=85"]] as const;
 const pathways = [["RESEARCH / PROJECT OWNERS", "Start with a question, a prototype, or a research insight and move it toward a useful venture.", "Research to venture", Lightbulb, "research-product-owners", "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=900&q=85"], ["FACULTY COORDINATORS", "Coordinate projects, programmes, reviews, and the people helping ideas progress.", "Coordinate a programme", Building2, "faculty-coordinators", "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=900&q=85"], ["INVESTORS", "Discover researched opportunities and support the next generation of ventures.", "Explore opportunities", BarChart3, "investors", "https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=900&q=85"], ["MENTORS", "Share hard-earned perspective at the moment a researcher team needs it most.", "Become a mentor", Send, "industry-guides", "https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=900&q=85"]] as const;
 const images = { hero: "https://images.unsplash.com/photo-1564981797816-1043664bf78d?auto=format&fit=crop&w=2200&q=85", lab: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1800&q=85", office: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1800&q=85", campus: "https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?auto=format&fit=crop&w=1800&q=85" };
@@ -22,7 +21,6 @@ export default function RootPage() {
   const [scrolled, setScrolled] = useState(false);
   const [activeAgent, setActiveAgent] = useState<string | null>(null);
   const [carouselStart, setCarouselStart] = useState<number | null>(null);
-  const [outputIndex, setOutputIndex] = useState(0);
   const [dividerPosition, setDividerPosition] = useState(50);
   const [mentorFilter, setMentorFilter] = useState<(typeof mentorFilters)[number]>("ALL");
 
@@ -272,42 +270,6 @@ export default function RootPage() {
         </div>
       </section>
 
-      <section className="outputs-carousel-section section-light" id="ai-outputs">
-        <div className="outputs-carousel-heading">
-          <div>
-            <div className="section-kicker">AI OUTPUTS</div>
-            <h2>FROM A BLANK PAGE<br /><em>TO A LAUNCH PLAN.</em></h2>
-          </div>
-        </div>
-        <div className="outputs-carousel">
-          <button className="output-nav" type="button" aria-label="Previous output" onClick={() => setOutputIndex((outputIndex + outputs.length - 1) % outputs.length)}>
-            <ArrowRight size={18} className="rotate-left" />
-          </button>
-          <article className="document-preview">
-            <div className="document-top">
-              <span>DBIT Incubation Centre / AI WORKSPACE</span>
-              <span>0{outputIndex + 1}</span>
-            </div>
-            <div className="document-lines"><span /><span /><span /><span /><span /><span /></div>
-            <div className="document-title">
-              <strong>{outputs[outputIndex][0].toUpperCase()}</strong>
-              <small>{outputs[outputIndex][1]}</small>
-            </div>
-            <div className="document-stamp">REVIEW<br />READY</div>
-          </article>
-          <div className="output-list">
-            {outputs.map(([name], index) => (
-              <button className={outputIndex === index ? "active" : ""} key={name} type="button" onClick={() => setOutputIndex(index)}>
-                <span>0{index + 1}</span>{name}<ArrowUpRight size={15} />
-              </button>
-            ))}
-          </div>
-          <button className="output-nav" type="button" aria-label="Next output" onClick={() => setOutputIndex((outputIndex + 1) % outputs.length)}>
-            <ArrowRight size={18} />
-          </button>
-        </div>
-      </section>
-
       <section className="compare-section dark-section" id="from-classroom">
         <div className="compare-heading">
           <div>
@@ -420,38 +382,6 @@ export default function RootPage() {
         </div>
       </section>
 
-      <section className="network-section section-light" id="network">
-        <div className="network-heading">
-          <div>
-            <div className="section-kicker">ECOSYSTEM CONNECTION</div>
-            <h2>CONNECTED TO<br /><em>THE REAL WORLD.</em></h2>
-          </div>
-          <p>DBIT Incubation Centre connects university energy to the people and pathways that help ideas move beyond campus.</p>
-        </div>
-        <div className="network-flow">
-          {["UNIVERSITY", "INCUBATION", "INDUSTRY", "MENTORS", "INVESTORS", "STARTUPS", "IMPACT"].map((label, index) => (
-            <div className="network-node" key={label}>
-              <span>{String(index + 1).padStart(2, "0")}</span>
-              <strong>{label}</strong>
-              {index < 6 && <ArrowDownRight className="network-arrow" size={18} />}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section id="resources" className="closing-section dark-section final-cta" style={{ backgroundImage: `url(${images.hero})` }}>
-        <div className="dark-overlay" />
-        <div className="closing-copy">
-          <div className="section-kicker">THE OPPORTUNITY</div>
-          <h2>THE NEXT STARTUP<br />IS ALREADY HERE.</h2>
-          <p>Help discover it. Build it. Validate it. Fund it. Launch it.</p>
-          <div className="hero-buttons">
-            <Link className="pill-button light-pill" href="/login">GET STARTED <ArrowRight size={15} /></Link>
-            <a className="footer-link" href="mailto:hello@dbit-incubation.example">TALK TO OUR TEAM <ArrowRight size={15} /></a>
-          </div>
-        </div>
-      </section>
-
       <footer className="landing-footer final-footer">
         <div className="footer-brand">
           <DbitLogo variant="full" size="md" theme="light" href="/" className="footer-logo mb-2" />
@@ -477,13 +407,13 @@ export default function RootPage() {
         </div>
         <div className="footer-column">
           <strong>RESOURCES</strong>
-          <a href="#ai-outputs">AI Outputs</a>
           <a href="#from-classroom">Classroom to Market</a>
           <a href="#impact">Impact</a>
+          <a href="#events">Initiatives</a>
         </div>
         <div className="footer-column">
           <strong>CONNECT</strong>
-          <a href="#network">Network</a>
+          <a href="#mentors">Mentors</a>
           <a href="mailto:hello@dbit-incubation.example">Contact</a>
         </div>
         <div className="footer-legal">
