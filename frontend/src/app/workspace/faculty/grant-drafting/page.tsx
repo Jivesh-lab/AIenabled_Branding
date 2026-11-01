@@ -108,7 +108,7 @@ export default function GrantDraftingPage() {
       utilised: 0,
       description: "Newly initiated grant proposal draft.",
       eligibility: "DBIT Incubation Centre affiliated researchers.",
-      submitted: "—",
+      submitted: "-",
       draftScore: 78,
     };
     setGrants([newG, ...grants]);
@@ -160,8 +160,8 @@ export default function GrantDraftingPage() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           {[
             { label: "Total Grants Tracked", value: grants.length, icon: FileText, color: "bg-brand/10 text-brand" },
-            { label: "Active Grants", value: grants.filter((g) => g.status === "Active").length, icon: CheckCircle2, color: "bg-emerald-50 text-emerald-700" },
-            { label: "Drafts In Progress", value: grants.filter((g) => g.status === "Draft").length, icon: Clock, color: "bg-amber-50 text-amber-700" },
+            { label: "Active Grants", value: grants.filter((g) => g.status === "Active").length, icon: CheckCircle2, color: "bg-brand/10 text-brand" },
+            { label: "Drafts In Progress", value: grants.filter((g) => g.status === "Draft").length, icon: Clock, color: "bg-brand/10 text-brand" },
             {
               label: "Total Sanctioned",
               value: formatINR(grants.filter((g) => g.status === "Active").reduce((a, g) => a + g.amount, 0)),
@@ -169,7 +169,7 @@ export default function GrantDraftingPage() {
               color: "bg-brand-cyan/10 text-brand-cyan-ink",
             },
           ].map((s) => (
-            <MetricCard key={s.label} label={s.label} value={loading ? "—" : s.value} icon={s.icon} tone={s.color.includes("danger") ? "danger" : s.color.includes("amber") ? "attention" : "default"} loading={loading} />
+            <MetricCard key={s.label} label={s.label} value={loading ? "-" : s.value} icon={s.icon} tone={s.color.includes("danger") ? "danger" : s.color.includes("amber") ? "attention" : "default"} loading={loading} />
           ))}
         </div>
 
@@ -265,7 +265,7 @@ export default function GrantDraftingPage() {
                     </div>
                     <div className="text-right shrink-0">
                       <p className="text-lg font-bold text-brand">{formatINR(grant.amount)}</p>
-                      {grant.deadline !== "—" && (
+                      {grant.deadline !== "-" && (
                         <p className="text-[11px] text-muted-ink flex items-center gap-1 mt-0.5 justify-end">
                           <Calendar className="size-3" /> {grant.deadline}
                         </p>
