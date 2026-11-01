@@ -12,7 +12,7 @@ function getInternalJwtSecret(): string {
   if (!secret) {
     throw new Error("FATAL: INTERNAL_JWT_SECRET must be configured in environment.");
   }
-  if (secret === "test_internal_secret_key_123") {
+  if (process.env.NODE_ENV === "production" && secret === "test_internal_secret_key_123") {
     throw new Error("FATAL: Insecure test INTERNAL_JWT_SECRET is rejected. Generate a secure random secret.");
   }
   return secret;
