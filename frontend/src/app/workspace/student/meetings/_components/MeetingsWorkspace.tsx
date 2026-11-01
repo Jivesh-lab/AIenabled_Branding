@@ -18,7 +18,7 @@ import type { StudentProject } from "@/types/student-application";
 import { groupMeetings, isIsoDate, meetingStatus, summarize, type Now } from "@/lib/workflowState";
 import InvestorDocket, { type InvestorIntroduction } from "./InvestorDocket";
 import MeetingSummary from "./MeetingSummary";
-import MeetingCalendar from "./MeetingCalendar";
+import MeetingCalendar from "@/components/shared/MonthCalendar";
 import MeetingListItem from "./MeetingListItem";
 import RequestMeetingPanel from "./RequestMeetingPanel";
 

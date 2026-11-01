@@ -1,7 +1,7 @@
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
 import { cn } from "@/lib/utils";
 import { formatLongDate } from "@/lib/dates";
-import { MONTH_NAMES, monthGrid } from "../_lib/meetings";
+import { MONTH_NAMES, monthGrid } from "@/lib/calendarGrid";
 
 const WEEKDAY_HEADERS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -10,7 +10,7 @@ const WEEKDAY_HEADERS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
  * outlined; days with meetings carry a small cyan dot. Controlled: the parent
  * owns the visible month and the selection.
  */
-export default function MeetingCalendar({
+export default function MonthCalendar({
   year,
   month,
   today,

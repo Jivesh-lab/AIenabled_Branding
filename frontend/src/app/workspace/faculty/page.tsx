@@ -5,6 +5,8 @@ import PageContainer from "@/components/shared/PageContainer";
 import { FacultyOverviewSkeleton } from "@/components/shared/loading/facultySkeletons";
 import { Card, StatusBadge, ProgressBar } from "@/components/shared/Surface";
 import MetricCard from "@/components/shared/MetricCard";
+import ActivityTimeline from "@/components/shared/ActivityTimeline";
+import { ClockIcon } from "@heroicons/react/24/outline";
 import { toast } from "sonner";
 import {
   FacultySubRole,
@@ -723,21 +725,19 @@ export default function FacultyManagementPage() {
                   </div>
                 </Card>
 
-                {/* Audit History Snippet */}
+                {/* Audit history - the shared Recent Activity timeline */}
                 <Card className="p-4">
-                  <h3 className="text-xs font-bold text-ink mb-3 flex items-center gap-1.5">
-                    <Clock className="size-4 text-muted-ink" /> Recent Activity & Audit Log
-                  </h3>
-                  <div className="space-y-3">
-                    {auditLogs.slice(0, 4).map((log) => (
-                      <div key={log.id} className="text-xs border-l-2 border-brand pl-2.5 py-0.5">
-                        <p className="font-semibold text-ink leading-snug">{log.details}</p>
-                        <p className="text-[10px] text-muted-ink mt-0.5">
-                          {log.actor} ({log.role}) · {log.timestamp}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
+                  <h3 className="mb-2 text-[13px] font-semibold text-ink">Recent Activity &amp; Audit Log</h3>
+                  <ActivityTimeline
+                    entries={auditLogs.slice(0, 4).map((log) => ({
+                      id: log.id,
+                      icon: ClockIcon,
+                      tone: "info" as const,
+                      title: <span className="font-medium">{log.details}</span>,
+                      meta: `${log.actor} (${log.role}) · ${log.timestamp}`,
+                    }))}
+                    emptyMessage="No audit activity recorded yet."
+                  />
                 </Card>
               </div>
             </div>

@@ -1,216 +1,109 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import PageContainer from "@/components/shared/PageContainer";
-import { Card, StatusBadge } from "@/components/shared/Surface";
-import {
-  MessageSquare, Star, Clock, Calendar, Users,
-  CheckCircle2, AlertCircle, Send, ThumbsUp, Loader2,
-} from "lucide-react";
+import { Card } from "@/components/shared/Surface";
+import { ErrorState } from "@/components/shared/loading/primitives";
+import { cn } from "@/lib/utils";
+import { friendlyActionMessage, friendlyThrown } from "@/lib/friendlyError";
+import { useApiList } from "@/lib/useApiList";
+import FeedbackStats from "./_components/FeedbackStats";
+import { RequestListSkeleton } from "./_components/FeedbackSkeleton";
+import RequestCard from "./_components/RequestCard";
+import { REQUEST_TAB_LABEL, filterRequests, toRequests, type RequestTab } from "./_components/requests";
 
-interface FeedbackEntry {
-  _id: string;
-  from?: string;
-  studentName?: string;
-  projectTitle?: string;
-  sessionDate?: string;
-  sessionType?: string;
-  rating?: number;
-  comment?: string;
-  tags?: string[];
-  read?: boolean;
-  replied?: boolean;
-}
+const EMPTY: Record<RequestTab, string> = {
+  open: "No questions are waiting for a reply.",
+  resolved: "You haven't resolved any questions yet.",
+  all: "Your mentees haven't sent any questions yet.",
+};
+const REPLY_FAILED = "We couldn't send your reply. Please try again.";
 
 export default function MentorFeedbackPage() {
-  const [feedback, setFeedback] = useState<FeedbackEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [reply, setReply] = useState<Record<string, string>>({});
-  const [showReply, setShowReply] = useState<Record<string, boolean>>({});
-  const [read, setRead] = useState<Record<string, boolean>>({});
-  const [replied, setReplied] = useState<Record<string, boolean>>({});
+  const { items: requests, loading, failed, reload } = useApiList("/api/faculty/support-requests", toRequests);
+  const [tab, setTab] = useState<RequestTab>("open");
 
-  useEffect(() => {
-    async function fetchFeedback() {
-      try {
-        setLoading(true);
-        // Fetch mentor meetings as proxy for feedback sessions
-        const res = await fetch("/api/faculty/meetings");
-        if (!res.ok) throw new Error(`Server error: ${res.status}`);
-        const json = await res.json();
-        if (json.success) {
-          const mapped: FeedbackEntry[] = (json.data || []).map((m: any) => ({
-            _id: m._id || m.id,
-            from: m.participants?.[1] || "Researcher",
-            projectTitle: m.projectTitle,
-            sessionDate: m.date,
-            sessionType: m.meetingType || "Mentorship Session",
-            rating: 0,
-            comment: m.notes || m.agenda || "No feedback recorded for this session yet.",
-            tags: m.meetingType ? [m.meetingType] : [],
-            read: m.attendanceLogged || false,
-            replied: false,
-          }));
-          setFeedback(mapped);
-          setRead(Object.fromEntries(mapped.map((f) => [f._id, f.read || false])));
-          setReplied(Object.fromEntries(mapped.map((f) => [f._id, f.replied || false])));
-        } else {
-          throw new Error(json.message || "Failed to load feedback");
-        }
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
+  const visible = useMemo(() => filterRequests(requests, tab), [requests, tab]);
+  const counts = useMemo(
+    () => ({ open: filterRequests(requests, "open").length, resolved: filterRequests(requests, "resolved").length, all: requests.length }),
+    [requests]
+  );
+
+  /** Saves a reply through the existing API. The card closes its form only when this resolves true. */
+  async function reply(id: string, response: string): Promise<boolean> {
+    try {
+      const res = await fetch(`/api/faculty/support-requests/${encodeURIComponent(id)}/respond`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ response }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body?.success) {
+        toast.error(friendlyActionMessage(res.status, body, REPLY_FAILED));
+        return false;
       }
+      toast.success("Reply sent", { description: "The question is now marked resolved." });
+      await reload();
+      return true;
+    } catch (error) {
+      toast.error(friendlyThrown(error, REPLY_FAILED));
+      return false;
     }
-    fetchFeedback();
-  }, []);
-
-  function sendReply(id: string) {
-    setReplied((prev) => ({ ...prev, [id]: true }));
-    setShowReply((prev) => ({ ...prev, [id]: false }));
-    setRead((prev) => ({ ...prev, [id]: true }));
   }
-
-  const avgRating = feedback.filter((f) => (f.rating || 0) > 0).length > 0
-    ? (feedback.reduce((a, f) => a + (f.rating || 0), 0) / feedback.filter((f) => (f.rating || 0) > 0).length).toFixed(1)
-    : "N/A";
 
   return (
     <PageContainer
-      title="Session Feedback"
-      description="Feedback submitted by your mentees after each mentorship session. Review, respond, and track satisfaction trends."
+      title="Feedback & Questions"
+      description="Questions and feedback requests from your mentees. Reply to resolve them."
     >
-      <div className="space-y-6">
-        {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            { label: "Total Sessions", value: feedback.length, icon: MessageSquare, color: "bg-brand/10 text-brand" },
-            { label: "Avg Rating", value: avgRating === "N/A" ? avgRating : `${avgRating}/5`, icon: Star, color: "bg-amber-50 text-amber-700" },
-            { label: "Unread", value: Object.values(read).filter((v) => !v).length, icon: AlertCircle, color: "bg-red-50 text-danger" },
-            { label: "Responded", value: Object.values(replied).filter(Boolean).length, icon: CheckCircle2, color: "bg-emerald-50 text-emerald-700" },
-          ].map((s) => (
-            <div key={s.label} className="rounded-xl border border-line bg-white p-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-xs font-medium text-muted-ink">{s.label}</p>
-                  <p className="text-2xl font-bold text-ink mt-1">{s.value}</p>
-                </div>
-                <div className={`flex size-9 items-center justify-center rounded-lg ${s.color}`}>
-                  <s.icon className="size-4" />
-                </div>
-              </div>
-            </div>
+      <FeedbackStats requests={requests} loading={loading} failed={failed} />
+
+      {!failed && (
+        <div role="tablist" aria-label="Question filter" className="flex flex-wrap gap-1">
+          {(Object.keys(REQUEST_TAB_LABEL) as RequestTab[]).map((key) => {
+            const selected = tab === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                onClick={() => setTab(key)}
+                className={cn(
+                  "rounded-lg px-3 py-1.5 text-[13px] outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-brand/40",
+                  selected ? "bg-brand-soft font-semibold text-brand" : "font-medium text-muted-ink hover:bg-nav-hover hover:text-ink"
+                )}
+              >
+                {REQUEST_TAB_LABEL[key]} <span className="tabular-nums">({loading ? "–" : counts[key]})</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {loading ? (
+        <RequestListSkeleton />
+      ) : failed ? (
+        <Card>
+          <ErrorState
+            title="We couldn't load your questions"
+            message="Something went wrong on our side. Please try again in a moment."
+            onRetry={() => void reload()}
+          />
+        </Card>
+      ) : visible.length === 0 ? (
+        <Card className="px-6 py-10 text-center">
+          <p className="text-[14px] font-semibold text-ink">Nothing here</p>
+          <p className="mx-auto mt-1 max-w-sm text-[13px] text-muted-ink">{EMPTY[tab]}</p>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {visible.map((request) => (
+            <RequestCard key={request.id} request={request} onReply={reply} />
           ))}
         </div>
-
-        {/* Feedback Cards */}
-        {loading ? (
-          <div className="flex items-center justify-center py-16 text-muted-ink gap-2">
-            <Loader2 className="size-5 animate-spin" />
-            <span className="text-sm">Loading session feedback from database…</span>
-          </div>
-        ) : error ? (
-          <div className="rounded-xl border border-red-100 bg-red-50 p-6 text-center">
-            <AlertCircle className="size-8 text-danger mx-auto mb-2" />
-            <p className="text-sm font-semibold text-danger">Failed to load feedback</p>
-            <p className="text-xs text-muted-ink mt-1">{error}</p>
-          </div>
-        ) : feedback.length === 0 ? (
-          <div className="rounded-xl border border-line bg-canvas p-10 text-center">
-            <MessageSquare className="size-10 text-muted-ink mx-auto mb-3 opacity-40" />
-            <p className="text-sm font-semibold text-ink">No session feedback yet</p>
-            <p className="text-xs text-muted-ink mt-1">Feedback will appear here after mentorship sessions are completed.</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {feedback.map((fb) => (
-              <div
-                key={fb._id}
-                className={`rounded-xl border bg-white overflow-hidden ${!read[fb._id] ? "border-brand/30 shadow-sm" : "border-line"}`}
-                onClick={() => setRead((prev) => ({ ...prev, [fb._id]: true }))}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => { if (e.key === "Enter") setRead((prev) => ({ ...prev, [fb._id]: true })); }}
-              >
-                <div className="p-5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                        {!read[fb._id] && <span className="size-2 rounded-full bg-brand shrink-0" />}
-                        <span className="text-sm font-bold text-ink">{fb.from}</span>
-                        <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded border border-line bg-canvas text-muted-ink">{fb.sessionType}</span>
-                        {replied[fb._id] && <StatusBadge label="Replied" tone="success" />}
-                      </div>
-                      <p className="text-[12px] text-muted-ink mb-2">{fb.projectTitle} · {fb.sessionDate}</p>
-
-                      {(fb.rating || 0) > 0 && (
-                        <div className="flex items-center gap-1 mb-3">
-                          {Array.from({ length: 5 }).map((_, i) => (
-                            <Star key={i} className={`size-4 ${i < (fb.rating || 0) ? "text-brand-gold fill-current" : "text-line"}`} />
-                          ))}
-                          <span className="text-xs font-semibold text-ink ml-1">{fb.rating}/5</span>
-                        </div>
-                      )}
-
-                      <p className="text-sm text-ink leading-relaxed bg-canvas border border-line rounded-lg p-3 italic">
-                        "{fb.comment}"
-                      </p>
-
-                      {(fb.tags || []).length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mt-3">
-                          {fb.tags!.map((tag) => (
-                            <span key={tag} className="px-2 py-0.5 text-[11px] font-semibold rounded-full bg-brand/5 border border-brand/20 text-brand">{tag}</span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2 mt-4">
-                    {!replied[fb._id] && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setShowReply((prev) => ({ ...prev, [fb._id]: !prev[fb._id] })); }}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand text-white text-xs font-semibold hover:bg-brand-hover transition-colors"
-                      >
-                        <MessageSquare className="size-3.5" /> Reply
-                      </button>
-                    )}
-                    <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-line text-muted-ink text-xs font-semibold hover:border-brand/40 hover:text-brand transition-colors">
-                      <ThumbsUp className="size-3.5" /> Acknowledge
-                    </button>
-                  </div>
-
-                  {showReply[fb._id] && (
-                    <div className="mt-4 pt-4 border-t border-line" onClick={(e) => e.stopPropagation()}>
-                      <label className="block text-xs font-semibold text-ink mb-1.5">Your Response to {fb.from}</label>
-                      <textarea
-                        rows={3}
-                        value={reply[fb._id] || ""}
-                        onChange={(e) => setReply((prev) => ({ ...prev, [fb._id]: e.target.value }))}
-                        placeholder="Thank your mentee and share any follow-up thoughts..."
-                        className="w-full px-3 py-2 text-xs border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/30 resize-none"
-                      />
-                      <div className="flex gap-2 mt-2">
-                        <button
-                          onClick={() => sendReply(fb._id)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand text-white text-xs font-semibold hover:bg-brand-hover transition-colors"
-                        >
-                          <Send className="size-3.5" /> Send Reply
-                        </button>
-                        <button onClick={() => setShowReply((prev) => ({ ...prev, [fb._id]: false }))} className="px-3 py-1.5 rounded-lg border border-line text-xs font-semibold text-muted-ink hover:bg-canvas transition-colors">
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      )}
     </PageContainer>
   );
 }
