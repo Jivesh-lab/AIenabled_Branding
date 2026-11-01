@@ -24,18 +24,27 @@ function studentOnly(req, res, next) {
     return res.status(500).json({ success: false, message: 'Server authentication is not configured.' });
   }
 
-  let token = req.cookies?.aai_token;
-  if (!token && req.headers.authorization) {
-    token = req.headers.authorization.replace(/^Bearer\s+/i, '');
-  }
-  if (!token) {
+  const authHeader = req.headers.authorization ? req.headers.authorization.replace(/^Bearer\s+/i, '') : null;
+  const cookieToken = req.cookies?.aai_token;
+  const tokensToTry = [authHeader, cookieToken].filter(Boolean);
+  if (tokensToTry.length === 0) {
     return res.status(401).json({ success: false, message: 'Authentication required. Please sign in.' });
   }
 
-  let payload;
-  try {
-    payload = jwt.verify(token, secret);
-  } catch {
+  let payload = null;
+  for (const token of tokensToTry) {
+    try {
+      const decoded = jwt.verify(token, secret);
+      if (decoded && decoded.sub) {
+        payload = decoded;
+        break;
+      }
+    } catch {
+      // try next token
+    }
+  }
+
+  if (!payload) {
     return res.status(401).json({ success: false, message: 'Your session is invalid or has expired.' });
   }
 
