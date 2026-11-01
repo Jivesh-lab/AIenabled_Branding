@@ -8,7 +8,7 @@ Every node in every graph reads from and writes to this structure.
 from __future__ import annotations
 
 from typing import Annotated, Any
-from typing_extensions import TypedDict
+from typing_extensions import NotRequired, TypedDict
 
 from langgraph.graph.message import add_messages
 
@@ -66,3 +66,4 @@ class AgentState(TypedDict):
     error: str | None                         # error message if agent failed
     tokens_used: int
     run_metadata: dict[str, Any]             # timing, model, etc.
+    authorized_context: NotRequired[dict[str, Any]]

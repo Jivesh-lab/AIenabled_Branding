@@ -14,6 +14,8 @@ Features:
 from __future__ import annotations
 
 import json
+import os
+import sqlite3
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -22,8 +24,32 @@ from core.state import AgentState
 
 logger = structlog.get_logger(__name__)
 
-# In-memory execution store for idempotent workflow actions
 _WORKFLOW_ACTION_REGISTRY: Dict[str, Dict[str, Any]] = {}
+_WORKFLOW_DB = os.getenv("WORKFLOW_STATE_DB", os.path.join(os.path.dirname(__file__), "..", "workflow_state.sqlite"))
+
+def _workflow_db() -> sqlite3.Connection:
+    conn = sqlite3.connect(_WORKFLOW_DB, timeout=10)
+    conn.row_factory = sqlite3.Row
+    conn.execute("""CREATE TABLE IF NOT EXISTS workflow_executions (
+        id TEXT PRIMARY KEY,
+        idempotency_key TEXT NOT NULL UNIQUE,
+        target_id TEXT NOT NULL,
+        record TEXT NOT NULL,
+        created_at TEXT NOT NULL
+    )""")
+    return conn
+
+def _stored_execution(idempotency_key: str) -> Dict[str, Any] | None:
+    with _workflow_db() as conn:
+        row = conn.execute("SELECT record FROM workflow_executions WHERE idempotency_key = ?", (idempotency_key,)).fetchone()
+    return json.loads(row["record"]) if row else None
+
+def _persist_execution(record: Dict[str, Any]) -> None:
+    with _workflow_db() as conn:
+        conn.execute(
+            "INSERT OR IGNORE INTO workflow_executions (id, idempotency_key, target_id, record, created_at) VALUES (?, ?, ?, ?, ?)",
+            (record["id"], record["idempotency_key"], record["target_id"], json.dumps(record), record["created_at"]),
+        )
 
 
 def generate_action_id(action_type: str, resource_id: str, date_or_key: str) -> str:
@@ -51,8 +77,9 @@ async def coordinate_workflow_action(
         action_type, target_id, payload.get("date") or payload.get("title") or "default"
     )
 
-    if idempotency_key in _WORKFLOW_ACTION_REGISTRY:
-        existing = _WORKFLOW_ACTION_REGISTRY[idempotency_key]
+    existing = _WORKFLOW_ACTION_REGISTRY.get(idempotency_key) or _stored_execution(idempotency_key)
+    if existing:
+        _WORKFLOW_ACTION_REGISTRY[idempotency_key] = existing
         logger.info("workflow_action_deduplicated", key=idempotency_key)
         return {
             "success": True,
@@ -110,6 +137,7 @@ async def coordinate_workflow_action(
         execution_record["status"] = "executed"
 
     _WORKFLOW_ACTION_REGISTRY[idempotency_key] = execution_record
+    _persist_execution(execution_record)
     logger.info("workflow_action_executed", action_id=action_id, action_type=action_type)
 
     return {
@@ -123,7 +151,9 @@ async def coordinate_workflow_action(
 
 def get_workflow_activity_history(target_id: Optional[str] = None) -> List[Dict[str, Any]]:
     """Retrieve idempotent activity log."""
-    items = list(_WORKFLOW_ACTION_REGISTRY.values())
+    with _workflow_db() as conn:
+        rows = conn.execute("SELECT record FROM workflow_executions ORDER BY created_at DESC").fetchall()
+    items = [json.loads(row["record"]) for row in rows]
     if target_id:
         items = [i for i in items if i.get("target_id") == target_id]
     items.sort(key=lambda x: x["created_at"], reverse=True)

@@ -1,3 +1,4 @@
+import uuid
 """
 tests/test_agents.py
 ────────────────────
@@ -155,11 +156,12 @@ def test_mentor_matching_ranking_and_conflicts():
 
 @pytest.mark.asyncio
 async def test_workflow_agent_idempotency_and_history():
+    key = f"meeting_proj123_{uuid.uuid4().hex[:8]}"
     payload = {
         "title": "Stage 2 Bench Review",
         "date": "2026-11-20",
         "participants": ["Dr. K. R. Raman", "Student Lead"],
-        "idempotency_key": "meeting_proj123_20261120",
+        "idempotency_key": key,
     }
 
     # First call - executes action
@@ -189,7 +191,7 @@ async def test_workflow_agent_idempotency_and_history():
     # Check activity history
     history = get_workflow_activity_history("proj123")
     assert len(history) >= 1
-    assert history[0]["idempotency_key"] == "meeting_proj123_20261120"
+    assert history[0]["idempotency_key"] == key
 
 
 # ── 5. Monitoring Agent Tests ─────────────────────────────────────────────────

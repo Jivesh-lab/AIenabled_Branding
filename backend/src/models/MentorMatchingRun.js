@@ -27,6 +27,7 @@ const mentorRecommendationSchema = new mongoose.Schema(
 const mentorMatchingRunSchema = new mongoose.Schema(
   {
     id: { type: String, required: true, unique: true },
+    executionIdempotencyKey: { type: String, default: null, index: true },
     projectId: { type: String, required: true, index: true },
     projectTitle: { type: String, required: true },
     domain: { type: String, default: '' },

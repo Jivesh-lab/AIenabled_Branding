@@ -6,6 +6,7 @@ const StartupProfile = require('../models/StartupProfile');
 const MentorAllocation = require('../models/MentorAllocation');
 const FacultyProject = require('../models/FacultyProject');
 const User = require('../models/User');
+const { enqueueEvent } = require('../services/eventOrchestrator');
 
 const router = express.Router();
 
@@ -152,8 +153,13 @@ const MAX_OPEN_REQUESTS_PER_PROJECT = 5;
 
 async function ownedProjectIds(userId) {
   if (!mongoose.Types.ObjectId.isValid(userId)) return [];
-  const profiles = await StartupProfile.find({ founderId: userId }).select('applicationId').lean();
-  return profiles.map((p) => p.applicationId).filter(Boolean);
+  const profiles = await StartupProfile.find({ founderId: userId }).select('applicationId _id').lean();
+  const ids = [];
+  for (const p of profiles) {
+    if (p.applicationId) ids.push(p.applicationId);
+    if (p._id) ids.push(String(p._id));
+  }
+  return ids;
 }
 
 /** Latest reminder outcome per record. Only what was recorded: absence means "no reminder was attempted". */
@@ -250,6 +256,15 @@ router.put('/tasks/:id/status', studentOnly, async (req, res) => {
     }
     task.status = next;
     await task.save();
+    await enqueueEvent({
+      eventType: next === 'Completed' ? 'task.completed' : 'task.updated',
+      aggregateType: 'task',
+      aggregateId: task.id,
+      projectId: task.projectId,
+      actorId: req.user.id,
+      idempotencyKey: `student-task-status:${task.id}:${next}:${task.updatedAt?.getTime?.() || Date.now()}`,
+      payload: { status: next, title: task.title },
+    });
     return res.json({ success: true, data: taskView(task) });
   } catch (err) {
     console.error('[student] task status error:', err.message);
@@ -312,6 +327,15 @@ router.post('/meeting-requests', studentOnly, async (req, res) => {
       invitationStatus: 'Requested',
     });
     await meeting.save();
+    await enqueueEvent({
+      eventType: 'meeting.requested',
+      aggregateType: 'meeting',
+      aggregateId: meeting.id,
+      projectId: meeting.projectId,
+      actorId: req.user.id,
+      idempotencyKey: `meeting-requested:${meeting.id}`,
+      payload: { date: meeting.date, startTime: meeting.startTime, agenda: meeting.agenda },
+    });
     return res.status(201).json({ success: true, data: meetingView(meeting) });
   } catch (err) {
     console.error('[student] meeting request error:', err.message);

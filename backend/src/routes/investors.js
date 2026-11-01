@@ -7,6 +7,7 @@ const InvestorIntroduction = require('../models/InvestorIntroduction');
 const { authenticate, requireRole } = require('../middleware/auth');
 const { logAuditTrail } = require('../middleware/auditLogger');
 const { sendMeetingScheduledEmails } = require('../services/emailService');
+const { enqueueEvent } = require('../services/eventOrchestrator');
 
 const router = express.Router();
 
@@ -456,6 +457,16 @@ router.post(
         status: 'pending_admin_review', // Strict business rule: enters pending_admin_review
       });
 
+      await enqueueEvent({
+        eventType: 'investor.introduction_requested',
+        aggregateType: 'investor_introduction',
+        aggregateId: String(intro._id),
+        projectId: String(startupId),
+        actorId: req.user.id,
+        idempotencyKey: `investor-introduction-requested:${intro._id}`,
+        payload: { type, status: intro.status, startupId: String(startupId) },
+      });
+
       await logAuditTrail({
         userId: req.user.id,
         email: req.investorUser.email,
@@ -589,6 +600,16 @@ router.post(
       intro.reviewedAt = new Date();
       await intro.save();
 
+      await enqueueEvent({
+        eventType: decision === 'forward' ? 'investor.introduction_approved' : 'investor.introduction_declined',
+        aggregateType: 'investor_introduction',
+        aggregateId: String(intro._id),
+        projectId: String(intro.startupId),
+        actorId: req.user.id,
+        idempotencyKey: `investor-introduction-decision:${intro._id}:${decision}`,
+        payload: { decision, status: intro.status },
+      });
+
       await logAuditTrail({
         userId: req.user.id,
         email: req.user.email || 'admin@system',
@@ -697,6 +718,16 @@ router.post(
       }
 
       await intro.save();
+
+      await enqueueEvent({
+        eventType: 'investor.meeting_confirmed',
+        aggregateType: 'investor_introduction',
+        aggregateId: String(intro._id),
+        projectId: String(intro.startupId),
+        actorId: req.user.id,
+        idempotencyKey: `investor-meeting-confirmed:${intro._id}:${chosenDate}:${chosenTime}`,
+        payload: { date: chosenDate, time: chosenTime, meetingLink },
+      });
 
       // Dispatch automated confirmation emails to both parties
       const emailResult = await sendMeetingScheduledEmails({

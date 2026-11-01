@@ -89,7 +89,50 @@ def init_standalone_db() -> None:
                 comments TEXT,
                 created_at TEXT
             );
+            CREATE TABLE IF NOT EXISTS domain_events (
+                id TEXT PRIMARY KEY,
+                event_id TEXT NOT NULL UNIQUE,
+                event_type TEXT NOT NULL,
+                aggregate_type TEXT NOT NULL,
+                aggregate_id TEXT NOT NULL,
+                application_id TEXT,
+                project_id TEXT,
+                actor_id TEXT NOT NULL,
+                correlation_id TEXT NOT NULL,
+                idempotency_key TEXT NOT NULL UNIQUE,
+                payload TEXT NOT NULL DEFAULT '{}',
+                status TEXT NOT NULL DEFAULT 'pending',
+                attempts INTEGER NOT NULL DEFAULT 0,
+                max_attempts INTEGER NOT NULL DEFAULT 5,
+                next_attempt_at TEXT NOT NULL,
+                processed_at TEXT,
+                last_error TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
         """)
+
+def standalone_record_domain_event(
+    event_type: str,
+    aggregate_type: str,
+    aggregate_id: str,
+    actor_id: str,
+    payload: Dict[str, Any],
+    application_id: Optional[str] = None,
+    project_id: Optional[str] = None,
+) -> None:
+    now = datetime.now(timezone.utc).isoformat()
+    event_id = str(uuid.uuid4())
+    idempotency_key = f"{event_type}:{aggregate_id}:{payload.get('transition_id', event_id)}"
+    with get_connection() as conn:
+        conn.execute(
+            """INSERT OR IGNORE INTO domain_events
+               (id, event_id, event_type, aggregate_type, aggregate_id, application_id, project_id,
+                actor_id, correlation_id, idempotency_key, payload, next_attempt_at, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (event_id, event_id, event_type, aggregate_type, str(aggregate_id), application_id, project_id,
+             str(actor_id), event_id, idempotency_key, json.dumps(payload), now, now, now),
+        )
         columns = {row["name"] for row in conn.execute("PRAGMA table_info(applications)").fetchall()}
         if "completeness" not in columns:
             conn.execute("ALTER TABLE applications ADD COLUMN completeness INTEGER DEFAULT 0")
@@ -517,3 +560,84 @@ def standalone_startup_name(startup_id: str) -> Optional[str]:
     with get_connection() as conn:
         row = conn.execute("SELECT name FROM startups WHERE id = ?", (startup_id,)).fetchone()
         return row["name"] if row else None
+
+def standalone_claim_events(limit: int = 50) -> List[Dict[str, Any]]:
+    now = datetime.now(timezone.utc).isoformat()
+    with get_connection() as conn:
+        cursor = conn.execute(
+            """SELECT id, event_id, event_type, aggregate_type, aggregate_id, application_id, project_id,
+                      actor_id, correlation_id, idempotency_key, payload, attempts, created_at
+               FROM domain_events
+               WHERE (status IN ('pending', 'failed') AND next_attempt_at <= ?)
+                  OR (status = 'processing' AND updated_at < datetime('now', '-10 minutes'))
+               ORDER BY created_at ASC
+               LIMIT ?""",
+            (now, limit),
+        )
+        rows = [dict(r) for r in cursor.fetchall()]
+        if rows:
+            ids = [r["id"] for r in rows]
+            placeholders = ",".join("?" for _ in ids)
+            conn.execute(
+                f"""UPDATE domain_events
+                    SET status = 'processing', attempts = attempts + 1, updated_at = ?
+                    WHERE id IN ({placeholders})""",
+                [now] + ids,
+            )
+            conn.commit()
+        for r in rows:
+            if isinstance(r.get("payload"), str):
+                r["payload"] = _load_json(r["payload"], {})
+        return rows
+
+
+def standalone_complete_event(event_id: str, success: bool = True, error: Optional[str] = None) -> bool:
+    now = datetime.now(timezone.utc).isoformat()
+    with get_connection() as conn:
+        if success:
+            cursor = conn.execute(
+                """UPDATE domain_events
+                   SET status = 'completed', processed_at = ?, last_error = NULL, updated_at = ?
+                   WHERE event_id = ? AND status = 'processing'""",
+                (now, now, event_id),
+            )
+        else:
+            cursor = conn.execute(
+                """UPDATE domain_events
+                   SET status = CASE WHEN attempts >= max_attempts THEN 'dead_letter' ELSE 'failed' END,
+                       last_error = ?,
+                       next_attempt_at = datetime('now', '+5 minutes'),
+                       updated_at = ?
+                   WHERE event_id = ? AND status = 'processing'""",
+                (error or "Relay delivery failed", now, event_id),
+            )
+        conn.commit()
+        return cursor.rowcount > 0
+
+
+def standalone_list_events(limit: int = 100, event_type: Optional[str] = None, application_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    clauses = []
+    params = []
+    if event_type:
+        clauses.append("event_type = ?")
+        params.append(event_type)
+    if application_id:
+        clauses.append("application_id = ?")
+        params.append(application_id)
+    where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+    params.append(limit)
+    with get_connection() as conn:
+        cursor = conn.execute(
+            f"""SELECT event_id, event_type, aggregate_type, aggregate_id, application_id, project_id,
+                       actor_id, correlation_id, idempotency_key, payload, status, attempts,
+                       processed_at, last_error, created_at
+                FROM domain_events {where}
+                ORDER BY created_at DESC LIMIT ?""",
+            params,
+        )
+        rows = [dict(r) for r in cursor.fetchall()]
+        for r in rows:
+            if isinstance(r.get("payload"), str):
+                r["payload"] = _load_json(r["payload"], {})
+        return rows
+

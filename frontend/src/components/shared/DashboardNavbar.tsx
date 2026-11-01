@@ -147,10 +147,23 @@ function IconButton({
 // Notifications
 // ---------------------------------------------------------------------------
 function NotificationButton({ count = 0 }: { count?: number }) {
-  const capped = Math.min(count, 99);
+  const [liveCount, setLiveCount] = useState(count);
+  useEffect(() => {
+    let active = true;
+    fetch("/api/notifications", { cache: "no-store" })
+      .then((response) => response.ok ? response.json() : null)
+      .then((data) => {
+        if (!active || !Array.isArray(data?.data)) return;
+        setLiveCount(data.data.filter((notification: { readAt?: string | null }) => !notification.readAt).length);
+      })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, []);
+  const effectiveCount = Math.max(count, liveCount);
+  const capped = Math.min(effectiveCount, 99);
   return (
     <div className="relative">
-      <IconButton label={count > 0 ? `Notifications, ${count} unread` : "Notifications"}>
+      <IconButton label={effectiveCount > 0 ? `Notifications, ${effectiveCount} unread` : "Notifications"}>
         <Bell className="size-[18px]" strokeWidth={2} aria-hidden="true" />
       </IconButton>
       {capped > 0 && (
@@ -298,18 +311,21 @@ export default function DashboardNavbar({
   const pathname = usePathname();
 
   // Show "+ New Idea" button strictly on the Student workspace
+  const isNonStudentRole = Boolean(allowedRole && allowedRole !== "student");
   const isNonStudentPath = Boolean(
     pathname &&
       (pathname.startsWith("/workspace/faculty") ||
         pathname.startsWith("/workspace/admin") ||
         pathname.startsWith("/workspace/super-admin") ||
         pathname.startsWith("/workspace/mentor") ||
+        pathname.startsWith("/workspace/industry") ||
         pathname.startsWith("/workspace/investor"))
   );
 
   const isStudent =
+    !isNonStudentRole &&
     !isNonStudentPath &&
-    (allowedRole === "student" || (pathname ? pathname.startsWith("/workspace/student") : false));
+    (allowedRole === "student" || Boolean(pathname?.startsWith("/workspace/student")));
 
   return (
     <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-line bg-white px-4 lg:px-6">

@@ -70,6 +70,31 @@ CREATE TABLE IF NOT EXISTS application_audit_logs (
 );
 CREATE INDEX IF NOT EXISTS idx_application_audit_application ON application_audit_logs(application_id);
 
+-- Durable lifecycle outbox. Consumers must claim rows by status and idempotency_key.
+CREATE TABLE IF NOT EXISTS domain_events (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    event_id        VARCHAR(100) NOT NULL UNIQUE,
+    event_type      VARCHAR(120) NOT NULL,
+    aggregate_type  VARCHAR(80) NOT NULL,
+    aggregate_id    VARCHAR(100) NOT NULL,
+    application_id  VARCHAR(100),
+    project_id      VARCHAR(100),
+    actor_id        VARCHAR(100) NOT NULL,
+    correlation_id  VARCHAR(120) NOT NULL,
+    idempotency_key VARCHAR(180) NOT NULL UNIQUE,
+    payload         JSONB DEFAULT '{}',
+    status          VARCHAR(30) NOT NULL DEFAULT 'pending',
+    attempts        SMALLINT NOT NULL DEFAULT 0,
+    max_attempts    SMALLINT NOT NULL DEFAULT 5,
+    next_attempt_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    processed_at    TIMESTAMPTZ,
+    last_error      TEXT,
+    created_at      TIMESTAMPTZ DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_domain_events_ready ON domain_events(status, next_attempt_at, created_at);
+CREATE INDEX IF NOT EXISTS idx_domain_events_aggregate ON domain_events(aggregate_type, aggregate_id);
+
 CREATE INDEX IF NOT EXISTS idx_applications_startup_id ON applications(startup_id);
 CREATE INDEX IF NOT EXISTS idx_applications_status     ON applications(status);
 

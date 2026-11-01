@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 const FacultyProject = require('../models/FacultyProject');
 const MentorAllocation = require('../models/MentorAllocation');
 const FacultyMeeting = require('../models/FacultyMeeting');
@@ -16,9 +17,19 @@ class AgentHubService {
   async _callAgentService(endpoint, body, method = 'POST') {
     const url = `${AGENT_SERVICE_URL}${endpoint}`;
     try {
+      const headers = { 'Content-Type': 'application/json' };
+      const secret = process.env.INTERNAL_JWT_SECRET;
+      if (secret) {
+        const token = jwt.sign(
+          { sub: 'express-agent-hub', role: 'admin', permissions: ['review_applications', 'submit_application', 'event_relay'] },
+          secret,
+          { issuer: 'next-server', audience: 'fastapi-internal', expiresIn: '5m' }
+        );
+        headers['Authorization'] = `Bearer ${token}`;
+      }
       const res = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: body ? JSON.stringify(body) : undefined,
       });
       if (!res.ok) {
@@ -68,7 +79,11 @@ class AgentHubService {
     });
   }
 
-  async runMentorMatching({ projectId, actor }) {
+  async runMentorMatching({ projectId, actor, idempotencyKey }) {
+    if (idempotencyKey) {
+      const existing = await MentorMatchingRun.findOne({ executionIdempotencyKey: idempotencyKey }).lean();
+      if (existing) return existing;
+    }
     const project = await FacultyProject.findOne({ id: projectId });
     if (!project) {
       throw new Error(`Startup project not found for ID: ${projectId}`);
@@ -239,6 +254,7 @@ class AgentHubService {
 
     const runDoc = new MentorMatchingRun({
       id: runId,
+      executionIdempotencyKey: idempotencyKey || null,
       projectId: project.id,
       projectTitle: project.title,
       domain: project.domain,
@@ -379,8 +395,13 @@ class AgentHubService {
     payload = {},
     actor = {},
   }) {
+    const requestedIdempotencyKey = payload.idempotencyKey || payload.idempotency_key;
+    if (requestedIdempotencyKey) {
+      const existing = await WorkflowExecution.findOne({ idempotencyKey: requestedIdempotencyKey });
+      if (existing) return existing;
+    }
     const execId = `wf-exec-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
-    const idempotencyKey = `wf-${actionType}-${targetId}-${payload.title || Date.now()}`;
+    const idempotencyKey = requestedIdempotencyKey || `wf-${actionType}-${targetId}-${payload.title || Date.now()}`;
     const startTime = new Date();
 
     // Call Agent Service workflow coordinator
@@ -604,10 +625,17 @@ class AgentHubService {
     return await MonitoringReport.find(filter).sort({ createdAt: -1 }).lean();
   }
 
-  async evaluateStartupMonitoring({ projectId, actor }) {
+  async evaluateStartupMonitoring({ projectId, actor, scheduled = false }) {
     const project = await FacultyProject.findOne({ id: projectId });
     if (!project) {
       throw new Error(`Startup not found for ID: ${projectId}`);
+    }
+
+    if (scheduled) {
+      const latest = await MonitoringReport.findOne({ projectId }).sort({ executedAt: -1 }).lean();
+      if (latest?.nextScheduledMonitoring && new Date(latest.nextScheduledMonitoring).getTime() > Date.now()) {
+        return latest;
+      }
     }
 
     const tasks = await FacultyTask.find({ projectId }).lean();
@@ -750,14 +778,33 @@ class AgentHubService {
     });
 
     await report.save();
+    try {
+      const { enqueueEvent } = require('./eventOrchestrator');
+      await enqueueEvent({
+        eventType: 'monitoring.report.created',
+        aggregateType: 'monitoring_report',
+        aggregateId: report.id,
+        projectId: report.projectId,
+        actorId: actor.id || 'system',
+        idempotencyKey: `monitoring-report-created:${report.id}`,
+        payload: {
+          healthStatus,
+          alertActive: report.alert.active,
+          leadStudent: report.leadStudent,
+          recommendedInterventions: interventions,
+        },
+      });
+    } catch (error) {
+      console.warn('[AgentHubService] Could not enqueue monitoring event:', error.message);
+    }
     return report;
   }
 
-  async evaluatePortfolioMonitoring({ actor }) {
+  async evaluatePortfolioMonitoring({ actor, scheduled = false }) {
     const projects = await FacultyProject.find();
     const reports = [];
     for (const p of projects) {
-      const r = await this.evaluateStartupMonitoring({ projectId: p.id, actor });
+      const r = await this.evaluateStartupMonitoring({ projectId: p.id, actor, scheduled });
       reports.push(r);
     }
     const overview = await this.getMonitoringOverview();

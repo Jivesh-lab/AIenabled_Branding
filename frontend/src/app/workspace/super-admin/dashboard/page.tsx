@@ -35,9 +35,9 @@ import Link from "next/link";
 import AuditLogViewer from "../_components/AuditLogViewer";
 import SecurityPolicyPanel from "../_components/SecurityPolicyPanel";
 import { Sparkles, Zap } from "lucide-react";
-import AiMentorMatchingDashboard from "@/components/agents/AiMentorMatchingDashboard";
-import AiWorkflowAutomationDashboard from "@/components/agents/AiWorkflowAutomationDashboard";
-import AiStartupMonitoringDashboard from "@/components/agents/AiStartupMonitoringDashboard";
+import SuperAdminMentorMatchingDashboard from "@/components/agents/SuperAdminMentorMatchingDashboard";
+import SuperAdminWorkflowDashboard from "@/components/agents/SuperAdminWorkflowDashboard";
+import SuperAdminMonitoringDashboard from "@/components/agents/SuperAdminMonitoringDashboard";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -645,9 +645,9 @@ function AgentsTab() {
         </div>
       </div>
 
-      {subAgent === "mentor-matching" && <AiMentorMatchingDashboard />}
-      {subAgent === "workflow" && <AiWorkflowAutomationDashboard />}
-      {subAgent === "monitoring" && <AiStartupMonitoringDashboard />}
+      {subAgent === "mentor-matching" && <SuperAdminMentorMatchingDashboard />}
+      {subAgent === "workflow" && <SuperAdminWorkflowDashboard />}
+      {subAgent === "monitoring" && <SuperAdminMonitoringDashboard />}
     </div>
   );
 }

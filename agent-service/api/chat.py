@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import time
 import uuid
+from urllib.parse import unquote
 from typing import Any
 
 import structlog
@@ -181,6 +182,7 @@ async def stream_chat(
     user_id: str | None = None,
     user_role: str | None = None,
     startup_id: str | None = None,
+    context: str | None = None,
     current_user: AuthenticatedUser = Depends(get_internal_service),
     pool=Depends(get_db),
 ):
@@ -201,6 +203,13 @@ async def stream_chat(
             )
         if owner_id is not None and str(owner_id) != current_user.id:
             raise HTTPException(status_code=403, detail="This chat session belongs to another user")
+
+    try:
+        authorized_context = json.loads(unquote(context)) if context else {}
+        if not isinstance(authorized_context, dict):
+            authorized_context = {}
+    except (TypeError, ValueError, json.JSONDecodeError):
+        authorized_context = {}
 
     initial_state: AgentState = {
         "session_id": session_id,
@@ -229,9 +238,11 @@ async def stream_chat(
         "error": None,
         "tokens_used": 0,
         "run_metadata": {},
+        "authorized_context": authorized_context,
     }
 
     async def event_generator():
+        last_response = None
         try:
             async for chunk in _orchestrator.astream(initial_state, stream_mode="values"):
                 # Emit "thinking" step notifications
@@ -244,7 +255,9 @@ async def stream_chat(
                         })
                     }
                 # Emit final response tokens
-                if final := chunk.get("final_response"):
+                final = chunk.get("final_response")
+                if final and final != last_response:
+                    last_response = final
                     yield {
                         "data": json.dumps({
                             "type": "response",

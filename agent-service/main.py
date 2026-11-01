@@ -29,6 +29,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api import chat_router, agents_router, rag_router, applications_router, matchmaking_router, mentors_router, milestones_router, assistant_router
+from api.events import router as events_router
 from config import get_settings
 from core.tools.database import set_pool
 from db.postgres import apply_schema, close_pool, create_pool
@@ -96,6 +97,7 @@ app.include_router(matchmaking_router)
 app.include_router(mentors_router)
 app.include_router(milestones_router)
 app.include_router(assistant_router)
+app.include_router(events_router)
 
 
 

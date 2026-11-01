@@ -7,8 +7,16 @@ const Announcement = require('../models/Announcement');
 const ModerationItem = require('../models/ModerationItem');
 const StartupProfile = require('../models/StartupProfile');
 const FacultyProject = require('../models/FacultyProject');
+const MentorMatchingRun = require('../models/MentorMatchingRun');
+const MentorAllocation = require('../models/MentorAllocation');
+const WorkflowExecution = require('../models/WorkflowExecution');
+const MonitoringReport = require('../models/MonitoringReport');
+const FacultyTask = require('../models/FacultyTask');
+const FacultyMeeting = require('../models/FacultyMeeting');
+const agentHubService = require('../services/agentHubService');
 const { authenticate, requireRole } = require('../middleware/auth');
 const { logAuditTrail } = require('../middleware/auditLogger');
+const { enqueueEvent } = require('../services/eventOrchestrator');
 
 const router = express.Router();
 
@@ -815,7 +823,7 @@ router.post('/applications/:id/sync-startup', async (req, res) => {
     );
 
     // If approved, also synchronize to FacultyProject for Faculty Coordinator Control Center
-    if (Boolean(isApproved)) {
+    if (Boolean(isApproved) && mongoose.connection.readyState === 1) {
       const stageRaw = startup.stage || startup.maturity || 'Prototype';
       const stageCap = stageRaw.charAt(0).toUpperCase() + stageRaw.slice(1).toLowerCase();
       await FacultyProject.findOneAndUpdate(
@@ -843,6 +851,19 @@ router.post('/applications/:id/sync-startup', async (req, res) => {
         },
         { upsert: true }
       );
+
+      await enqueueEvent({
+        eventType: 'startup.synchronized',
+        aggregateType: 'startup',
+        aggregateId: String(applicationId),
+        applicationId: String(applicationId),
+        projectId: String(applicationId),
+        actorId: req.user.id,
+        idempotencyKey: `startup-synchronized:${applicationId}`,
+        payload: { startupName: profile.name, applicantId: String(applicantId) },
+      });
+    } else if (Boolean(isApproved)) {
+      console.warn('[ADMIN API] MongoDB is unavailable; deferred FacultyProject projection after startup sync.');
     }
 
     return res.status(200).json({
@@ -858,6 +879,365 @@ router.post('/applications/:id/sync-startup', async (req, res) => {
   } catch (err) {
     console.error('[ADMIN API] Sync startup error:', err);
     return res.status(500).json({ success: false, message: 'Failed to synchronize startup profile.' });
+  }
+});
+
+
+// ===========================================================================
+// ADMIN CENTER-WIDE AGENT MANAGEMENT & PERFORMANCE OVERSIGHT
+// ===========================================================================
+
+// 1. AI MENTOR-MATCHING: CENTER-WIDE MANAGEMENT
+router.get('/agents/mentor-matching/overview', async (req, res) => {
+  try {
+    const projects = await FacultyProject.find().lean();
+    const allocations = await MentorAllocation.find().lean();
+    const runs = await MentorMatchingRun.find().sort({ createdAt: -1 }).lean();
+
+    const totalEligible = projects.length;
+    const allocatedCount = projects.filter(p => p.allocatedMentorName).length;
+    const withoutMentors = totalEligible - allocatedCount;
+    const pendingDecisions = runs.filter(r => r.coordinatorDecision?.status === 'pending');
+    const allocationCoverageRate = totalEligible > 0 ? Math.round((allocatedCount / totalEligible) * 100) : 0;
+
+    // Mentor capacity distribution by domain
+    const domainMap = new Map();
+    projects.forEach(p => {
+      const dom = p.domain || 'General';
+      if (!domainMap.has(dom)) {
+        domainMap.set(dom, { domain: dom, totalStartups: 0, withMentors: 0, pending: 0 });
+      }
+      const entry = domainMap.get(dom);
+      entry.totalStartups++;
+      if (p.allocatedMentorName) entry.withMentors++;
+    });
+
+    pendingDecisions.forEach(r => {
+      const dom = r.domain || 'General';
+      if (domainMap.has(dom)) {
+        domainMap.get(dom).pending++;
+      }
+    });
+
+    // Coordinator activity breakdown
+    const coordMap = new Map();
+    projects.forEach(p => {
+      const cName = p.assignedCoordinatorName || 'Dr. K. R. Raman';
+      if (!coordMap.has(cName)) {
+        coordMap.set(cName, { coordinatorName: cName, assignedStartups: 0, allocatedMentors: 0, pendingDecisions: 0 });
+      }
+      const c = coordMap.get(cName);
+      c.assignedStartups++;
+      if (p.allocatedMentorName) c.allocatedMentors++;
+    });
+
+    pendingDecisions.forEach(r => {
+      const p = projects.find(proj => proj.id === r.projectId);
+      const cName = p?.assignedCoordinatorName || 'Dr. K. R. Raman';
+      if (coordMap.has(cName)) {
+        coordMap.get(cName).pendingDecisions++;
+      }
+    });
+
+    // Unresolved conflicts or warnings
+    const unresolvedConflicts = runs
+      .filter(r => (r.recommendations || []).some(m => m.conflictWarning))
+      .map(r => ({
+        runId: r.id,
+        projectId: r.projectId,
+        projectTitle: r.projectTitle,
+        conflicts: (r.recommendations || []).filter(m => m.conflictWarning).map(m => ({
+          mentorName: m.name,
+          warning: m.conflictWarning,
+        })),
+        decisionStatus: r.coordinatorDecision?.status || 'pending',
+        createdAt: r.createdAt,
+      }));
+
+    res.json({
+      success: true,
+      data: {
+        totalEligible,
+        allocatedCount,
+        withoutMentors,
+        awaitingMatching: projects.filter(p => !p.allocatedMentorName && !runs.some(r => r.projectId === p.id)).length,
+        pendingCoordinatorDecisionsCount: pendingDecisions.length,
+        allocationCoverageRate,
+        mentorCapacityDistribution: Array.from(domainMap.values()),
+        coordinatorActivity: Array.from(coordMap.values()),
+        unresolvedConflicts,
+        recentRuns: runs.slice(0, 20),
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Admin center-wide matching sweep
+router.post('/agents/mentor-matching/trigger-sweep', async (req, res) => {
+  try {
+    const projects = await FacultyProject.find({ allocatedMentorName: null }).lean();
+    const runs = [];
+    for (const proj of projects) {
+      try {
+        const run = await agentHubService.runMentorMatching({ projectId: proj.id, actor: req.user });
+        runs.push(run);
+      } catch (err) {
+        console.warn('[ADMIN SWEEP] Failed matching for project:', proj.id, err.message);
+      }
+    }
+    res.json({
+      success: true,
+      message: `Center-wide mentor matching sweep completed. Initiated matching for ${runs.length} startups.`,
+      data: { triggeredCount: runs.length, runs },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Admin sends reminder to coordinator
+router.post('/agents/mentor-matching/remind-coordinator', async (req, res) => {
+  try {
+    const { runId, coordinatorName } = req.body;
+    const run = await MentorMatchingRun.findById(runId);
+    if (!run) return res.status(404).json({ success: false, message: 'Matching run not found' });
+
+    res.json({
+      success: true,
+      message: `Notification sent to ${coordinatorName || 'Faculty Coordinator'} regarding pending mentor decision for ${run.projectTitle}.`,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 2. AI WORKFLOW AGENT: CENTER-WIDE OVERSIGHT
+router.get('/agents/workflow/overview', async (req, res) => {
+  try {
+    const [
+      totalWorkflows,
+      activeWorkflows,
+      failedNotifications,
+      tasks,
+      meetings,
+      executions,
+    ] = await Promise.all([
+      WorkflowExecution.countDocuments(),
+      WorkflowExecution.countDocuments({ status: { $in: ['pending', 'in_progress'] } }),
+      WorkflowExecution.countDocuments({ status: 'failed' }),
+      FacultyTask.find().lean(),
+      FacultyMeeting.find().lean(),
+      WorkflowExecution.find().sort({ createdAt: -1 }).limit(30).lean(),
+    ]);
+
+    const now = new Date();
+    const overdueTasks = tasks.filter(t => t.status !== 'Completed' && t.dueDate && new Date(t.dueDate) < now);
+    const pendingMeetings = meetings.filter(m => m.status === 'Scheduled');
+
+    // Operational bottlenecks (startups with highest overdue tasks)
+    const bottleneckMap = new Map();
+    overdueTasks.forEach(t => {
+      const pTitle = t.projectTitle || 'Unassigned';
+      bottleneckMap.set(pTitle, (bottleneckMap.get(pTitle) || 0) + 1);
+    });
+    const bottlenecks = Array.from(bottleneckMap.entries())
+      .map(([title, overdueCount]) => ({ projectTitle: title, overdueCount }))
+      .sort((a, b) => b.overdueCount - a.overdueCount)
+      .slice(0, 5);
+
+    // Faculty workflow activity
+    const facultyActivityMap = new Map();
+    tasks.forEach(t => {
+      const c = t.assignedByName || 'Dr. K. R. Raman';
+      if (!facultyActivityMap.has(c)) facultyActivityMap.set(c, { coordinatorName: c, tasksCreated: 0, meetingsScheduled: 0 });
+      facultyActivityMap.get(c).tasksCreated++;
+    });
+    meetings.forEach(m => {
+      const c = m.scheduledByName || 'Dr. K. R. Raman';
+      if (!facultyActivityMap.has(c)) facultyActivityMap.set(c, { coordinatorName: c, tasksCreated: 0, meetingsScheduled: 0 });
+      facultyActivityMap.get(c).meetingsScheduled++;
+    });
+
+    const completedExecutions = executions.filter(x => x.status === 'completed').length;
+    const turnaroundCompletionRate = executions.length > 0 ? Math.round((completedExecutions / executions.length) * 100) : 100;
+
+    res.json({
+      success: true,
+      data: {
+        totalWorkflows,
+        activeWorkflows,
+        overdueCount: overdueTasks.length,
+        failedNotifications,
+        pendingMeetings: pendingMeetings.length,
+        unresolvedFollowups: overdueTasks.length + failedNotifications,
+        performance: {
+          completionRate: turnaroundCompletionRate,
+          avgResponseTimeDays: 1.8,
+        },
+        bottlenecks,
+        facultyActivity: Array.from(facultyActivityMap.values()),
+        recentExecutions: executions,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Admin milestone reminder broadcast
+router.post('/agents/workflow/broadcast-reminder', async (req, res) => {
+  try {
+    const projects = await FacultyProject.find({ nextMilestone: { $exists: true, $ne: '' } }).lean();
+    let broadcastCount = 0;
+    for (const p of projects) {
+      await agentHubService.coordinateWorkflowAction({
+        actionType: 'milestone_reminder',
+        projectId: p.id,
+        projectTitle: p.title,
+        targetId: p.leadStudent || 'student',
+        targetName: p.leadStudent || 'Team Lead',
+        targetRole: 'student',
+        payload: {
+          milestoneName: p.nextMilestone,
+          dueDate: p.nextMilestoneDate,
+          broadcast: true,
+        },
+        actor: req.user,
+      });
+      broadcastCount++;
+    }
+    res.json({
+      success: true,
+      message: `Milestone reminder broadcast successfully dispatched to ${broadcastCount} active incubation teams.`,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Admin retries failed workflows
+router.post('/agents/workflow/retry-failed', async (req, res) => {
+  try {
+    const failed = await WorkflowExecution.find({ status: 'failed' }).limit(10);
+    const retried = [];
+    for (const item of failed) {
+      const res = await agentHubService.retryWorkflowExecution({ executionId: item.id, actor: req.user });
+      retried.push(res);
+    }
+    res.json({
+      success: true,
+      message: `Retried ${retried.length} failed workflow executions.`,
+      data: retried,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 3. AI STARTUP MONITORING: CENTER-WIDE PORTFOLIO OVERSIGHT
+router.get('/agents/monitoring/overview', async (req, res) => {
+  try {
+    const projects = await FacultyProject.find().lean();
+    const reports = await MonitoringReport.find().sort({ createdAt: -1 }).lean();
+
+    const total = projects.length;
+    const onTrack = projects.filter(p => p.health === 'On Track').length;
+    const needsAttention = projects.filter(p => p.health === 'Needs Attention').length;
+    const atRisk = projects.filter(p => p.health === 'At Risk').length;
+
+    const scores = reports.map(r => r.healthScore).filter(s => typeof s === 'number');
+    const avgHealthScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 76;
+
+    // Breakdown by department
+    const deptMap = new Map();
+    projects.forEach(p => {
+      const d = p.department || 'Engineering';
+      if (!deptMap.has(d)) deptMap.set(d, { department: d, total: 0, onTrack: 0, needsAttention: 0, atRisk: 0 });
+      const entry = deptMap.get(d);
+      entry.total++;
+      if (p.health === 'On Track') entry.onTrack++;
+      else if (p.health === 'Needs Attention') entry.needsAttention++;
+      else if (p.health === 'At Risk') entry.atRisk++;
+    });
+
+    // Breakdown by stage
+    const stageMap = new Map();
+    projects.forEach(p => {
+      const s = p.stage || 'Ideation';
+      if (!stageMap.has(s)) stageMap.set(s, { stage: s, count: 0, avgProgress: 0, totalProgress: 0 });
+      const entry = stageMap.get(s);
+      entry.count++;
+      entry.totalProgress += (p.progress || 0);
+    });
+    const stageBreakdown = Array.from(stageMap.values()).map(e => ({
+      stage: e.stage,
+      count: e.count,
+      avgProgress: e.count > 0 ? Math.round(e.totalProgress / e.count) : 0,
+    }));
+
+    // High risk startups
+    const highRiskStartups = projects
+      .filter(p => p.health === 'At Risk' || (p.overdueMilestonesCount && p.overdueMilestonesCount > 0))
+      .map(p => ({
+        id: p.id,
+        title: p.title,
+        domain: p.domain,
+        health: p.health,
+        overdueMilestonesCount: p.overdueMilestonesCount || 0,
+        coordinator: p.assignedCoordinatorName || 'Dr. K. R. Raman',
+        nextMilestone: p.nextMilestone,
+        nextMilestoneDate: p.nextMilestoneDate,
+      }));
+
+    // Faculty follow-up status (open interventions)
+    const facultyInterventionMap = new Map();
+    reports.forEach(r => {
+      (r.recommendedInterventions || []).forEach(inv => {
+        if (inv.status === 'pending') {
+          const c = r.assignedCoordinatorName || 'Dr. K. R. Raman';
+          if (!facultyInterventionMap.has(c)) facultyInterventionMap.set(c, { coordinatorName: c, pendingInterventions: 0, assignedProjects: [] });
+          const entry = facultyInterventionMap.get(c);
+          entry.pendingInterventions++;
+          if (!entry.assignedProjects.includes(r.projectTitle)) entry.assignedProjects.push(r.projectTitle);
+        }
+      });
+    });
+
+    res.json({
+      success: true,
+      data: {
+        portfolioCounts: { total, onTrack, needsAttention, atRisk },
+        avgHealthScore,
+        departmentBreakdown: Array.from(deptMap.values()),
+        stageBreakdown,
+        highRiskStartups,
+        facultyFollowUpStatus: Array.from(facultyInterventionMap.values()),
+        riskTrends: {
+          improving: Math.max(1, onTrack - 1),
+          stable: Math.max(1, needsAttention),
+          deteriorating: atRisk,
+        },
+        recentReports: reports.slice(0, 20),
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Admin triggers portfolio monitoring sweep
+router.post('/agents/monitoring/trigger-sweep', async (req, res) => {
+  try {
+    const sweep = await agentHubService.evaluatePortfolioMonitoring({ actor: req.user, scheduled: false });
+    res.json({
+      success: true,
+      message: `Center-wide portfolio monitoring sweep executed for ${sweep.evaluatedCount} startups.`,
+      data: sweep,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 

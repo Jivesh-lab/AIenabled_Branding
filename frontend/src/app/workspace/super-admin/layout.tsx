@@ -8,6 +8,9 @@ import {
   Users,
   Layers,
   Megaphone,
+  Sparkles,
+  Zap,
+  Activity,
 } from "lucide-react";
 import { NavSection } from "@/components/shared/DashboardSidebar";
 
@@ -34,6 +37,26 @@ const SUPER_ADMIN_NAV: NavSection[] = [
         href: "/workspace/super-admin/dashboard?tab=announce",
         icon: Megaphone,
         label: "Broadcast Center",
+      },
+    ],
+  },
+  {
+    label: "AI Agent Governance",
+    items: [
+      {
+        href: "/workspace/super-admin/mentor-matching",
+        icon: Sparkles,
+        label: "Mentor-Matching Agent",
+      },
+      {
+        href: "/workspace/super-admin/workflow",
+        icon: Zap,
+        label: "Workflow Agent",
+      },
+      {
+        href: "/workspace/super-admin/monitoring",
+        icon: Activity,
+        label: "Monitoring Agent",
       },
     ],
   },

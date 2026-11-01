@@ -10,6 +10,9 @@ const FacultyMeeting = require('../models/FacultyMeeting');
 const FacultyTask = require('../models/FacultyTask');
 const SupportRequest = require('../models/SupportRequest');
 const Announcement = require('../models/Announcement');
+const MentorMatchingRun = require('../models/MentorMatchingRun');
+const WorkflowExecution = require('../models/WorkflowExecution');
+const MonitoringReport = require('../models/MonitoringReport');
 const { logAuditTrail } = require('../middleware/auditLogger');
 
 const router = express.Router();
@@ -444,6 +447,22 @@ router.put(
       }
       await item.save();
 
+      if (req.body.decision === 'approved') {
+        await enqueueEvent({
+          eventType: 'mentor.allocation.approved',
+          aggregateType: 'mentor_allocation',
+          aggregateId: item.id,
+          projectId: item.projectId,
+          actorId: req.user.id,
+          idempotencyKey: `mentor-allocation-approved:${item.id}`,
+          payload: {
+            projectTitle: item.projectTitle,
+            allocatedMentorName: item.allocatedMentorName,
+            participants: ['Student Founder', item.allocatedMentorName || 'Assigned Mentor'],
+          },
+        });
+      }
+
       logAuditTrail({
         userId: req.user.id,
         email: req.user.email || 'faculty@dbit.ac.in',
@@ -507,6 +526,15 @@ router.post(
       });
 
       await newMeeting.save();
+      await enqueueEvent({
+        eventType: 'meeting.confirmed',
+        aggregateType: 'meeting',
+        aggregateId: newMeeting.id,
+        projectId: newMeeting.projectId,
+        actorId: req.user.id,
+        idempotencyKey: `meeting-confirmed:${newMeeting.id}`,
+        payload: { title: newMeeting.title, date: newMeeting.date, startTime: newMeeting.startTime },
+      });
 
       res.status(201).json({
         success: true,
@@ -558,6 +586,15 @@ router.post(
       });
 
       await newTask.save();
+      await enqueueEvent({
+        eventType: 'task.created',
+        aggregateType: 'task',
+        aggregateId: newTask.id,
+        projectId: newTask.projectId,
+        actorId: req.user.id,
+        idempotencyKey: `task-created:${newTask.id}`,
+        payload: { title: newTask.title, assignedTo: newTask.assignedTo, dueDate: newTask.dueDate },
+      });
 
       res.status(201).json({
         success: true,
@@ -578,6 +615,15 @@ router.put('/tasks/:id/status', async (req, res) => {
     }
     task.status = req.body.status || 'Completed';
     await task.save();
+    await enqueueEvent({
+      eventType: task.status === 'Completed' ? 'task.completed' : 'task.updated',
+      aggregateType: 'task',
+      aggregateId: task.id,
+      projectId: task.projectId,
+      actorId: req.user.id,
+      idempotencyKey: `task-status:${task.id}:${task.status}:${task.updatedAt?.getTime?.() || Date.now()}`,
+      payload: { status: task.status, title: task.title },
+    });
     res.json({ success: true, message: 'Task status updated.', data: task });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -657,12 +703,71 @@ router.post(
 // AI AGENT HUBS: MENTOR-MATCHING, WORKFLOW AUTOMATION, STARTUP MONITORING
 // ===========================================================================
 const agentHubService = require('../services/agentHubService');
+const { enqueueEvent } = require('../services/eventOrchestrator');
+const DomainEvent = require('../models/DomainEvent');
 
 // 1. AI MENTOR MATCHING
+router.get('/agent-events', async (req, res) => {
+  try {
+    const filter = {};
+    if (req.query.status && req.query.status !== 'all') filter.status = req.query.status;
+    if (req.query.projectId && req.query.projectId !== 'all') filter.projectId = req.query.projectId;
+
+    if (req.user.role === 'faculty') {
+      const assigned = await FacultyProject.find({ assignedCoordinatorName: req.user.name }).select('id').lean();
+      filter.projectId = { $in: assigned.map((project) => project.id) };
+    }
+
+    const events = await DomainEvent.find(filter).sort({ createdAt: -1 }).limit(200).lean();
+    res.json({ success: true, data: events });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+
+router.post('/agent-events/:id/reprocess', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const event = await DomainEvent.findOne({
+      $or: [{ eventId: id }, ...(mongoose.Types.ObjectId.isValid(id) ? [{ _id: id }] : [])],
+    });
+    if (!event) {
+      return res.status(404).json({ success: false, message: 'Event not found' });
+    }
+    if (!['failed', 'dead_letter'].includes(event.status)) {
+      return res.status(400).json({ success: false, message: `Only failed or dead_letter events can be reprocessed (current: ${event.status})` });
+    }
+
+    event.status = 'pending';
+    event.attempts = 0;
+    event.nextAttemptAt = new Date();
+    event.lastError = null;
+    await event.save();
+
+    const { processOneEvent } = require('../services/eventOrchestrator');
+    const result = await processOneEvent();
+
+    const updated = await DomainEvent.findById(event._id).lean();
+    return res.json({ success: true, message: 'Event reprocessed successfully', event: updated, processResult: result });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 router.get('/mentor-matching/startups', async (req, res) => {
   try {
     await ensureSeedData();
-    const startups = await agentHubService.getStartupsForMatching();
+    let startups = await agentHubService.getStartupsForMatching();
+    if (req.user.role === 'faculty') {
+      const coordinatorName = req.user.name || 'Dr. K. R. Raman';
+      const lastName = coordinatorName.split(' ').pop().toLowerCase();
+      startups = startups.filter(s => 
+        !s.assignedCoordinatorName || 
+        s.assignedCoordinatorName.toLowerCase().includes(lastName) ||
+        s.assignedCoordinatorName === coordinatorName
+      );
+    }
     res.json({ success: true, data: startups });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -674,6 +779,16 @@ router.post('/mentor-matching/run', async (req, res) => {
     const { projectId } = req.body;
     if (!projectId) {
       return res.status(400).json({ success: false, message: 'projectId is required' });
+    }
+    if (req.user.role === 'faculty') {
+      const project = await FacultyProject.findOne({ id: projectId });
+      if (project && project.assignedCoordinatorName) {
+        const coordinatorName = req.user.name || 'Dr. K. R. Raman';
+        const lastName = coordinatorName.split(' ').pop().toLowerCase();
+        if (!project.assignedCoordinatorName.toLowerCase().includes(lastName)) {
+          return res.status(403).json({ success: false, message: 'Access denied: You are not the assigned coordinator for this startup.' });
+        }
+      }
     }
     const run = await agentHubService.runMentorMatching({ projectId, actor: req.user });
     res.status(201).json({ success: true, data: run });
@@ -693,6 +808,13 @@ router.get('/mentor-matching/runs', async (req, res) => {
 
 router.put('/mentor-matching/runs/:id/decide', async (req, res) => {
   try {
+    // Only Faculty Coordinators can confirm mentor allocations
+    if (req.user.role !== 'faculty') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: Mentor allocation approvals are restricted to authorized Faculty Coordinators.',
+      });
+    }
     const { decision, selectedMentorId, selectedMentorName, comments } = req.body;
     if (!['approved', 'rejected'].includes(decision)) {
       return res.status(400).json({ success: false, message: 'Decision must be approved or rejected' });
@@ -707,6 +829,9 @@ router.put('/mentor-matching/runs/:id/decide', async (req, res) => {
     });
     res.json({ success: true, message: `Recommendation successfully ${decision}.`, data: updated });
   } catch (err) {
+    if (err.message && err.message.includes('not found')) {
+      return res.status(404).json({ success: false, message: err.message });
+    }
     res.status(500).json({ success: false, message: err.message });
   }
 });
@@ -715,6 +840,23 @@ router.put('/mentor-matching/runs/:id/decide', async (req, res) => {
 router.get('/workflow/executions', async (req, res) => {
   try {
     const { projectId, actionType, status } = req.query;
+    if (req.user.role === 'faculty' && !projectId) {
+      const coordinatorName = req.user.name || 'Dr. K. R. Raman';
+      const lastName = coordinatorName.split(' ').pop().toLowerCase();
+      const myProjects = await FacultyProject.find({
+        $or: [
+          { assignedCoordinatorName: { $regex: lastName, $options: 'i' } },
+          { assignedCoordinatorName: coordinatorName }
+        ]
+      }).select('id').lean();
+      const myProjectIds = myProjects.map(p => p.id);
+      const executions = await WorkflowExecution.find({
+        ...(myProjectIds.length > 0 ? { projectId: { $in: myProjectIds } } : {}),
+        ...(actionType ? { actionType } : {}),
+        ...(status ? { status } : {}),
+      }).sort({ createdAt: -1 }).lean();
+      return res.json({ success: true, data: executions });
+    }
     const executions = await agentHubService.getWorkflowExecutions({ projectId, actionType, status });
     res.json({ success: true, data: executions });
   } catch (err) {
@@ -773,7 +915,28 @@ router.post('/workflow/executions/:id/cancel', async (req, res) => {
 router.get('/monitoring/overview', async (req, res) => {
   try {
     await ensureSeedData();
-    const overview = await agentHubService.getMonitoringOverview();
+    let overview = await agentHubService.getMonitoringOverview();
+    if (req.user.role === 'faculty') {
+      const coordinatorName = req.user.name || 'Dr. K. R. Raman';
+      const lastName = coordinatorName.split(' ').pop().toLowerCase();
+      const myProjects = await FacultyProject.find({
+        $or: [
+          { assignedCoordinatorName: { $regex: lastName, $options: 'i' } },
+          { assignedCoordinatorName: coordinatorName }
+        ]
+      }).lean();
+      const myProjectIds = new Set(myProjects.map(p => p.id));
+      
+      const filteredReports = (overview.reports || []).filter(r => myProjectIds.has(r.projectId));
+      overview = {
+        totalStartups: myProjects.length,
+        onTrackCount: myProjects.filter(p => p.health === 'On Track').length,
+        needsAttentionCount: myProjects.filter(p => p.health === 'Needs Attention').length,
+        atRiskCount: myProjects.filter(p => p.health === 'At Risk').length,
+        activeAlertsCount: filteredReports.filter(r => r.healthStatus !== 'On Track').length,
+        reports: filteredReports,
+      };
+    }
     res.json({ success: true, data: overview });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -783,6 +946,22 @@ router.get('/monitoring/overview', async (req, res) => {
 router.get('/monitoring/reports', async (req, res) => {
   try {
     const { projectId, healthStatus } = req.query;
+    if (req.user.role === 'faculty' && !projectId) {
+      const coordinatorName = req.user.name || 'Dr. K. R. Raman';
+      const lastName = coordinatorName.split(' ').pop().toLowerCase();
+      const myProjects = await FacultyProject.find({
+        $or: [
+          { assignedCoordinatorName: { $regex: lastName, $options: 'i' } },
+          { assignedCoordinatorName: coordinatorName }
+        ]
+      }).select('id').lean();
+      const myProjectIds = myProjects.map(p => p.id);
+      const reports = await MonitoringReport.find({
+        ...(myProjectIds.length > 0 ? { projectId: { $in: myProjectIds } } : {}),
+        ...(healthStatus ? { healthStatus } : {}),
+      }).sort({ createdAt: -1 }).lean();
+      return res.json({ success: true, data: reports });
+    }
     const reports = await agentHubService.getMonitoringReports({ projectId, healthStatus });
     res.json({ success: true, data: reports });
   } catch (err) {

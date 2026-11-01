@@ -12,6 +12,8 @@ backend and passes in (agent-service cannot read the task store). The result is 
 """
 
 from datetime import date, datetime, timezone
+import json
+import uuid
 from typing import Any, Dict, Optional
 
 import structlog
@@ -29,11 +31,24 @@ from db.standalone_store import (
     standalone_owned_application,
     standalone_startup_name,
     standalone_update_milestone,
+    standalone_record_domain_event,
 )
 
 logger = structlog.get_logger(__name__)
 
 router = APIRouter(prefix="/api/applications", tags=["milestones"])
+
+async def _record_milestone_event(conn, event_type: str, application_id: str, startup_id: str, actor_id: str, payload: Dict[str, Any]) -> None:
+    event_id = str(uuid.uuid4())
+    await conn.execute(
+        """INSERT INTO domain_events
+           (event_id, event_type, aggregate_type, aggregate_id, application_id, project_id, actor_id,
+            correlation_id, idempotency_key, payload)
+           VALUES ($1, $2, 'milestone', $3, $4, $5, $6, $1, $7, $8::jsonb)
+           ON CONFLICT (idempotency_key) DO NOTHING""",
+        event_id, event_type, str(payload.get("milestone_id")), str(application_id), str(startup_id), str(actor_id),
+        f"{event_type}:{payload.get('milestone_id')}:{payload.get('transition_id', event_id)}", json.dumps(payload),
+    )
 
 
 class MilestoneIn(BaseModel):
@@ -120,6 +135,11 @@ async def create_milestone(
 
     if not pool:
         row = standalone_create_milestone(owned["startup_id"], current_user.id, title, payload.description.strip(), due)
+        standalone_record_domain_event(
+            "milestone.created", "milestone", str(row["id"]), current_user.id,
+            {"milestone_id": str(row["id"]), "application_id": application_id, "startup_id": owned["startup_id"], "title": title, "transition_id": str(uuid.uuid4())},
+            application_id=application_id, project_id=owned["startup_id"],
+        )
     else:
         try:
             async with pool.acquire() as conn:
@@ -139,6 +159,10 @@ async def create_milestone(
                         VALUES ($1::uuid, $2, $3, $4, 'pending', 0, $5) RETURNING *
                         """,
                         owned["startup_id"], title, payload.description.strip(), payload.dueDate, current_user.id,
+                    )
+                    await _record_milestone_event(
+                        conn, "milestone.created", application_id, owned["startup_id"], current_user.id,
+                        {"milestone_id": str(record["id"]), "title": title, "transition_id": str(uuid.uuid4())},
                     )
             row = dict(record)
         except HTTPException:
@@ -164,6 +188,11 @@ async def update_milestone(
 
     if not pool:
         row = standalone_update_milestone(owned["startup_id"], milestone_id, payload.status, payload.completionPct)
+        standalone_record_domain_event(
+            "milestone.updated", "milestone", milestone_id, current_user.id,
+            {"milestone_id": milestone_id, "application_id": application_id, "startup_id": owned["startup_id"], "status": row.get("status"), "completion_pct": row.get("completion_pct"), "transition_id": str(uuid.uuid4())},
+            application_id=application_id, project_id=owned["startup_id"],
+        )
     else:
         try:
             async with pool.acquire() as conn:
@@ -184,6 +213,10 @@ async def update_milestone(
                     record = await conn.fetchrow(
                         "UPDATE milestones SET status=$1, completion_pct=$2, completed_at=$3, updated_at=NOW() WHERE id=$4::uuid RETURNING *",
                         new_status, new_pct, completed_at, milestone_id,
+                    )
+                    await _record_milestone_event(
+                        conn, "milestone.updated", application_id, owned["startup_id"], current_user.id,
+                        {"milestone_id": milestone_id, "status": new_status, "completion_pct": new_pct, "transition_id": str(uuid.uuid4())},
                     )
             row = dict(record)
         except HTTPException:

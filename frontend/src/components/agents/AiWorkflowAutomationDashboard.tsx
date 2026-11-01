@@ -26,11 +26,14 @@ import {
   cancelWorkflowExecution,
   fetchStartupsForMatching,
   WorkflowExecution,
+  fetchAgentDomainEvents,
+  AgentDomainEvent,
 } from "@/services/facultyDataService";
 
 export default function AiWorkflowAutomationDashboard() {
   const [executions, setExecutions] = useState<WorkflowExecution[]>([]);
   const [startups, setStartups] = useState<any[]>([]);
+  const [events, setEvents] = useState<AgentDomainEvent[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -77,16 +80,18 @@ export default function AiWorkflowAutomationDashboard() {
     try {
       setLoading(true);
       setError(null);
-      const [execData, startupsData] = await Promise.all([
+      const [execData, startupsData, eventData] = await Promise.all([
         fetchWorkflowExecutions({
           projectId: filterStartup !== "all" ? filterStartup : undefined,
           actionType: filterActionType !== "all" ? filterActionType : undefined,
           status: filterStatus !== "all" ? filterStatus : undefined,
         }),
         fetchStartupsForMatching(),
+        fetchAgentDomainEvents({ projectId: filterStartup !== "all" ? filterStartup : undefined }),
       ]);
       setExecutions(execData);
       setStartups(startupsData);
+      setEvents(eventData);
     } catch (err: any) {
       setError(err.message || "Failed to load workflow activities");
     } finally {
@@ -271,6 +276,34 @@ export default function AiWorkflowAutomationDashboard() {
             <span className="text-[11px] text-purple-700">Compliance checkpoints</span>
           </div>
         </div>
+      </div>
+
+      <div className="rounded-xl border border-line bg-white p-5 shadow-xs">
+        <div className="mb-3 flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-bold text-ink">Lifecycle Event Activity</h2>
+            <p className="text-xs text-muted-ink">Persisted events that activated or informed agents.</p>
+          </div>
+          <span className="text-xs text-muted-ink">{events.length} recorded</span>
+        </div>
+        {events.length === 0 ? (
+          <p className="rounded-lg border border-dashed border-line p-4 text-xs text-muted-ink">No lifecycle events are available for this scope.</p>
+        ) : (
+          <div className="divide-y divide-line">
+            {events.slice(0, 8).map((event) => (
+              <div key={event.eventId} className="flex flex-col gap-1 py-3 text-xs sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="font-semibold text-ink">{event.eventType}</p>
+                  <p className="text-muted-ink">Aggregate: {event.aggregateType} / {event.aggregateId}</p>
+                </div>
+                <div className="text-left sm:text-right">
+                  <span className={`inline-flex rounded-full px-2 py-0.5 font-semibold ${event.status === "completed" ? "bg-emerald-50 text-emerald-700" : event.status === "failed" || event.status === "dead_letter" ? "bg-rose-50 text-rose-700" : "bg-amber-50 text-amber-700"}`}>{event.status}</span>
+                  <p className="mt-1 text-[11px] text-muted-ink">Attempts: {event.attempts}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Notifications */}

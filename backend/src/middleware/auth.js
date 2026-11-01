@@ -20,7 +20,7 @@ async function authenticate(req, res, next) {
       const payload = jwt.verify(token, process.env.JWT_SECRET);
       
       // If mongoose is connected and User.findById is available, verify status in database
-      if (typeof User.findById === 'function' && mongoose.connection?.readyState === 1) {
+      if (typeof User.findById === 'function' && mongoose.connection?.readyState === 1 && mongoose.isValidObjectId(payload.sub)) {
         const user = await User.findById(payload.sub).select('status isSoftDeleted role email name isInvestorVerified');
         if (user) {
           if (user.isSoftDeleted) {

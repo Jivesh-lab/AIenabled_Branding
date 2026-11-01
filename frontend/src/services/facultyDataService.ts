@@ -771,6 +771,23 @@ export interface WorkflowExecution {
   createdAt: string;
 }
 
+export interface AgentDomainEvent {
+  eventId: string;
+  eventType: string;
+  aggregateType: string;
+  aggregateId: string;
+  projectId?: string | null;
+  applicationId?: string | null;
+  actorId: string;
+  correlationId: string;
+  status: "pending" | "processing" | "completed" | "failed" | "dead_letter";
+  attempts: number;
+  payload: Record<string, any>;
+  processedAt?: string | null;
+  lastError?: string | null;
+  createdAt: string;
+}
+
 export interface MonitoringReport {
   id: string;
   projectId: string;
@@ -906,6 +923,16 @@ export async function fetchWorkflowExecutions(filter?: {
   });
   const json = await res.json();
   if (!res.ok || !json.success) throw new Error(json.message || "Failed to fetch workflow executions");
+  return json.data;
+}
+
+export async function fetchAgentDomainEvents(filter?: { projectId?: string; status?: string }): Promise<AgentDomainEvent[]> {
+  const params = new URLSearchParams();
+  if (filter?.projectId) params.set("projectId", filter.projectId);
+  if (filter?.status) params.set("status", filter.status);
+  const res = await fetch(`${API_BASE}/api/faculty/agent-events?${params.toString()}`, { credentials: "include" });
+  const json = await res.json();
+  if (!res.ok || !json.success) throw new Error(json.message || "Failed to fetch agent events");
   return json.data;
 }
 

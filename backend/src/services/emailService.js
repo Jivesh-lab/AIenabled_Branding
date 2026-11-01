@@ -58,6 +58,7 @@ async function sendEmail({ to, subject, html, text }) {
   const fromAddress = process.env.SMTP_FROM || process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || 'no-reply@aai-dbitic.edu';
   let messageId = `email_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
   let previewUrl = null;
+  let deliveryError = null;
 
   try {
     const transporter = await getTransporter();
@@ -78,6 +79,7 @@ async function sendEmail({ to, subject, html, text }) {
     }
   } catch (err) {
     console.error(`[EMAIL SERVICE] Error delivering real email to ${to}:`, err.message);
+    deliveryError = String(err.message || err).slice(0, 500);
   }
 
   const mailRecord = {
@@ -88,11 +90,12 @@ async function sendEmail({ to, subject, html, text }) {
     html: html || '',
     previewUrl,
     sentAt: new Date().toISOString(),
-    status: 'delivered',
+    status: deliveryError ? 'failed' : 'delivered',
+    error: deliveryError,
   };
 
   _EMAIL_OUTBOX.push(mailRecord);
-  return { success: true, messageId: mailRecord.id, previewUrl, sentAt: mailRecord.sentAt };
+  return { success: !deliveryError, messageId: mailRecord.id, previewUrl, sentAt: mailRecord.sentAt, error: deliveryError };
 }
 
 /**

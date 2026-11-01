@@ -10,13 +10,10 @@ const AGENT_SERVICE_URL = process.env.AGENT_SERVICE_URL || "http://127.0.0.1:800
 function getInternalJwtSecret(): string {
   const secret = process.env.INTERNAL_JWT_SECRET;
   if (!secret) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error("FATAL: INTERNAL_JWT_SECRET must be configured in production.");
-    }
-    return "test_internal_secret_key_123";
+    throw new Error("FATAL: INTERNAL_JWT_SECRET must be configured in environment.");
   }
-  if (process.env.NODE_ENV === "production" && secret === "test_internal_secret_key_123") {
-    throw new Error("FATAL: Insecure test INTERNAL_JWT_SECRET cannot be used in production.");
+  if (secret === "test_internal_secret_key_123") {
+    throw new Error("FATAL: Insecure test INTERNAL_JWT_SECRET is rejected. Generate a secure random secret.");
   }
   return secret;
 }
