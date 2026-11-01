@@ -26,38 +26,54 @@ type StatsData = {
 };
 
 const INITIAL_STATS: StatsData = {
-  totalUsers: 142,
-  activeUsers: 128,
-  inactiveUsers: 8,
-  pendingUsers: 6,
+  totalUsers: 0,
+  activeUsers: 0,
+  inactiveUsers: 0,
+  pendingUsers: 0,
   rejectedUsers: 0,
   roleBreakdown: {
-    student: 84,
-    faculty: 18,
-    mentor: 22,
-    investor: 4,
+    student: 0,
+    faculty: 0,
+    mentor: 0,
+    investor: 0,
   },
-  pendingApprovalsCount: 6,
-  moderationItemsCount: 2,
-  mentorStudentRatio: "1:3.8",
+  pendingApprovalsCount: 0,
+  moderationItemsCount: 0,
+  mentorStudentRatio: "0:0",
 };
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<StatsData>(INITIAL_STATS);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchStats() {
       try {
+        setLoading(true);
         const res = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/admin/stats`,
           { credentials: "include" }
         );
         if (res.ok) {
           const data = await res.json();
-          if (data.stats) setStats(data.stats);
+          if (data.stats) {
+            setStats({
+              ...INITIAL_STATS,
+              ...data.stats,
+              roleBreakdown: {
+                student: 0,
+                faculty: 0,
+                mentor: 0,
+                investor: 0,
+                ...(data.stats.roleBreakdown || {}),
+              },
+            });
+          }
         }
       } catch {
-        // Fallback to initial stats
+        // Silently catch
+      } finally {
+        setLoading(false);
       }
     }
     fetchStats();
@@ -70,7 +86,7 @@ export default function AdminDashboardPage() {
     >
       <div className="space-y-6">
         {/* Urgent Vetting Alert (Single Bold Operational Element) */}
-        {stats.pendingApprovalsCount > 0 && (
+        {!loading && stats.pendingApprovalsCount > 0 && (
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-start gap-3">
               <div className="flex size-9 shrink-0 items-center justify-center rounded bg-amber-100 text-amber-800 mt-0.5">
@@ -102,10 +118,10 @@ export default function AdminDashboardPage() {
               <Users className="size-4 text-slate-400" />
             </div>
             <p className="mt-2 text-[26px] font-semibold tracking-tight text-ink tabular-nums">
-              {stats.totalUsers}
+              {loading ? "—" : stats.totalUsers}
             </p>
             <p className="text-[12px] text-emerald-700 mt-0.5">
-              {stats.activeUsers} active, {stats.inactiveUsers} inactive
+              {loading ? "Loading..." : `${stats.activeUsers} active, ${stats.inactiveUsers} inactive`}
             </p>
           </div>
 
@@ -115,9 +131,11 @@ export default function AdminDashboardPage() {
               <UserCheck className="size-4 text-amber-600" />
             </div>
             <p className="mt-2 text-[26px] font-semibold tracking-tight text-amber-800 tabular-nums">
-              {stats.pendingApprovalsCount}
+              {loading ? "—" : stats.pendingApprovalsCount}
             </p>
-            <p className="text-[12px] text-amber-700 mt-0.5">Awaiting credential check</p>
+            <p className="text-[12px] text-amber-700 mt-0.5">
+              {stats.pendingApprovalsCount > 0 ? "Awaiting credential check" : "Queue clear"}
+            </p>
           </div>
 
           <div className="p-4 sm:p-5">
@@ -126,10 +144,10 @@ export default function AdminDashboardPage() {
               <BarChart3 className="size-4 text-slate-400" />
             </div>
             <p className="mt-2 text-[26px] font-semibold tracking-tight text-ink tabular-nums">
-              {stats.mentorStudentRatio}
+              {loading ? "—" : stats.mentorStudentRatio || "0:0"}
             </p>
             <p className="text-[12px] text-slate-500 mt-0.5">
-              {stats.roleBreakdown.mentor} mentors for {stats.roleBreakdown.student} students
+              {loading ? "Calculating..." : `${stats.roleBreakdown.mentor || 0} mentors for ${stats.roleBreakdown.student || 0} students`}
             </p>
           </div>
 
@@ -139,7 +157,7 @@ export default function AdminDashboardPage() {
               <ShieldAlert className="size-4 text-slate-400" />
             </div>
             <p className="mt-2 text-[26px] font-semibold tracking-tight text-ink tabular-nums">
-              {stats.moderationItemsCount}
+              {loading ? "—" : stats.moderationItemsCount}
             </p>
             <p className="text-[12px] text-slate-500 mt-0.5">Reported items for audit</p>
           </div>
@@ -186,19 +204,27 @@ export default function AdminDashboardPage() {
             <div className="grid grid-cols-2 divide-y divide-line rounded-md border border-line bg-[#FAFBFB] sm:grid-cols-4 sm:divide-x sm:divide-y-0">
               <div className="p-3.5 text-center">
                 <span className="text-[12px] font-medium text-muted-ink">Students</span>
-                <p className="text-[20px] font-semibold text-ink mt-1 tabular-nums">{stats.roleBreakdown.student}</p>
+                <p className="text-[20px] font-semibold text-ink mt-1 tabular-nums">
+                  {loading ? "—" : stats.roleBreakdown.student ?? 0}
+                </p>
               </div>
               <div className="p-3.5 text-center">
                 <span className="text-[12px] font-medium text-muted-ink">Faculty Guides</span>
-                <p className="text-[20px] font-semibold text-ink mt-1 tabular-nums">{stats.roleBreakdown.faculty}</p>
+                <p className="text-[20px] font-semibold text-ink mt-1 tabular-nums">
+                  {loading ? "—" : stats.roleBreakdown.faculty ?? 0}
+                </p>
               </div>
               <div className="p-3.5 text-center">
                 <span className="text-[12px] font-medium text-muted-ink">Industry Mentors</span>
-                <p className="text-[20px] font-semibold text-ink mt-1 tabular-nums">{stats.roleBreakdown.mentor}</p>
+                <p className="text-[20px] font-semibold text-ink mt-1 tabular-nums">
+                  {loading ? "—" : stats.roleBreakdown.mentor ?? 0}
+                </p>
               </div>
               <div className="p-3.5 text-center">
                 <span className="text-[12px] font-medium text-muted-ink">Capital Partners</span>
-                <p className="text-[20px] font-semibold text-ink mt-1 tabular-nums">{stats.roleBreakdown.investor}</p>
+                <p className="text-[20px] font-semibold text-ink mt-1 tabular-nums">
+                  {loading ? "—" : stats.roleBreakdown.investor ?? 0}
+                </p>
               </div>
             </div>
           </div>

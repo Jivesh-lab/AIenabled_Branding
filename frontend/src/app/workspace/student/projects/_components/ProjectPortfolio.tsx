@@ -9,7 +9,8 @@
  * handful of projects), so recomputing is cheaper than memoising.
  */
 import { useState } from "react";
-import type { StudentProject } from "@/mock/student-projects";
+import type { StudentProject } from "@/types/student-application";
+import type { MentorResult } from "@/lib/mentorState";
 import {
   countByStatus,
   DEFAULT_FILTERS,
@@ -22,8 +23,19 @@ import ProjectsToolbar from "./ProjectsToolbar";
 import ProjectCard from "./ProjectCard";
 import EmptyState from "./EmptyState";
 
-export default function ProjectPortfolio({ projects }: { projects: StudentProject[] }) {
-  const [filters, setFilters] = useState<ProjectFilters>(DEFAULT_FILTERS);
+export default function ProjectPortfolio({
+  projects,
+  error,
+  mentors,
+  initialQuery = "",
+}: {
+  projects: StudentProject[];
+  error?: string | null;
+  mentors?: Record<string, MentorResult>;
+  /** Pre-filled from the header search (?q=). */
+  initialQuery?: string;
+}) {
+  const [filters, setFilters] = useState<ProjectFilters>({ ...DEFAULT_FILTERS, query: initialQuery });
 
   const counts = countByStatus(projects);
   const visible = filterProjects(projects, filters);
@@ -38,6 +50,9 @@ export default function ProjectPortfolio({ projects }: { projects: StudentProjec
     setFilters((prev) => ({ ...DEFAULT_FILTERS, sort: prev.sort }));
   }
 
+  if (error) {
+    return <div role="alert" className="rounded-xl border border-red-100 bg-red-50 p-6 text-center text-sm text-red-800">{error}</div>;
+  }
   if (projects.length === 0) return <EmptyState kind="no-projects" />;
 
   return (
@@ -77,7 +92,7 @@ export default function ProjectPortfolio({ projects }: { projects: StudentProjec
           <ul className="flex flex-col gap-4">
             {visible.map((project) => (
               <li key={project.id}>
-                <ProjectCard project={project} />
+                <ProjectCard project={project} mentor={mentors?.[project.id]} />
               </li>
             ))}
           </ul>

@@ -41,6 +41,23 @@ const USERS_TO_SEED = [
     },
   },
   {
+    name: 'Omkar G (Student Personal Account)',
+    email: process.env.STUDENT_EMAIL || 'omkargotawade05@gmail.com',
+    previousEmails: ['student@aai-dbitic.edu'],
+    password: process.env.STUDENT_PASSWORD || 'Student#2026!Pass',
+    role: 'student',
+    emailVerified: true,
+    status: 'active',
+    twoFactorEnabled: false,
+    profile: {
+      college: 'Don Bosco Institute of Technology',
+      department: 'Computer Engineering',
+      year: 'Final Year',
+      studentId: 'DBIT-2023-CS-084',
+      bio: 'Building Next-Gen AI AgriTech autonomous sorting and quality inspection system.',
+    },
+  },
+  {
     name: 'Dr. K. R. Raman (Faculty Coordinator)',
     email: 'dr.raman@dbit.ac.in',
     password: 'Faculty#2026!Pass',
@@ -240,6 +257,24 @@ const USERS_TO_SEED = [
     },
   },
   {
+    name: 'Jivesh P (Investor Personal Account)',
+    email: process.env.INVESTOR_EMAIL || 'jp13boss@gmail.com',
+    previousEmails: ['investor@aai-dbitic.edu'],
+    password: process.env.INVESTOR_PASSWORD || 'Investor#2026!Pass',
+    role: 'investor',
+    emailVerified: true,
+    status: 'active',
+    isInvestorVerified: true,
+    twoFactorEnabled: false,
+    profile: {
+      fundName: 'Horizon Catalyst Ventures',
+      ticketSize: '$25k - $150k',
+      sectors: ['AI/ML', 'HealthTech', 'AgriTech', 'ClimateTech'],
+      stages: ['Ideation', 'Prototype', 'MVP'],
+      accreditationType: 'Angel Syndicate Partner',
+    },
+  },
+  {
     name: 'Kavita Deshmukh (Incubation Ops Admin)',
     email: 'admin@aai-dbit.edu',
     password: process.env.ADMIN_PASSWORD || 'Admin#2026!Ops',
@@ -311,8 +346,12 @@ async function seedAllUsers() {
       const passwordHash = await User.hashPassword(password);
 
       let user = await User.findOne({ email: normalizedEmail });
+      if (!user && (userData.previousEmails || []).length > 0) {
+        user = await User.findOne({ email: { $in: userData.previousEmails } });
+      }
 
       if (user) {
+        user.email = normalizedEmail;
         user.name = name;
         user.passwordHash = passwordHash;
         user.role = role;

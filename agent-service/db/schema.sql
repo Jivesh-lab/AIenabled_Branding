@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS applications (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     startup_id      UUID REFERENCES startups(id) ON DELETE CASCADE,
     applicant_id    VARCHAR(64) NOT NULL,          -- MongoDB user id
-    status          VARCHAR(50) DEFAULT 'draft',   -- draft | submitted | under_review | approved | rejected
+    status          VARCHAR(50) DEFAULT 'draft',   -- draft | submitted | under_review | revision_requested | approved | rejected
     eligibility_ok  BOOLEAN,
     completeness    SMALLINT DEFAULT 0,            -- 0–100 document completeness score
     ai_summary      TEXT,                          -- LLM-generated application summary
@@ -51,8 +51,24 @@ CREATE TABLE IF NOT EXISTS applications (
     updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Safely add form_data if the table was already created
+-- Safely add columns if the table was already created
 ALTER TABLE applications ADD COLUMN IF NOT EXISTS form_data JSONB DEFAULT '{}';
+ALTER TABLE applications ADD COLUMN IF NOT EXISTS reviewer_comments TEXT;
+
+-- status: draft | submitted | under_review | revision_requested | approved | rejected
+-- (lifecycle defined in core/application_status.py)
+
+-- Every status transition (submit, resubmit, reviewer decision) is recorded here.
+CREATE TABLE IF NOT EXISTS application_audit_logs (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    application_id  UUID REFERENCES applications(id) ON DELETE CASCADE,
+    actor_id        VARCHAR(64) NOT NULL,
+    previous_status VARCHAR(50),
+    new_status      VARCHAR(50),
+    comments        TEXT,
+    created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_application_audit_application ON application_audit_logs(application_id);
 
 CREATE INDEX IF NOT EXISTS idx_applications_startup_id ON applications(startup_id);
 CREATE INDEX IF NOT EXISTS idx_applications_status     ON applications(status);
@@ -72,6 +88,10 @@ CREATE TABLE IF NOT EXISTS milestones (
     created_at      TIMESTAMPTZ DEFAULT NOW(),
     updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Completion date and per-project lookup (milestones are listed and summarised by startup)
+ALTER TABLE milestones ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ;
+CREATE INDEX IF NOT EXISTS idx_milestones_startup_id ON milestones(startup_id);
 
 -- =============================================================================
 -- MEETINGS

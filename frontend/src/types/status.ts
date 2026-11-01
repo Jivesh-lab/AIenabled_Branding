@@ -74,3 +74,9 @@ export const MATURITY_LABEL: Record<Maturity, string> = {
 /** A new submission cannot claim MARKET_READY — that is reached through incubation. */
 export const SUBMITTABLE_MATURITY_LEVELS = ["IDEA", "CONCEPT", "PROTOTYPE", "MVP"] as const;
 export type SubmittableMaturity = (typeof SUBMITTABLE_MATURITY_LEVELS)[number];
+
+/** Statuses where an application is waiting on a reviewer. */
+export const AWAITING_REVIEW_STATUSES: readonly ReviewStatus[] = ["SUBMITTED", "UNDER_REVIEW"];
+
+/** An application that is in the process or accepted - everything except drafts and rejections. */
+export const ACTIVE_STATUSES: readonly ReviewStatus[] = ["SUBMITTED", "UNDER_REVIEW", "REVISION_REQUESTED", "APPROVED"];

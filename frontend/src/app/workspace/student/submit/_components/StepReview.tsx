@@ -3,10 +3,10 @@ import { useFormContext, useWatch } from "react-hook-form";
 import { FileText, Pencil, Sparkles, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FieldError } from "@/components/shared/form/FormField";
-import { MATURITY_LABEL } from "@/types/status";
-import { CURRENT_STUDENT } from "@/mock/submit-idea";
+import { useSession } from "next-auth/react";
 import type { IdeaFormValues, StepIndex } from "../_lib/idea-schema";
 import { formatBytes } from "@/lib/format";
+import { MATURITY_LABEL } from "@/types/status";
 
 const DECLARATION =
   "I confirm that the information provided is accurate and that this work is my original work or that I have the necessary rights to submit it. I agree to the applicable DBIT Incubation Centre institutional and intellectual-property policies.";
@@ -53,6 +53,7 @@ function Item({ label, value, wide = false }: { label: string; value?: React.Rea
 }
 
 export default function StepReview({ onEditStep }: { onEditStep: (step: StepIndex) => void }) {
+  const { data: session } = useSession();
   const {
     register,
     formState: { errors },
@@ -60,7 +61,8 @@ export default function StepReview({ onEditStep }: { onEditStep: (step: StepInde
   const v = useWatch<IdeaFormValues>();
 
   const [validating, setValidating] = useState(false);
-  const [validationResult, setValidationResult] = useState<any>(null);
+  const [validationResult, setValidationResult] = useState<{ is_complete?: boolean; completeness_score?: number; missing_fields?: string[] } | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const team = v.teamMembers ?? [];
   const technologies = v.technologies ?? [];
@@ -68,18 +70,18 @@ export default function StepReview({ onEditStep }: { onEditStep: (step: StepInde
 
   async function runAiCompletenessCheck() {
     setValidating(true);
+    setValidationError(null);
     try {
       const res = await fetch("/api/applications/validate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(v),
       });
-      if (res.ok) {
-        const data = await res.json();
-        setValidationResult(data.validation);
-      }
-    } catch {
-      // Graceful fallback
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || data.detail || "Completeness validation failed");
+      setValidationResult(data.validation);
+    } catch (error) {
+      setValidationError(error instanceof Error ? error.message : "Completeness validation failed. Try again.");
     } finally {
       setValidating(false);
     }
@@ -114,6 +116,11 @@ export default function StepReview({ onEditStep }: { onEditStep: (step: StepInde
                 ) : (
                   <AlertTriangle className="size-4 text-amber-600" />
                 )}
+                {validationError && (
+                  <div role="alert" className="mt-3 rounded-lg border border-red-200 bg-red-50 p-2.5 text-xs text-red-800">
+                    {validationError} Use “Run AI Completeness Check” to retry.
+                  </div>
+                )}
                 Completeness Score: {validationResult.completeness_score}/100
               </span>
               <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${validationResult.is_complete ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
@@ -121,11 +128,11 @@ export default function StepReview({ onEditStep }: { onEditStep: (step: StepInde
               </span>
             </div>
 
-            {validationResult.missing_fields?.length > 0 && (
+            {(validationResult.missing_fields?.length ?? 0) > 0 && (
               <div className="bg-amber-50/80 p-2.5 rounded-lg border border-amber-200/60 text-amber-900 text-[11px]">
                 <strong>Attention Required:</strong>
                 <ul className="list-disc pl-4 mt-1 space-y-0.5">
-                  {validationResult.missing_fields.map((f: string, i: number) => (
+                  {(validationResult.missing_fields ?? []).map((f: string, i: number) => (
                     <li key={i}>{f}</li>
                   ))}
                 </ul>
@@ -161,7 +168,7 @@ export default function StepReview({ onEditStep }: { onEditStep: (step: StepInde
             value={
               <ul className="mt-1 flex flex-col gap-1">
                 <li>
-                  {CURRENT_STUDENT.name} <span className="text-muted-ink">· Team lead</span>
+                  {session?.user?.name || "Team Lead"} <span className="text-muted-ink">· Team lead</span>
                 </li>
                 {team.map((m) => (
                   <li key={m.id}>

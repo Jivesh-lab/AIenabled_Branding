@@ -17,7 +17,7 @@ async function getTransporter() {
   const host = process.env.SMTP_HOST;
   const port = parseInt(process.env.SMTP_PORT || '587', 10);
   const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
+  const pass = process.env.SMTP_PASS || process.env.SMTP_PASSWORD;
 
   if (host && user && pass) {
     _transporter = nodemailer.createTransport({
@@ -54,7 +54,8 @@ async function getTransporter() {
  * Send an email notification (dispatches real email via nodemailer SMTP)
  */
 async function sendEmail({ to, subject, html, text }) {
-  const fromAddress = process.env.SMTP_FROM || process.env.SMTP_USER || 'no-reply@aai-dbitic.edu';
+  const fromName = process.env.SMTP_FROM_NAME || "DBIT Incubation Centre";
+  const fromAddress = process.env.SMTP_FROM || process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || 'no-reply@aai-dbitic.edu';
   let messageId = `email_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
   let previewUrl = null;
 
@@ -62,7 +63,7 @@ async function sendEmail({ to, subject, html, text }) {
     const transporter = await getTransporter();
     if (transporter) {
       const info = await transporter.sendMail({
-        from: `"DBIT Incubation Centre" <${fromAddress}>`,
+        from: `"${fromName}" <${fromAddress}>`,
         to,
         subject,
         text: text || '',

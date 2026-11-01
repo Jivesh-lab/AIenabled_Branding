@@ -27,50 +27,42 @@ type AnnouncementItem = {
   createdAt: string;
 };
 
-const MOCK_ANNOUNCEMENTS: AnnouncementItem[] = [
-  {
-    _id: "a1",
-    title: "Annual Innovation Hackathon 2026 - Registration Open",
-    body: "All students and startup teams are invited to submit their innovative prototypes for the annual incubator challenge.",
-    targetRole: "all",
-    priority: "urgent",
-    authorName: "Operations Manager",
-    createdAt: "2026-09-20T10:00:00.000Z",
-  },
-  {
-    _id: "a2",
-    title: "Mentor Session Feedback Submission Reminder",
-    body: "Mentors are requested to submit session feedback logs within 24 hours of completing a mentee meeting.",
-    targetRole: "mentor",
-    priority: "high",
-    authorName: "Operations Manager",
-    createdAt: "2026-09-18T16:00:00.000Z",
-  },
-];
+type EmailTemplate = {
+  id: string;
+  name: string;
+  subject: string;
+  body: string;
+};
 
-const EMAIL_TEMPLATES = [
+const EMAIL_TEMPLATES: EmailTemplate[] = [
   {
-    id: "welcome",
-    name: "Onboarding Welcome & Credentials",
-    subject: "Welcome to DBIT Incubation Centre Platform",
-    body: "Dear {{name}},\n\nYour user account has been provisioned under the role {{role}}. Please log in using your temporary password:\nTemp Password: {{tempPassword}}\n\nLog in at: http://localhost:3000/login",
+    id: "welcome-student",
+    name: "Student Onboarding Welcome",
+    subject: "Welcome to DBIT Incubation Centre - Getting Started",
+    body: `Dear Innovator,\n\nWelcome to the DBIT Incubation Centre! Your student incubation workspace is now active.\n\nYou can now submit new project proposals, collaborate with assigned mentors, track milestone deliverables, and access innovation grants through your unified dashboard.\n\nBest regards,\nDBIT Incubation Directorate`,
   },
   {
-    id: "password_reset",
-    name: "Admin Password Reset Notice",
-    subject: "Password Reset for Your DBIT Incubation Centre Account",
-    body: "Dear {{name}},\n\nYour account password has been reset by an administrator.\nNew Temporary Password: {{tempPassword}}\n\nYou will be required to set a new password upon first sign-in.",
+    id: "project-approved",
+    name: "Project Approval & Induction",
+    subject: "Congratulations: Your Project Proposal Has Been Approved",
+    body: `Dear Founder,\n\nWe are pleased to inform you that following faculty committee evaluation, your proposal has been accepted for official incubation support.\n\nPlease log in to review your assigned mentor, onboarding roadmap, and milestone targets.\n\nWarm regards,\nIncubation Screening Committee`,
   },
   {
-    id: "approval_accepted",
-    name: "Registration Approved Notice",
-    subject: "Your Registration Application Has Been Approved",
-    body: "Dear {{name}},\n\nYour application to join the DBIT Incubation Centre ecosystem as a {{role}} has been reviewed and approved! You may now sign in to your workspace.",
+    id: "mentor-assigned",
+    name: "Mentor Assignment Notification",
+    subject: "New Mentorship Match Confirmed",
+    body: `Hello,\n\nA faculty mentor and industry specialist has been paired with your incubation project. You can now schedule your first advisory consultation and review project milestones in your workspace.\n\nBest regards,\nDBIT Incubation Coordination Cell`,
+  },
+  {
+    id: "milestone-reminder",
+    name: "Milestone Due Notice",
+    subject: "Action Required: Upcoming Project Milestone Deadline",
+    body: `Hello Team,\n\nThis is a scheduled reminder that your next progress evaluation milestone is due within 7 days. Please ensure all documentation and prototype demos are uploaded to avoid review delays.\n\nDBIT Incubation Centre Operations`,
   },
 ];
 
 export default function AnnouncementsPage() {
-  const [announcements, setAnnouncements] = useState<AnnouncementItem[]>(MOCK_ANNOUNCEMENTS);
+  const [announcements, setAnnouncements] = useState<AnnouncementItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -97,9 +89,7 @@ export default function AnnouncementsPage() {
       );
       if (res.ok) {
         const data = await res.json();
-        if (data.announcements && data.announcements.length > 0) {
-          setAnnouncements(data.announcements);
-        }
+        setAnnouncements(data.announcements || []);
       }
     } catch {
       // Fallback
@@ -268,29 +258,35 @@ export default function AnnouncementsPage() {
           <h2 className="text-base font-bold text-slate-900 tracking-tight">Active Broadcast Announcements</h2>
 
           <div className="space-y-3">
-            {announcements.map((item) => (
-              <Card key={item._id} className="p-4 border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-3">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold uppercase">
-                      Target: {item.targetRole}
-                    </span>
-                    <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-semibold uppercase">
-                      Priority: {item.priority}
-                    </span>
-                    <span suppressHydrationWarning className="text-[11px] text-slate-400 font-mono">
-                      {isMounted ? new Date(item.createdAt).toLocaleDateString() : item.createdAt}
-                    </span>
-                  </div>
-                  <h3 className="text-sm font-bold text-slate-900">{item.title}</h3>
-                  <p className="text-xs text-slate-600 leading-relaxed">{item.body}</p>
-                </div>
-
-                <div className="text-right text-[11px] text-slate-400 font-mono shrink-0">
-                  Posted by {item.authorName}
-                </div>
+            {announcements.length === 0 ? (
+              <Card className="p-8 text-center text-slate-400 text-xs">
+                No broadcast announcements published yet.
               </Card>
-            ))}
+            ) : (
+              announcements.map((item) => (
+                <Card key={item._id} className="p-4 border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold uppercase">
+                        Target: {item.targetRole}
+                      </span>
+                      <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-semibold uppercase">
+                        Priority: {item.priority}
+                      </span>
+                      <span suppressHydrationWarning className="text-[11px] text-slate-400 font-mono">
+                        {isMounted ? new Date(item.createdAt).toLocaleDateString() : item.createdAt}
+                      </span>
+                    </div>
+                    <h3 className="text-sm font-bold text-slate-900">{item.title}</h3>
+                    <p className="text-xs text-slate-600 leading-relaxed">{item.body}</p>
+                  </div>
+
+                  <div className="text-right text-[11px] text-slate-400 font-mono shrink-0">
+                    Posted by {item.authorName}
+                  </div>
+                </Card>
+              ))
+            )}
           </div>
         </div>
       </div>

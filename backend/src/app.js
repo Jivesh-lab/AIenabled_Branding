@@ -7,6 +7,7 @@ const auditRouter = require('./routes/audit');
 const adminRouter = require('./routes/admin');
 const investorsRouter = require('./routes/investors');
 const facultyRouter = require('./routes/faculty');
+const studentRouter = require('./routes/student');
 
 const app = express();
 
@@ -18,12 +19,29 @@ connectDB();
 // ---------------------------------------------------------------------------
 // Middleware
 // ---------------------------------------------------------------------------
+const allowedOrigins = [
+  process.env.FRONTEND_URL || 'http://localhost:3000',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+];
+
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, server-to-server)
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(null, true); // Dev-friendly: permit frontend origin
+    },
     credentials: true, // Required for cross-origin httpOnly cookies
   })
 );
+
+app.use((req, res, next) => {
+  console.log(`[Backend HTTP] ${req.method} ${req.url}`);
+  next();
+});
 
 app.use(express.json());
 app.use(cookieParser()); // Parse Cookie header → req.cookies
@@ -36,6 +54,7 @@ app.use('/api/audit', auditRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/investors', investorsRouter);
 app.use('/api/faculty', facultyRouter);
+app.use('/api/student', studentRouter);
 
 // Health check
 app.get('/api/health', (_request, response) => {

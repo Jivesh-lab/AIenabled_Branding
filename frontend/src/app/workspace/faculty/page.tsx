@@ -5,13 +5,6 @@ import PageContainer from "@/components/shared/PageContainer";
 import { Card, StatusBadge, ProgressBar } from "@/components/shared/Surface";
 import { toast } from "sonner";
 import {
-  INITIAL_PROJECTS,
-  INITIAL_MENTOR_REQUESTS,
-  INITIAL_MEETINGS,
-  INITIAL_TASKS,
-  INITIAL_SUPPORT_REQUESTS,
-  INITIAL_NOTIFICATIONS,
-  INITIAL_AUDIT_LOGS,
   FacultySubRole,
   FacultyPermissions,
   IncubationProject,
@@ -73,13 +66,15 @@ export default function FacultyManagementPage() {
   >("overview");
 
   // Local state for dynamic workflows
-  const [projects, setProjects] = useState<IncubationProject[]>(INITIAL_PROJECTS);
-  const [mentorRequests, setMentorRequests] = useState<MentorAllocationRequest[]>(INITIAL_MENTOR_REQUESTS);
-  const [meetings, setMeetings] = useState<FacultyMeeting[]>(INITIAL_MEETINGS);
-  const [tasks, setTasks] = useState<FacultyTask[]>(INITIAL_TASKS);
-  const [supportRequests, setSupportRequests] = useState<StudentSupportRequest[]>(INITIAL_SUPPORT_REQUESTS);
-  const [notifications, setNotifications] = useState<FacultyNotification[]>(INITIAL_NOTIFICATIONS);
-  const [auditLogs, setAuditLogs] = useState<AuditHistoryItem[]>(INITIAL_AUDIT_LOGS);
+  const [projects, setProjects] = useState<IncubationProject[]>([]);
+  const [mentorRequests, setMentorRequests] = useState<MentorAllocationRequest[]>([]);
+  const [meetings, setMeetings] = useState<FacultyMeeting[]>([]);
+  const [tasks, setTasks] = useState<FacultyTask[]>([]);
+  const [supportRequests, setSupportRequests] = useState<StudentSupportRequest[]>([]);
+  const [notifications, setNotifications] = useState<FacultyNotification[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditHistoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Search & Filter state
   const [projectSearch, setProjectSearch] = useState("");
@@ -124,13 +119,17 @@ export default function FacultyManagementPage() {
           fetchSupportRequests(),
         ]);
         if (!isMounted) return;
-        if (overviewRes.projects && overviewRes.projects.length > 0) setProjects(overviewRes.projects);
-        if (overviewRes.mentorRequests && overviewRes.mentorRequests.length > 0) setMentorRequests(overviewRes.mentorRequests);
-        if (overviewRes.meetings && overviewRes.meetings.length > 0) setMeetings(overviewRes.meetings);
-        if (overviewRes.tasks && overviewRes.tasks.length > 0) setTasks(overviewRes.tasks);
-        if (supportRes && supportRes.length > 0) setSupportRequests(supportRes);
+        setProjects(overviewRes.projects || []);
+        setMentorRequests(overviewRes.mentorRequests || []);
+        setMeetings(overviewRes.meetings || []);
+        setTasks(overviewRes.tasks || []);
+        setSupportRequests(supportRes);
       } catch (err) {
-        console.warn("[Faculty Hub] Backend fetch notice:", err);
+        if (isMounted) {
+          setLoadError(err instanceof Error ? err.message : "Unable to load faculty data.");
+        }
+      } finally {
+        if (isMounted) setLoading(false);
       }
     }
     loadData();
@@ -138,6 +137,8 @@ export default function FacultyManagementPage() {
       isMounted = false;
     };
   }, []);
+
+  const hasData = projects.length > 0 || mentorRequests.length > 0 || meetings.length > 0 || tasks.length > 0 || supportRequests.length > 0;
 
   // ---------------------------------------------------------------------------
   // KPI Metrics calculation
@@ -440,6 +441,9 @@ export default function FacultyManagementPage() {
       description="Role-aware academic oversight, incubation project governance, mentor allocation workflows, and student supervision for DBIT Incubation Centre."
     >
       <div className="space-y-6">
+        {loading && <div className="rounded-xl border border-line bg-canvas p-4 text-center text-sm text-muted-ink">Loading live faculty data from the database…</div>}
+        {loadError && <div className="rounded-xl border border-red-100 bg-red-50 p-4 text-center"><AlertCircle className="size-6 text-danger mx-auto mb-1" /><p className="text-sm font-semibold text-danger">Unable to load faculty data</p><p className="text-xs text-muted-ink mt-1">{loadError}</p></div>}
+        {!loading && !loadError && !hasData && <div className="rounded-xl border border-line bg-canvas p-6 text-center text-sm text-muted-ink">No faculty data is available in the database yet.</div>}
         {/* ========================================================================= */}
         {/* TOP PERSPECTIVE / ROLE SELECTOR BAR                                      */}
         {/* ========================================================================= */}

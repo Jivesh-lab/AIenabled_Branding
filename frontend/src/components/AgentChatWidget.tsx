@@ -14,10 +14,16 @@ import {
 } from 'lucide-react';
 import { useAgentChat } from '@/hooks/useAgentChat';
 import { useSession } from 'next-auth/react';
+import { usePathname } from 'next/navigation';
+import StudentAssistantPanel from '@/components/StudentAssistantPanel';
 import cn from 'clsx';
 
 export default function AgentChatWidget() {
   const { data: session } = useSession();
+  // On Student Portal pages the assistant answers from the signed-in student's saved records (server-side, authorized).
+  // Everywhere else the original multi-agent chat is unchanged.
+  const pathname = usePathname();
+  const studentMode = pathname?.startsWith('/workspace/student') ?? false;
   
   // Use session data, fallback to defaults
   const userId = session?.user?.id || 'guest';
@@ -87,7 +93,7 @@ export default function AgentChatWidget() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-sm">Incubation AI Assistant</h3>
-                  <p className="text-blue-100 text-xs">Multi-Agent System Active</p>
+                  <p className="text-blue-100 text-xs">{studentMode ? 'Answers from your saved records' : 'Multi-Agent System Active'}</p>
                 </div>
               </div>
               <div className="flex items-center gap-1">
@@ -106,6 +112,10 @@ export default function AgentChatWidget() {
               </div>
             </div>
 
+            {studentMode ? (
+              <StudentAssistantPanel />
+            ) : (
+              <>
             {/* Messages Area */}
             <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-gray-50 dark:bg-gray-950/50">
               {messages.length === 0 ? (
@@ -187,6 +197,8 @@ export default function AgentChatWidget() {
                 </button>
               </form>
             </div>
+              </>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

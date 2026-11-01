@@ -114,12 +114,16 @@ async def test_application_agent_never_auto_decides():
     }
     assessment = await assess_application(valid_data)
 
-    assert "summary" in assessment
-    assert assessment["summary"]["problem"] is not None
-    assert assessment["summary"]["proposed_solution"] is not None
-    assert "questions_for_reviewers" in assessment
     # Mandatory human admission gate
     assert assessment.get("requires_human_admission_decision") is True
+    assert assessment["validation"]["is_complete"] is True
+    if assessment.get("assessment_available"):
+        assert assessment["summary"]["problem"] is not None
+        assert "questions_for_reviewers" in assessment
+    else:
+        # LLM unavailable: nothing is fabricated - no scores, summary or reviewer questions.
+        for invented in ("summary", "preliminary_assessment", "questions_for_reviewers", "recommendation_summary"):
+            assert invented not in assessment
 
 
 # ── 3. Mentor-Matching Agent Tests ────────────────────────────────────────────
@@ -221,3 +225,39 @@ def test_monitoring_agent_evaluates_health_and_distinguishes_facts():
     assert at_risk["measured_facts"]["overdue_milestones"] == 2
     assert len(at_risk["ai_interpretation"]["risk_factors"]) >= 2
     assert at_risk["ai_interpretation"]["requires_staff_confirmation"] is True
+
+
+def test_monitoring_agent_never_reports_missing_data_as_healthy():
+    empty = evaluate_startup_health(startup_name="Ghost", stage="Idea")
+    assert empty["health_status"] == "No Data"
+    assert empty["measured_facts"]["total_milestones"] is None
+    assert empty["ai_interpretation"]["requires_staff_confirmation"] is False
+    assert empty["ai_interpretation"]["signals"][0]["code"] == "no_data"
+
+    # Zero milestones/tasks recorded is the same as not tracked.
+    zero = evaluate_startup_health(startup_name="Ghost", stage="Idea", total_milestones=0, total_tasks=0)
+    assert zero["health_status"] == "No Data"
+
+
+def test_monitoring_agent_skips_rules_for_untracked_figures():
+    # Milestones only: an untracked task rate must not trigger "Needs Attention", nor a missing report "At Risk".
+    only_milestones = evaluate_startup_health(
+        startup_name="M", stage="Idea", total_milestones=3, completed_milestones=1, overdue_milestones=0
+    )
+    assert only_milestones["health_status"] == "On Track"
+    assert "tasks" in only_milestones["ai_interpretation"]["not_tracked"]
+    assert "progress reports" in only_milestones["ai_interpretation"]["not_tracked"]
+
+    # One overdue milestone is enough to need attention, with a signal pointing at the milestones workflow.
+    one_late = evaluate_startup_health(
+        startup_name="M", stage="Idea", total_milestones=3, completed_milestones=1, overdue_milestones=1
+    )
+    assert one_late["health_status"] == "Needs Attention"
+    assert [s["target"] for s in one_late["ai_interpretation"]["signals"]] == ["milestones"]
+
+
+def test_monitoring_graph_node_does_not_invent_figures():
+    import asyncio
+    state = asyncio.run(run_monitoring_agent({"entities": {}}))
+    assert state["monitoring_output"]["health_status"] == "No Data"
+    assert state["monitoring_output"]["measured_facts"]["reported_metrics"] == {}

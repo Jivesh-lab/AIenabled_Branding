@@ -8,16 +8,15 @@
  *   LEFT:   mobile menu trigger (mobile only) - brand (mobile only, the sidebar
  *           owns the brand on desktop) - workspace label
  *   CENTER: global search
- *   RIGHT:  + New Idea - Help - Notifications - Profile
+ *   RIGHT:  + New Idea (STUDENTS ONLY) - Help - Notifications - Profile
  *
  * Ocean Royale tokens: bg-white - border-line - text-ink - text-muted-ink
  *                       primary: bg-brand / hover:bg-brand-hover
- *
- * TODO: wire notification count and profile menu actions during backend integration.
  */
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import {
@@ -48,26 +47,56 @@ interface DashboardNavbarProps {
   notificationCount?: number;
   /** Opens the mobile navigation drawer. */
   onMenuClick?: () => void;
+  allowedRole?: string;
+  /** When given, the header shows a working search box and calls this on submit. Omitted = no search box. */
+  onSearch?: (query: string) => void;
+  searchPlaceholder?: string;
 }
 
 // ---------------------------------------------------------------------------
 // Search
 // ---------------------------------------------------------------------------
-function GlobalSearch() {
+function GlobalSearch({ onSearch, placeholder }: { onSearch: (query: string) => void; placeholder: string }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [value, setValue] = useState("");
+
+  // Cmd/Ctrl+K focuses the box (the hint on the right is real).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   return (
-    <div className="mx-4 hidden w-full max-w-[360px] md:flex lg:mx-6">
+    <form
+      role="search"
+      className="mx-4 hidden w-full max-w-[360px] md:flex lg:mx-6"
+      onSubmit={(e) => {
+        e.preventDefault();
+        const query = value.trim();
+        if (query) onSearch(query);
+      }}
+    >
       <div className="group relative w-full">
         <Search
           className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-ink transition-colors group-focus-within:text-brand"
           aria-hidden="true"
         />
         <input
+          ref={inputRef}
           type="search"
-          placeholder="Search projects, mentors, documents..."
-          aria-label="Global search"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder={placeholder}
+          aria-label={placeholder}
           className={cn(
-            "h-9 w-full rounded-[8px] border border-line bg-canvas",
-            "pl-9 pr-12 text-[13px] text-ink placeholder:text-muted-ink",
+            "h-10 w-full rounded-[8px] border border-line bg-canvas",
+            "pl-9 pr-14 text-[13px] text-ink placeholder:text-muted-ink",
             "focus:border-brand focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand/20",
             "transition-colors duration-150"
           )}
@@ -76,10 +105,10 @@ function GlobalSearch() {
           aria-hidden="true"
           className="absolute right-3 top-1/2 hidden -translate-y-1/2 items-center rounded border border-line bg-white px-1.5 py-0.5 text-[10px] font-medium text-[#94A3B8] lg:inline-flex"
         >
-          &#8984;K
+          Ctrl K
         </kbd>
       </div>
-    </div>
+    </form>
   );
 }
 
@@ -262,9 +291,19 @@ export default function DashboardNavbar({
   user,
   notificationCount = 0,
   onMenuClick,
+  allowedRole,
+  onSearch,
+  searchPlaceholder = "Search",
 }: DashboardNavbarProps) {
+  const pathname = usePathname();
+
+  // Show "+ New Idea" button only on the Student workspace
+  const isStudent =
+    allowedRole === "student" ||
+    (pathname ? pathname.startsWith("/workspace/student") : false);
+
   return (
-    <header className="sticky top-0 z-30 flex h-[60px] shrink-0 items-center gap-2 border-b border-line bg-white px-4 lg:px-6">
+    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-line bg-white px-4 lg:px-6">
       {/* LEFT */}
       <div className="flex min-w-0 items-center gap-3">
         <IconButton label="Open navigation" onClick={onMenuClick} className="-ml-1.5 md:hidden">
@@ -326,22 +365,24 @@ export default function DashboardNavbar({
       </div>
 
       {/* CENTER */}
-      <GlobalSearch />
+      {onSearch && <GlobalSearch onSearch={onSearch} placeholder={searchPlaceholder} />}
 
       {/* RIGHT */}
       <div className="ml-auto flex shrink-0 items-center gap-1.5">
-        <button
-          type="button"
-          className={cn(
-            "hidden h-9 items-center gap-1.5 rounded-[8px] px-3.5 sm:inline-flex",
-            "bg-brand text-[13px] font-semibold text-white",
-            "transition-colors duration-150 hover:bg-brand-hover active:bg-brand-active",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 focus-visible:ring-offset-1"
-          )}
-        >
-          <Plus className="-ml-0.5 size-4" aria-hidden="true" />
-          <span>New Idea</span>
-        </button>
+        {isStudent && (
+          <Link
+            href="/workspace/student/submit"
+            className={cn(
+              "hidden h-10 items-center gap-1.5 rounded-[8px] px-4 sm:inline-flex",
+              "bg-brand text-[13px] font-semibold text-white",
+              "transition-colors duration-150 hover:bg-brand-hover active:bg-brand-active",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 focus-visible:ring-offset-1"
+            )}
+          >
+            <Plus className="-ml-0.5 size-4" aria-hidden="true" />
+            <span>New Idea</span>
+          </Link>
+        )}
 
         <IconButton label="Help and support" className="hidden sm:flex">
           <CircleHelp className="size-[18px]" strokeWidth={2} aria-hidden="true" />

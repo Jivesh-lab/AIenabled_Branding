@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowDownRight, ArrowRight, ArrowUpRight, BarChart3, BookOpen, Building2, FileImage, FileText, GitBranch, Lightbulb, Menu, Presentation, Search, Send, Tag, Users, Video, X } from "lucide-react";
-import { STUDENT_PROJECTS } from "@/mock/student-projects";
 
 const journey = [["01", "UPLOAD", "Add your project context", FileText], ["02", "UNDERSTAND", "Read the full opportunity", Search], ["03", "RESEARCH", "Validate the whitespace", BarChart3], ["04", "BRAND", "Shape your identity", Tag], ["05", "BUSINESS MODEL", "Build the route to value", BookOpen], ["06", "PITCH", "Tell the story clearly", Presentation], ["07", "MENTOR", "Find the right guidance", Users], ["08", "FUND", "Unlock the next milestone", Building2], ["09", "LAUNCH", "Take it to market", Send], ["10", "IMPACT", "Measure what changes", Lightbulb]] as const;
 const agents = [["Research Agent", "Finds research, patents and existing solutions", Search, "blue"], ["Innovation Agent", "Evaluates uniqueness and feasibility", Lightbulb, "purple"], ["Market Agent", "Analyses market size, competitors and trends", BarChart3, "violet"], ["Branding Agent", "Generates name, tagline, logo and identity", Tag, "rose"], ["Business Agent", "Creates business model and revenue plan", FileText, "lavender"], ["Pitch Agent", "Builds investor-ready pitch deck", Presentation, "sky"], ["Mentor Agent", "Recommends mentors, investors and programs", Users, "indigo"]] as const;
@@ -37,12 +36,37 @@ export default function RootPage() {
   const [activeAgent, setActiveAgent] = useState<string | null>(null);
   const [carouselStart, setCarouselStart] = useState<number | null>(null);
   const [projectFilter, setProjectFilter] = useState<(typeof projectFilters)[number]>("ALL");
-  const [selectedProject, setSelectedProject] = useState<(typeof STUDENT_PROJECTS)[number] | null>(null);
+  const [projectsList, setProjectsList] = useState<any[]>([]);
+  const [selectedProject, setSelectedProject] = useState<any | null>(null);
   const [outputIndex, setOutputIndex] = useState(0);
   const [dividerPosition, setDividerPosition] = useState(50);
   const [mentorFilter, setMentorFilter] = useState<(typeof mentorFilters)[number]>("ALL");
 
-  const visibleProjects = STUDENT_PROJECTS.filter((project) => projectFilter === "ALL" || projectDomain(project.domain) === projectFilter);
+  useEffect(() => {
+    fetch("/api/faculty/projects")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success && Array.isArray(d.data)) {
+          setProjectsList(
+            d.data.map((p: any) => ({
+              id: p.id || p._id,
+              name: p.title,
+              shortDescription: p.domain ? `${p.domain} supervised project` : "Student innovation project",
+              domain: p.domain || "Deep Tech",
+              maturity: p.trl >= 6 ? "MVP" : p.trl >= 4 ? "PROTOTYPE" : "CONCEPT",
+              teamSize: (p.teamMembers && p.teamMembers.length) || 2,
+              progress: p.progress || 50,
+              updatedAt: p.updatedAt || new Date().toISOString(),
+            }))
+          );
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const visibleProjects = projectsList.filter(
+    (project) => projectFilter === "ALL" || projectDomain(project.domain) === projectFilter
+  );
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 16);

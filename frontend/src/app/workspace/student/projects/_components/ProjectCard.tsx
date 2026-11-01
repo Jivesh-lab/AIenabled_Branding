@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AlertCircle, ArrowRight, CircleDot, Flag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDue, formatUpdated, isDueSoon } from "@/lib/dates";
+import { istNow } from "@/lib/workflowState";
 import { Card, MaturityTag, ProgressBar, StatusBadge } from "@/components/shared/Surface";
 import {
   MATURITY_LABEL,
@@ -10,7 +11,10 @@ import {
   REVIEW_STATUS_TONE,
   type ReviewStatus,
 } from "@/types/status";
-import { MOCK_TODAY, type StudentProject } from "@/mock/student-projects";
+import type { StudentProject } from "@/types/student-application";
+import type { MentorResult } from "@/lib/mentorState";
+import { MentorLine } from "../../_components/MentorCard";
+import MilestoneProgress from "../../_components/MilestoneProgress";
 
 /** How the pipeline position reads next to each review status. */
 const PIPELINE_PREFIX: Partial<Record<ReviewStatus, string>> = {
@@ -24,10 +28,11 @@ function NextStep({ project }: { project: StudentProject }) {
   const { next, reviewStatus } = project;
   if (!next) return <span className="text-[13px] text-muted-ink">No pending actions</span>;
 
-  const due = next.dueDate ? formatDue(next.dueDate, MOCK_TODAY) : null;
+  const today = istNow().date;
+  const due = next.dueDate ? formatDue(next.dueDate, today) : null;
   const needsAttention =
     reviewStatus === "REVISION_REQUESTED" ||
-    (next.kind === "action" && !!next.dueDate && isDueSoon(next.dueDate, MOCK_TODAY));
+    (next.kind === "action" && !!next.dueDate && isDueSoon(next.dueDate, today));
 
   const Icon = needsAttention ? AlertCircle : next.kind === "milestone" ? Flag : CircleDot;
 
@@ -55,10 +60,11 @@ function NextStep({ project }: { project: StudentProject }) {
   );
 }
 
-export default function ProjectCard({ project }: { project: StudentProject }) {
+export default function ProjectCard({ project, mentor }: { project: StudentProject; mentor?: MentorResult }) {
   const isDraft = project.reviewStatus === "DRAFT";
   const prefix = PIPELINE_PREFIX[project.reviewStatus];
-  const primaryHref = isDraft ? "/workspace/student/submit" : `/workspace/student/projects/${project.id}`;
+  const primaryHref = isDraft ? `/workspace/student/submit?applicationId=${encodeURIComponent(project.id)}` : `/workspace/student/projects/${project.id}`;
+  const today = istNow().date;
 
   return (
     <Card className="transition-colors duration-150 hover:border-brand-cyan/40">
@@ -90,19 +96,23 @@ export default function ProjectCard({ project }: { project: StudentProject }) {
 
           {/* Progress & people */}
           <div className="flex flex-col gap-3 lg:border-l lg:border-line lg:pl-5">
-            <ProgressBar value={project.progress} label={isDraft ? "Submission complete" : "Progress"} />
+            {isDraft ? (
+              <ProgressBar value={project.progress} label="Submission complete" />
+            ) : (
+              <MilestoneProgress summary={project.milestones} status={project.reviewStatus} />
+            )}
             <dl className="flex flex-col gap-1 text-[13px]">
               <div className="flex gap-1.5">
-                <dt className="shrink-0 text-muted-ink">Faculty guide:</dt>
-                <dd className={cn("min-w-0 truncate", project.facultyGuide ? "font-medium text-ink" : "text-muted-ink")}>
-                  {project.facultyGuide ?? "Not yet assigned"}
+                <dt className="sr-only">Mentor</dt>
+                <dd className="min-w-0">
+                  <MentorLine result={mentor} />
                 </dd>
               </div>
               <div className="text-muted-ink">
                 <dt className="sr-only">Team and last update</dt>
                 <dd>
                   {project.teamSize} team {project.teamSize === 1 ? "member" : "members"}, updated{" "}
-                  {formatUpdated(project.updatedAt, MOCK_TODAY)}
+                  {project.updatedAt ? formatUpdated(project.updatedAt, today) : "Not yet submitted"}
                 </dd>
               </div>
             </dl>

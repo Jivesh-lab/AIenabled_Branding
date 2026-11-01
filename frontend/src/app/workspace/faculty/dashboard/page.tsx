@@ -18,41 +18,76 @@ import {
   Microscope,
   GraduationCap,
   Briefcase,
+  Loader2,
 } from "lucide-react";
 
-const SUPERVISED_PROJECTS = [
-  { id: "1", title: "AI-Driven Crop Disease Detection", student: "Priya Sharma", stage: "Prototype", progress: 68, trl: 4, status: "progress" as const },
-  { id: "2", title: "Biodegradable Packaging from Sugarcane Waste", student: "Arjun Mehta", stage: "Research", progress: 35, trl: 2, status: "attention" as const },
-  { id: "3", title: "Smart Water Quality Monitoring IoT", student: "Kavita Nair", stage: "Validation", progress: 82, trl: 6, status: "success" as const },
-  { id: "4", title: "Decentralized Health Records on Blockchain", student: "Rohan Das", stage: "Ideation", progress: 15, trl: 1, status: "neutral" as const },
-];
+interface Project {
+  id: string;
+  title: string;
+  leadStudent: string;
+  stage: string;
+  progress: number;
+  trl: number;
+  health: string;
+  overdueMilestonesCount: number;
+}
 
-const PENDING_IP_FILINGS = [
-  { id: "1", title: "ML Model for Early Disease Detection (Patent)", student: "Priya Sharma", dueIn: 7 },
-  { id: "2", title: "Packaging Formulation (Provisional Patent)", student: "Arjun Mehta", dueIn: 21 },
-  { id: "3", title: "IoT Monitoring Algorithm (Copyright)", student: "Kavita Nair", dueIn: 45 },
-];
+interface Metrics {
+  activeProjects: number;
+  totalStudents: number;
+  pendingMentorRequests: number;
+  upcomingMeetings: number;
+  pendingTasks: number;
+  overdueMilestones: number;
+}
 
-const ACTIVE_GRANTS = [
-  { id: "1", title: "DST NIDHI Seed Fund 2024", amount: "₹15L", deadline: "31 Mar 2025", utilised: 62 },
-  { id: "2", title: "BIRAC BIG 15 Grant", amount: "₹50L", deadline: "30 Jun 2025", utilised: 28 },
-];
-
-const RECENT_ACTIVITY = [
-  { text: "Priya Sharma submitted Stage-3 milestone report", time: "2h ago", type: "submission" },
-  { text: "Kavita Nair's TRL assessment upgraded to Level 6", time: "Yesterday", type: "milestone" },
-  { text: "New IP filing request from Arjun Mehta", time: "2 days ago", type: "ip" },
-  { text: "Grant DST NIDHI: Utilisation report due in 7 days", time: "3 days ago", type: "deadline" },
-];
+const HEALTH_STATUS_TONE: Record<string, "success" | "attention" | "danger" | "neutral"> = {
+  "On Track": "success",
+  "Needs Attention": "attention",
+  "At Risk": "danger",
+};
 
 export default function FacultyDashboardPage() {
   const [greeting, setGreeting] = useState("Good morning");
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [metrics, setMetrics] = useState<Metrics | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const hour = new Date().getHours();
     if (hour >= 12 && hour < 17) setGreeting("Good afternoon");
     else if (hour >= 17) setGreeting("Good evening");
   }, []);
+
+  useEffect(() => {
+    async function fetchOverview() {
+      try {
+        setLoading(true);
+        const res = await fetch("/api/faculty/overview");
+        if (!res.ok) throw new Error(`Server error: ${res.status}`);
+        const json = await res.json();
+        if (json.success) {
+          setProjects(json.data.projects || []);
+          setMetrics(json.data.metrics || null);
+        } else {
+          throw new Error(json.message || "Failed to load data");
+        }
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchOverview();
+  }, []);
+
+  const stageToStatus = (health: string): "success" | "attention" | "danger" | "progress" | "neutral" => {
+    if (health === "On Track") return "success";
+    if (health === "Needs Attention") return "attention";
+    if (health === "At Risk") return "danger";
+    return "progress";
+  };
 
   return (
     <PageContainer
@@ -63,10 +98,10 @@ export default function FacultyDashboardPage() {
         {/* KPI Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: "Supervised Projects", value: 12, sub: "4 Active this semester", icon: GraduationCap, color: "bg-brand/10 text-brand" },
-            { label: "Pending IP Filings", value: 3, sub: "2 due within 30 days", icon: FileText, color: "bg-amber-50 text-amber-700" },
-            { label: "Active Grants", value: 2, sub: "₹65L total sanctioned", icon: Award, color: "bg-emerald-50 text-emerald-700" },
-            { label: "TRL Avg (Cohort)", value: "3.4", sub: "Up from 2.8 last quarter", icon: TrendingUp, color: "bg-brand-cyan/10 text-brand-cyan-ink" },
+            { label: "Supervised Projects", value: metrics?.activeProjects ?? "—", sub: "Active this semester", icon: GraduationCap, color: "bg-brand/10 text-brand" },
+            { label: "Pending Mentor Requests", value: metrics?.pendingMentorRequests ?? "—", sub: "Awaiting coordinator action", icon: FileText, color: "bg-amber-50 text-amber-700" },
+            { label: "Upcoming Meetings", value: metrics?.upcomingMeetings ?? "—", sub: "Scheduled sessions", icon: Award, color: "bg-emerald-50 text-emerald-700" },
+            { label: "Overdue Milestones", value: metrics?.overdueMilestones ?? "—", sub: "Across all projects", icon: TrendingUp, color: "bg-brand-cyan/10 text-brand-cyan-ink" },
           ].map((kpi) => (
             <Card key={kpi.label} className="p-4">
               <div className="flex items-start justify-between">
@@ -91,7 +126,9 @@ export default function FacultyDashboardPage() {
                 Faculty Actions
               </span>
               <h2 className="text-lg font-bold">{greeting}, Professor</h2>
-              <p className="text-xs text-blue-200 mt-1">3 student milestones need your review. 1 IP deadline in 7 days.</p>
+              <p className="text-xs text-blue-200 mt-1">
+                {metrics ? `${metrics.overdueMilestones} overdue milestones. ${metrics.pendingMentorRequests} mentor requests pending.` : "Loading your activity summary…"}
+              </p>
             </div>
             <div className="flex flex-wrap gap-2.5">
               <Link href="/workspace/faculty" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-cyan hover:bg-brand-cyan/90 text-brand-deep text-xs font-bold transition-colors shadow-xs">
@@ -107,50 +144,68 @@ export default function FacultyDashboardPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Supervised Projects with Monitoring Agent Health & Exceptions */}
-          <div className="lg:col-span-2 space-y-4">
-            <div className="flex items-center justify-between">
-              <SectionHeading title="Supervised Student Projects & AI Health Tracking" action={{ label: "View all", href: "/workspace/faculty/student-projects" }} />
-              <span className="text-[11px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-full">
-                Monitoring Agent Active
-              </span>
+        {/* Supervised Projects */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <SectionHeading title="Supervised Student Projects & AI Health Tracking" action={{ label: "View all", href: "/workspace/faculty/student-projects" }} />
+            <span className="text-[11px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-full">
+              Monitoring Agent Active
+            </span>
+          </div>
+
+          {loading ? (
+            <div className="flex items-center justify-center py-16 text-muted-ink gap-2">
+              <Loader2 className="size-5 animate-spin" />
+              <span className="text-sm">Loading projects from database…</span>
             </div>
+          ) : error ? (
+            <div className="rounded-xl border border-red-100 bg-red-50 p-6 text-center">
+              <AlertCircle className="size-8 text-danger mx-auto mb-2" />
+              <p className="text-sm font-semibold text-danger">Failed to load projects</p>
+              <p className="text-xs text-muted-ink mt-1">{error}</p>
+            </div>
+          ) : projects.length === 0 ? (
+            <div className="rounded-xl border border-line bg-canvas p-10 text-center">
+              <GraduationCap className="size-10 text-muted-ink mx-auto mb-3 opacity-40" />
+              <p className="text-sm font-semibold text-ink">No supervised projects yet</p>
+              <p className="text-xs text-muted-ink mt-1">Projects will appear here once students are enrolled in your cohort.</p>
+            </div>
+          ) : (
             <div className="space-y-3">
-              {SUPERVISED_PROJECTS.map((proj) => (
+              {projects.map((proj) => (
                 <Card key={proj.id} interactive className="p-4">
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div>
                       <p className="text-sm font-semibold text-ink leading-tight">{proj.title}</p>
                       <p className="text-[12px] text-muted-ink mt-0.5 flex items-center gap-1">
-                        <Users className="size-3" /> {proj.student}
+                        <Users className="size-3" /> {proj.leadStudent}
                       </p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded bg-canvas border border-line text-muted-ink">TRL {proj.trl}</span>
-                      <StatusBadge label={proj.stage} tone={proj.status} />
+                      <StatusBadge label={proj.stage} tone={stageToStatus(proj.health)} />
                       <span
                         className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                          proj.progress >= 70
+                          proj.health === "On Track"
                             ? "bg-emerald-100 text-emerald-800"
-                            : proj.progress >= 40
+                            : proj.health === "Needs Attention"
                             ? "bg-amber-100 text-amber-800"
                             : "bg-red-100 text-red-800"
                         }`}
                       >
-                        {proj.progress >= 70 ? "On Track" : proj.progress >= 40 ? "Needs Attention" : "At Risk"}
+                        {proj.health}
                       </span>
                     </div>
                   </div>
                   <ProgressBar value={proj.progress} label={`Completion: ${proj.progress}%`} />
-                  
-                  {proj.progress < 70 && (
+
+                  {proj.health !== "On Track" && (
                     <div className="mt-3 p-2.5 rounded-lg bg-amber-50/70 border border-amber-200/60 text-[11px] text-amber-900 flex items-start gap-2">
                       <AlertCircle className="size-3.5 text-amber-700 shrink-0 mt-0.5" />
                       <div>
                         <strong>Monitoring Agent Intervention:</strong>{" "}
-                        {proj.progress < 40 
-                          ? "Progress reports overdue > 14 days. Coordinator check-in recommended to review laboratory bottlenecks."
+                        {proj.overdueMilestonesCount > 1
+                          ? `${proj.overdueMilestonesCount} milestones overdue. Coordinator check-in recommended.`
                           : "1 milestone overdue. Review sprint task deadlines with student founder."}
                       </div>
                     </div>
@@ -158,62 +213,7 @@ export default function FacultyDashboardPage() {
                 </Card>
               ))}
             </div>
-          </div>
-
-          {/* Right column */}
-          <div className="space-y-4">
-            {/* Pending IP Filings */}
-            <Card className="p-4">
-              <SectionHeading title="Pending IP Filings" action={{ label: "Manage", href: "/workspace/faculty/ip" }} />
-              <div className="space-y-3">
-                {PENDING_IP_FILINGS.map((ip) => (
-                  <div key={ip.id} className="flex items-start gap-3 p-3 rounded-lg bg-canvas border border-line">
-                    <div className={`mt-0.5 size-2 rounded-full shrink-0 ${ip.dueIn <= 7 ? "bg-danger" : ip.dueIn <= 21 ? "bg-brand-gold" : "bg-success"}`} />
-                    <div className="min-w-0">
-                      <p className="text-[12px] font-semibold text-ink leading-tight">{ip.title}</p>
-                      <p className="text-[11px] text-muted-ink mt-0.5">{ip.student}</p>
-                      <p className={`text-[11px] font-semibold mt-1 ${ip.dueIn <= 7 ? "text-danger" : "text-muted-ink"}`}>Due in {ip.dueIn} days</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
-
-            {/* Active Grants */}
-            <Card className="p-4">
-              <SectionHeading title="Active Grants" action={{ label: "Manage", href: "/workspace/faculty/grant-drafting" }} />
-              <div className="space-y-3">
-                {ACTIVE_GRANTS.map((grant) => (
-                  <div key={grant.id} className="p-3 rounded-lg bg-emerald-50/50 border border-emerald-100">
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <p className="text-[12px] font-semibold text-ink leading-tight">{grant.title}</p>
-                      <span className="text-[11px] font-bold text-emerald-700 shrink-0">{grant.amount}</span>
-                    </div>
-                    <ProgressBar value={grant.utilised} label={`Utilised: ${grant.utilised}%`} />
-                    <p className="text-[11px] text-muted-ink mt-1.5 flex items-center gap-1">
-                      <Clock className="size-3" /> Deadline: {grant.deadline}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </Card>
-
-            {/* Recent Activity */}
-            <Card className="p-4">
-              <SectionHeading title="Recent Activity" />
-              <div className="space-y-3">
-                {RECENT_ACTIVITY.map((item, i) => (
-                  <div key={i} className="flex items-start gap-2.5">
-                    <div className={`mt-0.5 size-1.5 rounded-full shrink-0 ${item.type === "deadline" ? "bg-danger" : item.type === "milestone" ? "bg-success" : "bg-brand"}`} />
-                    <div>
-                      <p className="text-[12px] text-ink leading-tight">{item.text}</p>
-                      <p className="text-[11px] text-muted-ink mt-0.5">{item.time}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          </div>
+          )}
         </div>
       </div>
     </PageContainer>

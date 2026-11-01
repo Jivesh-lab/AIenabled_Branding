@@ -40,7 +40,9 @@ valid_payload = {
     "currentSolutions": "None that are good enough.",
     "solution": "We will build an AI that does all the work for you, so you can go play outside.",
     "differentiation": "Ours actually works and doesn't hallucinate.",
-    "teamMembers": [],
+    "teamMembers": [
+        {"id": "m1", "name": "Asha Rao", "rollNumber": "21CS001", "email": "asha@example.edu", "inviteStatus": "ACCEPTED"}
+    ],
     "technologies": ["Python", "FastAPI"],
     "githubUrl": "",
     "demoUrl": "",
@@ -64,8 +66,14 @@ class MockConn:
         self.in_transaction = True
         return MockTransaction()
 
+    async def execute(self, query, *args):
+        self.queries_executed.append(query)
+
+    async def fetchrow(self, query, *args):
+        return None
+
     async def fetchval(self, query, *args):
-        if "SELECT id FROM applications" in query:
+        if "FROM applications a" in query:  # duplicate-application lookup
             if self.fail_on_app_insert: # We can reuse this flag or make a new one, but let's make a new MockConn parameter
                 pass
             if hasattr(self, 'return_duplicate_app') and self.return_duplicate_app:

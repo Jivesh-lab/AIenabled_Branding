@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PageContainer from "@/components/shared/PageContainer";
 import { StatusBadge, ProgressBar } from "@/components/shared/Surface";
 import {
@@ -14,94 +14,25 @@ import {
   CheckCircle2,
   AlertTriangle,
   Video,
+  Loader2,
+  ExternalLink,
 } from "lucide-react";
 
-const MENTEES = [
-  {
-    id: "1",
-    name: "Priya Sharma",
-    rollNo: "CSE21B042",
-    program: "Final Year B.Tech CSE",
-    avatar: "PS",
-    projectTitle: "AI-Driven Crop Disease Detection",
-    domain: "AgriTech / ML",
-    progress: 68,
-    trl: 4,
-    stage: "Prototype",
-    sessionsCompleted: 8,
-    lastSession: "Jan 20, 2025",
-    nextSession: "Jan 27, 2025",
-    healthStatus: "On Track",
-    rating: 5,
-    openTasks: 2,
-    strengths: ["Fast learner", "Data-driven approach", "Strong technical foundation"],
-    areasToImprove: ["Business model articulation", "Market sizing methodology"],
-    recentNote: "Excellent progress on model accuracy. Needs guidance on pivot from B2C to B2B2C distribution.",
-  },
-  {
-    id: "2",
-    name: "Arjun Mehta",
-    rollNo: "CHEM22A018",
-    program: "3rd Year B.Tech Chemical",
-    avatar: "AM",
-    projectTitle: "Biodegradable Packaging from Sugarcane Waste",
-    domain: "GreenTech / Materials",
-    progress: 35,
-    trl: 2,
-    stage: "Research",
-    sessionsCompleted: 3,
-    lastSession: "Jan 15, 2025",
-    nextSession: "Feb 5, 2025",
-    healthStatus: "Needs Attention",
-    rating: 4,
-    openTasks: 5,
-    strengths: ["Innovative material thinking", "Strong lab skills"],
-    areasToImprove: ["Consistency in milestone completion", "Communication frequency"],
-    recentNote: "Has been slow to respond to follow-ups. Lab formulation tests overdue by 5 days. Need to schedule catch-up.",
-  },
-  {
-    id: "3",
-    name: "Kavita Nair",
-    rollNo: "ECE21C077",
-    program: "Final Year B.Tech ECE",
-    avatar: "KN",
-    projectTitle: "Smart IoT Water Quality Monitor",
-    domain: "IoT / CleanTech",
-    progress: 82,
-    trl: 6,
-    stage: "Validation",
-    sessionsCompleted: 15,
-    lastSession: "Jan 22, 2025",
-    nextSession: "Jan 29, 2025",
-    healthStatus: "On Track",
-    rating: 5,
-    openTasks: 1,
-    strengths: ["Proactive", "Excellent documentation", "Strong pitch skills"],
-    areasToImprove: ["Regulatory process navigation"],
-    recentNote: "Ready for Series A conversations. Should focus on regulatory pre-submission in parallel.",
-  },
-  {
-    id: "4",
-    name: "Rohan Das",
-    rollNo: "IT22D031",
-    program: "3rd Year B.Tech IT",
-    avatar: "RD",
-    projectTitle: "Decentralised Health Records on Blockchain",
-    domain: "HealthTech / Web3",
-    progress: 15,
-    trl: 1,
-    stage: "Ideation",
-    sessionsCompleted: 2,
-    lastSession: "Jan 5, 2025",
-    nextSession: "Feb 10, 2025",
-    healthStatus: "At Risk",
-    rating: 3,
-    openTasks: 8,
-    strengths: ["Visionary thinking", "Strong blockchain technical knowledge"],
-    areasToImprove: ["Scope management", "Regulatory awareness for healthcare", "Communication discipline"],
-    recentNote: "Progress is significantly behind cohort average. Need to have a frank conversation about scope and commitment.",
-  },
-];
+interface Mentee {
+  _id: string;
+  name: string;
+  rollNumber?: string;
+  department?: string;
+  projectTitle?: string;
+  domain?: string;
+  progress?: number;
+  trl?: number;
+  stage?: string;
+  sessionsCompleted?: number;
+  healthStatus: "On Track" | "Needs Attention" | "At Risk";
+  openTasks?: number;
+  recentNote?: string;
+}
 
 const HEALTH_TONE: Record<string, "success" | "attention" | "danger" | "neutral"> = {
   "On Track": "success",
@@ -111,13 +42,100 @@ const HEALTH_TONE: Record<string, "success" | "attention" | "danger" | "neutral"
 
 const AVATAR_COLORS = ["bg-brand text-white", "bg-teal-700 text-white", "bg-emerald-700 text-white", "bg-amber-700 text-white"];
 
+const DEFAULT_MENTEES: Mentee[] = [
+  {
+    _id: "m1",
+    name: "Riya Patel",
+    rollNumber: "DBIT-2023-CS-042",
+    department: "Computer Engineering",
+    projectTitle: "HealthFlow AI — Autonomous Clinical Triage",
+    domain: "HealthTech / AI",
+    progress: 72,
+    trl: 4,
+    stage: "MVP Validation",
+    sessionsCompleted: 6,
+    healthStatus: "On Track",
+    openTasks: 0,
+    recentNote: "Clinical validation partner identified. Need to finalize pilot protocol before next sprint review.",
+  },
+  {
+    _id: "m2",
+    name: "Amit Sharma",
+    rollNumber: "DBIT-2023-ET-018",
+    department: "Electronics & Telecom",
+    projectTitle: "EcoCharge Solutions — Battery Swapping Grid",
+    domain: "CleanTech / IoT",
+    progress: 48,
+    trl: 3,
+    stage: "Prototyping",
+    sessionsCompleted: 4,
+    healthStatus: "Needs Attention",
+    openTasks: 2,
+    recentNote: "BMS sensor calibration delayed due to component shipment. Exploring local supplier alternative.",
+  },
+  {
+    _id: "m3",
+    name: "John D'Souza",
+    rollNumber: "DBIT-2023-IT-089",
+    department: "Information Technology",
+    projectTitle: "FinTrack — Micro-SME Cash Flow Engine",
+    domain: "FinTech / SaaS",
+    progress: 35,
+    trl: 2,
+    stage: "Concept Validation",
+    sessionsCompleted: 2,
+    healthStatus: "On Track",
+    openTasks: 1,
+    recentNote: "Customer discovery interviews with 15 local merchants completed. Data analysis in progress.",
+  },
+];
+
 export default function MentorMenteesPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All");
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [mentees, setMentees] = useState<Mentee[]>(DEFAULT_MENTEES);
+  const [loading, setLoading] = useState(true);
 
-  const filtered = MENTEES.filter((m) => {
-    const matchSearch = m.name.toLowerCase().includes(search.toLowerCase()) || m.projectTitle.toLowerCase().includes(search.toLowerCase());
+  useEffect(() => {
+    async function fetchMentees() {
+      try {
+        setLoading(true);
+        const res = await fetch("/api/faculty/projects");
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+            const mapped: Mentee[] = json.data.map((p: any) => ({
+              _id: p._id || p.id,
+              name: p.leadStudent || "Student Founder",
+              rollNumber: p.rollNumber || "DBIT Cohort",
+              department: p.department || "Engineering",
+              projectTitle: p.title || "Incubation Project",
+              domain: p.domain || "Technology",
+              progress: p.progress || 50,
+              trl: p.trl || 3,
+              stage: p.stage || `TRL ${p.trl || 3}`,
+              healthStatus: p.health === "At Risk" ? "At Risk" : p.health === "Needs Attention" ? "Needs Attention" : "On Track",
+              openTasks: p.overdueMilestonesCount || 0,
+              recentNote: p.summary || "Active mentoring in progress.",
+            }));
+            setMentees(mapped);
+          }
+        }
+      } catch {
+        // Fall back to defaults
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchMentees();
+  }, []);
+
+  const filtered = mentees.filter((m) => {
+    const matchSearch =
+      m.name?.toLowerCase().includes(search.toLowerCase()) ||
+      m.projectTitle?.toLowerCase().includes(search.toLowerCase()) ||
+      m.department?.toLowerCase().includes(search.toLowerCase());
     const matchFilter = filter === "All" || m.healthStatus === filter;
     return matchSearch && matchFilter;
   });
@@ -135,7 +153,9 @@ export default function MentorMenteesPage() {
               <span className="text-[13px] font-medium">Total Mentees</span>
               <Users className="size-4 text-slate-400" />
             </div>
-            <p className="mt-2 text-[26px] font-semibold tracking-tight text-ink tabular-nums">{MENTEES.length}</p>
+            <p className="mt-2 text-[26px] font-semibold tracking-tight text-ink tabular-nums">
+              {loading ? "—" : mentees.length}
+            </p>
             <p className="text-[12px] text-slate-500 mt-0.5">Enrolled founders</p>
           </div>
 
@@ -145,7 +165,7 @@ export default function MentorMenteesPage() {
               <CheckCircle2 className="size-4 text-emerald-600" />
             </div>
             <p className="mt-2 text-[26px] font-semibold tracking-tight text-emerald-800 tabular-nums">
-              {MENTEES.filter((m) => m.healthStatus === "On Track").length}
+              {loading ? "—" : mentees.filter((m) => m.healthStatus === "On Track").length}
             </p>
             <p className="text-[12px] text-emerald-700 mt-0.5">Meeting targets</p>
           </div>
@@ -156,7 +176,7 @@ export default function MentorMenteesPage() {
               <AlertTriangle className="size-4 text-amber-600" />
             </div>
             <p className="mt-2 text-[26px] font-semibold tracking-tight text-amber-800 tabular-nums">
-              {MENTEES.filter((m) => m.healthStatus === "Needs Attention").length}
+              {loading ? "—" : mentees.filter((m) => m.healthStatus === "Needs Attention").length}
             </p>
             <p className="text-[12px] text-amber-700 mt-0.5">Action pending</p>
           </div>
@@ -167,7 +187,7 @@ export default function MentorMenteesPage() {
               <AlertTriangle className="size-4 text-red-600" />
             </div>
             <p className="mt-2 text-[26px] font-semibold tracking-tight text-red-800 tabular-nums">
-              {MENTEES.filter((m) => m.healthStatus === "At Risk").length}
+              {loading ? "—" : mentees.filter((m) => m.healthStatus === "At Risk").length}
             </p>
             <p className="text-[12px] text-red-700 mt-0.5">Immediate check-in</p>
           </div>
@@ -204,94 +224,93 @@ export default function MentorMenteesPage() {
         </div>
 
         {/* Mentee Roster */}
-        <div className="divide-y divide-line rounded-lg border border-line bg-white">
-          {filtered.map((mentee, idx) => (
-            <div key={mentee.id} className="transition-colors">
-              <div
-                className="p-5 cursor-pointer hover:bg-[#FAFBFB] transition-colors"
-                onClick={() => setExpanded(expanded === mentee.id ? null : mentee.id)}
-              >
-                <div className="flex items-start gap-4">
-                  {/* Initials Avatar */}
-                  <div className={`size-10 rounded-md flex items-center justify-center text-[13px] font-semibold shrink-0 ${AVATAR_COLORS[idx % AVATAR_COLORS.length]}`}>
-                    {mentee.avatar}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2 mb-1">
-                      <span className="text-[15px] font-semibold text-ink">{mentee.name}</span>
-                      <StatusBadge label={mentee.healthStatus} tone={HEALTH_TONE[mentee.healthStatus]} />
-                      <span className="text-[11px] font-medium px-2 py-0.5 rounded border border-line bg-canvas text-muted-ink">
-                        TRL {mentee.trl} ({mentee.stage})
-                      </span>
+        {loading ? (
+          <div className="flex items-center justify-center py-16 text-muted-ink gap-2">
+            <Loader2 className="size-5 animate-spin text-brand" />
+            <span className="text-sm">Loading mentees from database…</span>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="rounded-lg border border-line bg-white p-10 text-center">
+            <Users className="size-8 text-slate-300 mx-auto mb-2" />
+            <p className="text-[14px] font-semibold text-ink">No mentees found</p>
+            <p className="text-[12px] text-muted-ink mt-1">Try adjusting your search query or filter selection.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-line rounded-lg border border-line bg-white">
+            {filtered.map((mentee, idx) => (
+              <div key={mentee._id} className="transition-colors">
+                <div
+                  className="p-5 cursor-pointer hover:bg-[#FAFBFB] transition-colors"
+                  onClick={() => setExpanded(expanded === mentee._id ? null : mentee._id)}
+                >
+                  <div className="flex items-start gap-4">
+                    {/* Initials Avatar */}
+                    <div className={`size-10 rounded-md flex items-center justify-center text-[13px] font-semibold shrink-0 ${AVATAR_COLORS[idx % AVATAR_COLORS.length]}`}>
+                      {mentee.name?.slice(0, 2).toUpperCase()}
                     </div>
-                    <p className="text-[13px] text-muted-ink mb-1">
-                      {mentee.program}, Roll {mentee.rollNo}
-                    </p>
-                    <p className="text-[14px] font-medium text-ink">{mentee.projectTitle}</p>
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[12px] text-muted-ink">
-                      <span className="flex items-center gap-1.5"><Calendar className="size-3 text-slate-400" /> Last session: {mentee.lastSession}</span>
-                      <span className="flex items-center gap-1.5"><Clock className="size-3 text-slate-400" /> Next session: {mentee.nextSession}</span>
-                      <span className="flex items-center gap-1.5"><BookOpen className="size-3 text-slate-400" /> {mentee.sessionsCompleted} sessions completed</span>
-                      <span className="flex items-center gap-1.5"><AlertTriangle className="size-3 text-slate-400" /> {mentee.openTasks} open deliverables</span>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <span className="text-[15px] font-semibold text-ink">{mentee.name}</span>
+                        <StatusBadge label={mentee.healthStatus} tone={HEALTH_TONE[mentee.healthStatus]} />
+                        <span className="text-[11px] font-medium px-2 py-0.5 rounded border border-line bg-canvas text-muted-ink">
+                          TRL {mentee.trl} ({mentee.stage})
+                        </span>
+                      </div>
+                      <p className="text-[13px] text-muted-ink mb-1">
+                        {mentee.department}, Roll {mentee.rollNumber}
+                      </p>
+                      <p className="text-[14px] font-medium text-ink">{mentee.projectTitle}</p>
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[12px] text-muted-ink">
+                        <span className="flex items-center gap-1.5">
+                          <BookOpen className="size-3 text-slate-400" />
+                          Stage: {mentee.stage}
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <AlertTriangle className="size-3 text-slate-400" />
+                          {mentee.openTasks} open deliverable(s)
+                        </span>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="w-28 shrink-0 hidden sm:block">
-                    <ProgressBar value={mentee.progress} label="Readiness" />
-                  </div>
+                    <div className="w-28 shrink-0 hidden sm:block">
+                      <ProgressBar value={mentee.progress || 0} label={`${mentee.progress || 0}%`} />
+                    </div>
 
-                  <ChevronDown className={`size-4 text-muted-ink transition-transform shrink-0 mt-1 ${expanded === mentee.id ? "rotate-180" : ""}`} />
+                    <ChevronDown className={`size-4 text-muted-ink transition-transform shrink-0 mt-1 ${expanded === mentee._id ? "rotate-180" : ""}`} />
+                  </div>
                 </div>
+
+                {expanded === mentee._id && (
+                  <div className="px-5 pb-5 pt-2 border-t border-line/60 bg-[#FAFBFB]">
+                    {mentee.recentNote && (
+                      <div className="mb-4">
+                        <h4 className="font-semibold text-ink text-[13px] mb-1">Latest Advisory Notes</h4>
+                        <p className="text-[13px] text-muted-ink leading-relaxed">{mentee.recentNote}</p>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-line/60">
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1.5 rounded-md border border-line bg-white px-3 py-1.5 text-[12px] font-medium text-ink transition-colors hover:bg-slate-50"
+                      >
+                        <MessageSquare className="size-3.5 text-slate-400" />
+                        Add Session Note
+                      </button>
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1.5 rounded-md bg-brand px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-brand-hover"
+                      >
+                        <Video className="size-3.5" />
+                        Schedule 1:1 Review
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-
-              {expanded === mentee.id && (
-                <div className="px-5 pb-5 pt-2 border-t border-line/60 bg-[#FAFBFB]">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-[13px]">
-                    <div>
-                      <h4 className="font-semibold text-ink mb-1">Key Strengths</h4>
-                      <ul className="list-disc list-inside space-y-0.5 text-muted-ink">
-                        {mentee.strengths.map((s) => (
-                          <li key={s}>{s}</li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-ink mb-1">Development Areas</h4>
-                      <ul className="list-disc list-inside space-y-0.5 text-muted-ink">
-                        {mentee.areasToImprove.map((a) => (
-                          <li key={a}>{a}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 pt-3 border-t border-line/60">
-                    <h4 className="font-semibold text-ink text-[13px] mb-1">Latest Advisory Notes</h4>
-                    <p className="text-[13px] text-muted-ink leading-relaxed">{mentee.recentNote}</p>
-                  </div>
-
-                  <div className="mt-4 flex items-center justify-end gap-2 pt-3 border-t border-line/60">
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-1.5 rounded-md border border-line bg-white px-3 py-1.5 text-[12px] font-medium text-ink transition-colors hover:bg-slate-50"
-                    >
-                      <MessageSquare className="size-3.5 text-slate-400" />
-                      Add Session Note
-                    </button>
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-1.5 rounded-md bg-brand px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-brand-hover"
-                    >
-                      <Video className="size-3.5" />
-                      Schedule 1:1 Review
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </PageContainer>
   );

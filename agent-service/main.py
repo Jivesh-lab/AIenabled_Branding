@@ -19,13 +19,16 @@ Runs on port 8000 alongside:
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+import warnings
+
+warnings.filterwarnings("ignore", category=ResourceWarning)
 
 import structlog
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api import chat_router, agents_router, rag_router, applications_router, matchmaking_router
+from api import chat_router, agents_router, rag_router, applications_router, matchmaking_router, mentors_router, milestones_router, assistant_router
 from config import get_settings
 from core.tools.database import set_pool
 from db.postgres import apply_schema, close_pool, create_pool
@@ -90,6 +93,9 @@ app.include_router(agents_router)
 app.include_router(rag_router)
 app.include_router(applications_router)
 app.include_router(matchmaking_router)
+app.include_router(mentors_router)
+app.include_router(milestones_router)
+app.include_router(assistant_router)
 
 
 

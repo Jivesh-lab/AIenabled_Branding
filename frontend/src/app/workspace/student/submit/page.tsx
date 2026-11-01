@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { Card } from "@/components/shared/Surface";
 import PageContainer from "@/components/shared/PageContainer";
@@ -44,7 +45,7 @@ function ReviewProcessAside() {
         <ul className="mt-2 flex list-disc flex-col gap-1.5 pl-4 text-[12px] leading-relaxed text-muted-ink marker:text-brand-cyan">
           <li>Takes about 10–15 minutes. Your draft saves each time you change step.</li>
           <li>You don&apos;t need a faculty guide — one is assigned after submission.</li>
-          <li>Team members you invite must accept before they join.</li>
+          <li>You add your team members yourself; email invitations are not sent yet.</li>
           <li>You don&apos;t need funding or market details at this stage.</li>
         </ul>
       </div>
@@ -65,7 +66,10 @@ export default function SubmitIdeaPage() {
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_280px] xl:items-start">
           <div className="min-w-0 max-w-3xl xl:max-w-none">
-            <IdeaSubmissionWizard />
+            {/* The wizard reads ?applicationId= (useSearchParams), which needs a Suspense boundary. */}
+            <Suspense fallback={<p role="status" className="text-[14px] text-muted-ink">Loading…</p>}>
+              <IdeaSubmissionWizard />
+            </Suspense>
           </div>
 
           <aside className="hidden xl:sticky xl:top-[84px] xl:block">

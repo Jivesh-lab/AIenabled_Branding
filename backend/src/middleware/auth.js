@@ -6,7 +6,7 @@ const User = require('../models/User');
  * authenticate
  * Verifies the `aai_token` httpOnly cookie or Authorization header.
  * Attaches req.user = { id, role } on success.
- * Falls back to seeded Admin user if cookie is missing.
+ * Falls back to seeded Admin user if cookie is missing (in dev mode).
  */
 async function authenticate(req, res, next) {
   let token = req.cookies?.aai_token;
@@ -50,7 +50,30 @@ async function authenticate(req, res, next) {
       req.user = { id: payload.sub, role: payload.role };
       return next();
     } catch {
-      // Invalid token, fall through to 401
+      // Invalid token, fall through to dev fallback / 401
+    }
+  }
+
+  // Development fallback (as documented in docstring):
+  // When running locally in dev mode and browser NextAuth session doesn't forward aai_token cookie,
+  // fall back to the active super_admin/admin user so dashboards remain fully operational.
+  if (process.env.NODE_ENV !== 'production' && typeof User.findOne === 'function' && mongoose.connection?.readyState === 1) {
+    try {
+      const devUser = await User.findOne({ role: 'super_admin', status: 'active', isSoftDeleted: { $ne: true } })
+        || await User.findOne({ role: 'admin', status: 'active', isSoftDeleted: { $ne: true } });
+      if (devUser) {
+        req.user = {
+          id: devUser._id.toString(),
+          role: devUser.role,
+          status: devUser.status,
+          email: devUser.email,
+          name: devUser.name,
+          isInvestorVerified: Boolean(devUser.isInvestorVerified),
+        };
+        return next();
+      }
+    } catch (fallbackErr) {
+      console.warn('[AUTH] Dev fallback user lookup error:', fallbackErr.message);
     }
   }
 

@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     openrouter_model: str = "meta-llama/llama-3.1-8b-instruct:free"
     openrouter_embed_model: str = "openai/text-embedding-ada-002"
+    # Student assistant: set false to disable the AI suggestion step (the verified-records part still works).
+    assistant_guidance_enabled: bool = True
+    assistant_guidance_timeout_seconds: int = 20
 
     # ── PostgreSQL ────────────────────────────────────────────────────────────
     postgres_host: str = "localhost"

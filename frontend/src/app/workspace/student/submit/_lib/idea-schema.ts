@@ -10,7 +10,7 @@
  */
 import { z } from "zod";
 import { SUBMITTABLE_MATURITY_LEVELS } from "@/types/status";
-import { FILE_RULES, TEAM_LIMIT, TECHNOLOGY_LIMIT } from "@/mock/submit-idea";
+import { FILE_RULES, TEAM_LIMIT, TECHNOLOGY_LIMIT } from "./form-options";
 
 /**
  * http(s) with a real domain only. Plain z.url() accepts `javascript:` and

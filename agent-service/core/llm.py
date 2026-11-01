@@ -14,7 +14,7 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from config import get_settings
 
 
-@lru_cache(maxsize=1)
+@lru_cache(maxsize=16)
 def get_llm(temperature: float = 0.2) -> ChatOpenAI:
     """
     Return a cached ChatOpenAI instance configured for OpenRouter.

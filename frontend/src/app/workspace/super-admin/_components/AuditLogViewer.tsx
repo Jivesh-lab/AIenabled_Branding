@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   FileText,
   Search,
@@ -30,63 +30,13 @@ type AuditLogItem = {
   createdAt: string;
 };
 
-const MOCK_AUDIT_LOGS: AuditLogItem[] = [
-  {
-    _id: "log_1",
-    userId: "usr_super_1",
-    email: "superadmin@aai-dbitic.edu",
-    role: "super_admin",
-    action: "SUPER_ADMIN_LOGIN_SUCCESS",
-    resource: "/api/auth/login",
-    workspace: "super-admin",
-    details: { loginMethod: "email_password_2fa" },
-    ip: "127.0.0.1",
-    userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-    status: "SUCCESS",
-    createdAt: "2026-09-20T20:25:00.000Z",
-  },
-  {
-    _id: "log_2",
-    userId: "usr_super_1",
-    email: "superadmin@aai-dbitic.edu",
-    role: "super_admin",
-    action: "WORKSPACE_INSPECT_VIEW",
-    resource: "/workspace/student/dashboard",
-    workspace: "student",
-    details: { viewMode: "read_inspect" },
-    ip: "127.0.0.1",
-    userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-    status: "SUCCESS",
-    createdAt: "2026-09-20T20:10:00.000Z",
-  },
-  {
-    _id: "log_3",
-    userId: "usr_super_1",
-    email: "superadmin@aai-dbitic.edu",
-    role: "super_admin",
-    action: "SUPER_ADMIN_SEEDED",
-    resource: "CLI setup script",
-    workspace: "system",
-    details: { note: "Account created via seed script" },
-    ip: "localhost",
-    userAgent: "Node.js/v22",
-    status: "SUCCESS",
-    createdAt: "2026-09-20T18:00:00.000Z",
-  },
-];
-
 export default function AuditLogViewer() {
   const [logs, setLogs] = useState<AuditLogItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
-  const [isMounted, setIsMounted] = useState(false);
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  async function fetchAuditLogs() {
+  const fetchAuditLogs = useCallback(async () => {
     setLoading(true);
     try {
       const queryParams = new URLSearchParams();
@@ -112,10 +62,34 @@ export default function AuditLogViewer() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [search, statusFilter]);
 
   useEffect(() => {
-    fetchAuditLogs();
+    let ignore = false;
+    async function load() {
+      try {
+        const queryParams = new URLSearchParams();
+        if (statusFilter !== "ALL") queryParams.set("status", statusFilter);
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/audit?${queryParams.toString()}`,
+          { headers: { "Content-Type": "application/json" }, credentials: "include" }
+        );
+        if (!ignore && res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.logs)) {
+            setLogs(data.logs);
+          }
+        }
+      } catch (err) {
+        if (!ignore) {
+          console.error("Failed to fetch audit logs:", err);
+        }
+      }
+    }
+    load();
+    return () => {
+      ignore = true;
+    };
   }, [statusFilter]);
 
   const filteredLogs = logs.filter((log) => {
@@ -204,7 +178,7 @@ export default function AuditLogViewer() {
                 <tr key={log._id} className="hover:bg-slate-50/70 transition-colors">
                   <td suppressHydrationWarning className="px-4 py-3 text-slate-500 whitespace-nowrap flex items-center gap-1.5 font-sans">
                     <Clock className="size-3.5 text-slate-400" />
-                    {isMounted ? new Date(log.createdAt).toLocaleString() : log.createdAt}
+                    {log.createdAt}
                   </td>
                   <td className="px-4 py-3 font-sans">
                     <div className="font-semibold text-slate-900 flex items-center gap-1">

@@ -17,6 +17,7 @@
   --color-brand: #0B4F9C;            /* Institutional Incubation Cobalt */
   --color-brand-hover: #093F7D;
   --color-brand-active: #072F5F;
+  --color-brand-soft: #E8EFFC;       /* Soft Blue */
   --color-brand-cyan: #087E8B;       /* Studio Teal - creation & prototyping */
   --color-brand-cyan-soft: #E6F4F6;  /* Soft Teal tint */
   --color-brand-cyan-ink: #065B64;   /* High-contrast Teal text */
@@ -84,7 +85,7 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
   /* Ocean Royale PRIMARY (#023EBA) */
-  --primary: #023EBA;
+  --primary: #2458D3;
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -93,9 +94,9 @@
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: #D8EAF0;
-  --input: #D8EAF0;
-  --ring: color-mix(in oklch, #023EBA 40%, transparent);
+  --border: #E2E8F0;
+  --input: #E2E8F0;
+  --ring: color-mix(in oklch, #2458D3 40%, transparent);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -104,12 +105,12 @@
   --radius: 0.5rem;
   --sidebar: #FFFFFF;
   --sidebar-foreground: #0F172A;
-  --sidebar-primary: #023EBA;
+  --sidebar-primary: #2458D3;
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: #CAF0F8;
-  --sidebar-accent-foreground: #023EBA;
-  --sidebar-border: #D8EAF0;
-  --sidebar-ring: #023EBA;
+  --sidebar-accent: #E8EFFC;
+  --sidebar-accent-foreground: #2458D3;
+  --sidebar-border: #E2E8F0;
+  --sidebar-ring: #2458D3;
 }
 
 
@@ -527,4 +528,18 @@
   .landing-page .problem-copy > p,
   .landing-page .journey-heading p { font-size: 16px; }
   .landing-page .problem-list span { font-size: 13px; }
+}
+
+
+/* ---------------------------------------------------------------------------
+   Loading motion. Indeterminate on purpose: we never show a made-up percentage.
+   Reduced-motion users get a static bar instead of movement.
+   ------------------------------------------------------------------------- */
+@keyframes route-progress-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(260%); }
+}
+@keyframes startup-progress-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
 }

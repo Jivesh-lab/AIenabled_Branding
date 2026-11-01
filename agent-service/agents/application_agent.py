@@ -63,23 +63,23 @@ def validate_application_data(data: Dict[str, Any]) -> Dict[str, Any]:
     missing = []
     warnings = []
 
-    name = data.get("name", "").strip()
+    name = (data.get("name") or "").strip()
     if not name or len(name) < 3:
         missing.append("Startup Name (at least 3 characters)")
 
-    short_desc = data.get("shortDescription", "").strip()
+    short_desc = (data.get("shortDescription") or "").strip()
     if not short_desc or len(short_desc) < 20:
         missing.append("Short Description / Tagline (at least 20 characters)")
 
-    problem = data.get("problem", "").strip()
+    problem = (data.get("problem") or "").strip()
     if not problem or len(problem) < 30:
         missing.append("Problem Statement (at least 30 characters)")
 
-    solution = data.get("solution", "").strip()
+    solution = (data.get("solution") or "").strip()
     if not solution or len(solution) < 30:
         missing.append("Proposed Solution (at least 30 characters)")
 
-    domain = data.get("domain", "").strip()
+    domain = (data.get("domain") or "").strip()
     if not domain:
         missing.append("Domain / Sector")
 
@@ -127,51 +127,21 @@ async def assess_application(application_data: Dict[str, Any]) -> Dict[str, Any]
         parsed = json.loads(content)
         # Ensure rule validation integrity
         parsed["validation"] = validation
+        parsed["assessment_available"] = True
         parsed["assessed_at"] = now_iso
         parsed["requires_human_admission_decision"] = True
         return parsed
     except Exception as exc:
         logger.warning("application_agent_llm_failed_using_deterministic_assessment", error=str(exc))
 
-        # Deterministic assessment fallback
-        problem = application_data.get("problem", "Identified domain challenge")
-        solution = application_data.get("solution", "Proposed technological architecture")
-        domain = application_data.get("domain", "General Tech")
-        name = application_data.get("name", "Innovation Project")
-
+        # No fabricated scores, summaries or questions: when the model is unavailable only the
+        # rule-based validation is returned, and consumers must treat the assessment as absent.
         return {
             "validation": validation,
             "completeness_score": validation["completeness_score"],
             "is_complete": validation["is_complete"],
             "missing_fields": validation["missing_fields"],
-            "summary": {
-                "problem": problem[:250],
-                "proposed_solution": solution[:250],
-                "target_users": application_data.get("affectedUsers", "Target market segments")[:150],
-                "innovation_differentiation": application_data.get("differentiation", "Domain-specific edge")[:150],
-                "business_model": "Institutional and commercial incubation candidate",
-                "requested_support": f"Incubation lab access, {domain} faculty mentor, and prototype grant assistance."
-            },
-            "preliminary_assessment": {
-                "problem_clarity_score": 75 if len(problem) > 50 else 50,
-                "technical_feasibility_score": 70,
-                "market_potential_score": 70,
-                "overall_readiness_score": validation["completeness_score"],
-                "strengths": [
-                    f"Relevant domain alignment with {domain}",
-                    "Structured multi-member student team"
-                ],
-                "weaknesses": validation["missing_fields"] or ["Validation metrics from pilot users needed"]
-            },
-            "missing_evidence": [
-                "Quantified user survey results",
-                "Benchmark test records against current market solutions"
-            ],
-            "questions_for_reviewers": [
-                f"How does {name} validate edge cases under field deployment?",
-                "What is the estimated bill of materials or cloud hosting cost for the first 100 users?"
-            ],
-            "recommendation_summary": f"Application for {name} meets initial submission standards. Recommended for reviewer panel interview.",
+            "assessment_available": False,
             "assessed_at": now_iso,
             "requires_human_admission_decision": True,
         }
