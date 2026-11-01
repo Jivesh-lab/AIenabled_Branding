@@ -12,6 +12,7 @@ Features:
 
 from __future__ import annotations
 
+import asyncio
 import json
 import structlog
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -84,7 +85,7 @@ async def run_incubation_assistant(state: AgentState) -> AgentState:
             SystemMessage(content=SYSTEM_PROMPT),
             HumanMessage(content=full_context),
         ]
-        response = await llm.ainvoke(messages)
+        response = await asyncio.wait_for(llm.ainvoke(messages), timeout=10.0)
         answer = response.content
     except Exception as exc:
         logger.warning("incubation_assistant_llm_failed_using_deterministic_fallback", error=str(exc))
