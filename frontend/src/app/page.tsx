@@ -385,44 +385,33 @@ export default function RootPage() {
       <footer className="landing-footer final-footer">
         <div className="footer-brand">
           <DbitLogo variant="full" size="md" theme="light" href="/" className="footer-logo mb-2" />
-          <p>AI-powered innovation and incubation for ideas ready to move.</p>
+          <p>AI-powered academic innovation &amp; incubation ecosystem at Don Bosco Institute of Technology.</p>
         </div>
         <div className="footer-column">
           <strong>PLATFORM</strong>
-          <a href="#ecosystem">Overview</a>
           <a href="#agents">AI Agents</a>
-          <Link href="/login">Dashboard</Link>
-        </div>
-        <div className="footer-column">
-          <strong>INCUBATION</strong>
-          <a href="#incubators">Incubation</a>
-          <a href="#mentors">Mentors</a>
-          <a href="#funding">Funding</a>
-        </div>
-        <div className="footer-column">
-          <strong>ECOSYSTEM</strong>
-          <a href="#ecosystem">E-Cell</a>
-          <a href="#events">Events</a>
+          <a href="#funding">Incubation &amp; Funding</a>
           <a href="#ecosystem">Pathways</a>
         </div>
         <div className="footer-column">
-          <strong>RESOURCES</strong>
-          <a href="#from-classroom">Classroom to Market</a>
-          <a href="#impact">Impact</a>
-          <a href="#events">Initiatives</a>
+          <strong>COMMUNITY</strong>
+          <a href="#mentors">Mentor Network</a>
+          <a href="#events">Events &amp; Initiatives</a>
+          <a href="#impact">E-Cell Impact</a>
         </div>
         <div className="footer-column">
-          <strong>CONNECT</strong>
-          <a href="#mentors">Mentors</a>
-          <a href="mailto:hello@dbit-incubation.example">Contact</a>
+          <strong>ACCESS</strong>
+          <Link href="/login">Sign In / Dashboard</Link>
+          <a href="mailto:hello@dbit-incubation.example">Contact Team</a>
         </div>
         <div className="footer-legal">
+          <span>&copy; {new Date().getFullYear()} DBIT Incubation Centre. All rights reserved.</span>
           <span>Privacy Policy</span>
           <span>Terms of Use</span>
           <span className="footer-socials">
             <a href="mailto:hello@dbit-incubation.example" aria-label="LinkedIn">in</a>
-            <a href="mailto:hello@dbit-incubation.example" aria-label="Instagram">◎</a>
-            <a href="mailto:hello@dbit-incubation.example" aria-label="YouTube">▶</a>
+            <a href="mailto:hello@dbit-incubation.example" aria-label="Instagram">&empty;</a>
+            <a href="mailto:hello@dbit-incubation.example" aria-label="YouTube">&#9654;</a>
           </span>
         </div>
       </footer>
