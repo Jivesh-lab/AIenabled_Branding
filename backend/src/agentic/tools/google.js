@@ -90,7 +90,7 @@ async function handleCallback({ code, state }) {
         connectedAt: new Date(),
       },
     },
-    { upsert: true, new: true }
+    { upsert: true, returnDocument: 'after' }
   );
   return { userId: payload.sub, accountEmail };
 }
@@ -123,14 +123,14 @@ async function accessTokenFor(userId) {
     await CalendarConnection.findOneAndUpdate(
       { userId: String(userId), provider: 'google' },
       { $set: { accessTokenEnc: encrypt(tokens.access_token), expiresAt: new Date(Date.now() + (tokens.expires_in || 3600) * 1000), status: 'connected', lastError: null } },
-      { new: true }
+      { returnDocument: 'after' }
     );
     return tokens.access_token;
   } catch (error) {
     await CalendarConnection.findOneAndUpdate(
       { userId: String(userId), provider: 'google' },
       { $set: { status: error.googleError === 'invalid_grant' ? 'needs_reconnect' : 'connected', lastError: error.message.slice(0, 200) } },
-      { new: true }
+      { returnDocument: 'after' }
     );
     return null;
   }

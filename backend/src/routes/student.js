@@ -144,10 +144,26 @@ router.get('/mentor-allocation/:applicationId', studentOnly, async (req, res) =>
     ]);
 
     if (!record) {
+      if (project?.allocatedMentorName) {
+        const contact = await mentorContact(project.allocatedMentorName);
+        return res.json({
+          success: true,
+          data: {
+            applicationId,
+            allocation: {
+              status: 'approved',
+              requestedExpertise: [],
+              recommendation: null,
+              mentor: { name: project.allocatedMentorName, contact },
+              updatedAt: new Date().toISOString(),
+            },
+          },
+        });
+      }
       return res.json({ success: true, data: { applicationId, allocation: null } });
     }
 
-    const confirmed = CONFIRMED_STATUSES.includes(record.status);
+    const confirmed = CONFIRMED_STATUSES.includes(record.status) || Boolean(record.allocatedMentorName);
     const mentorName = confirmed
       ? (record.allocatedMentorName || project?.allocatedMentorName || record.recommendedMentorName || null)
       : null;

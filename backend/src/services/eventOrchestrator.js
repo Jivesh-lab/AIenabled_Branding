@@ -42,7 +42,7 @@ async function enqueueEvent({ eventType, aggregateType, aggregateId, projectId =
         nextAttemptAt: new Date(),
       },
     },
-    { upsert: true, new: true, setDefaultsOnInsert: true }
+    { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
   );
   return event;
 }
@@ -112,7 +112,7 @@ async function claimNextEvent() {
       $expr: { $lt: ['$attempts', '$maxAttempts'] },
     },
     { $set: { status: 'processing', lockedAt: new Date() }, $inc: { attempts: 1 } },
-    { sort: { createdAt: 1 }, new: true }
+    { sort: { createdAt: 1 }, returnDocument: 'after' }
   );
 }
 

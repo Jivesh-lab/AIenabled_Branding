@@ -80,7 +80,8 @@ export const editUrl = (id: string) => `/workspace/student/submit?applicationId=
 export function buildJourney(input: JourneyInput): Journey {
   const { project, mentor, tasks, meetings, monitoring, now } = input;
   const status = project.reviewStatus;
-  const approved = status === "APPROVED";
+  const isMentorMatched = Boolean(mentor?.ok && mentor.data.state === "matched" && mentor.data.mentor);
+  const approved = status === "APPROVED" || isMentorMatched;
   const rejected = status === "REJECTED";
   const missing: MissingSource[] = [];
   const blockers: JourneyBlocker[] = [];

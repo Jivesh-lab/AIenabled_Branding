@@ -43,31 +43,42 @@ function handleValidationErrors(req, res) {
 
 
 async function ensureSeedData() {
-  // Automatically bridge any approved startups into the active Faculty Coordinator cohort
+  // Automatically bridge all student startup applications into the active Faculty Coordinator cohort
   try {
     const StartupProfile = require('../models/StartupProfile');
-    const approvedProfiles = await StartupProfile.find({ isApproved: true }).lean();
-    for (const sp of approvedProfiles) {
-      const exists = await FacultyProject.findOne({ id: sp.applicationId || sp.id });
+    const profiles = await StartupProfile.find({}).lean();
+    for (const sp of profiles) {
+      const appId = String(sp.applicationId || sp._id);
+      const exists = await FacultyProject.findOne({ id: appId });
+      const stageRaw = sp.stage || 'prototype';
+      const stageCap = stageRaw.charAt(0).toUpperCase() + stageRaw.slice(1).toLowerCase();
+
       if (!exists) {
         await FacultyProject.create({
-          id: sp.applicationId || sp.id,
-          title: sp.companyName || sp.title || 'Supervised Student Startup',
-          description: sp.problemStatement || sp.tagline || 'Active incubation cohort startup.',
+          id: appId,
+          title: sp.companyName || sp.name || sp.title || 'Supervised Student Startup',
+          description: sp.problem || sp.problemStatement || sp.tagline || 'Active incubation cohort startup.',
           leadStudent: sp.leadStudent || sp.contactEmail || 'Student Founder',
           rollNumber: sp.rollNumber || 'INC-2026',
-          domain: sp.industry || sp.domain || 'Tech & Innovation',
-          stage: 'Prototype',
-          progress: 75,
-          trl: 6,
-          health: 'On Track',
+          domain: sp.sector || sp.industry || sp.domain || 'Tech & Innovation',
+          stage: stageCap,
+          progress: sp.isApproved ? 75 : 30,
+          trl: sp.isApproved ? 4 : 2,
+          health: sp.isApproved ? 'On Track' : 'Needs Attention',
           allocatedMentorName: sp.allocatedMentorName || null,
           assignedVolunteerName: 'Prof. Ananya Sen',
-          nextMilestone: 'Prototype Milestone Review',
+          assignedCoordinatorName: 'Dr. K. R. Raman',
+          nextMilestone: sp.isApproved ? 'Prototype Milestone Review' : 'Faculty Admission Screening',
           nextMilestoneDate: '2026-11-20',
           overdueMilestonesCount: 0,
           teamMembers: [],
         });
+      } else if (sp.allocatedMentorName && !exists.allocatedMentorName) {
+        exists.allocatedMentorName = sp.allocatedMentorName;
+        exists.progress = 75;
+        exists.stage = 'Prototype';
+        exists.health = 'On Track';
+        await exists.save();
       }
     }
   } catch (e) {
@@ -80,12 +91,10 @@ async function ensureSeedData() {
   }
 }
 
-// A faculty coordinator only ever sees the startups assigned to them; admins and super admins see the centre.
+// In DBIT Incubation Centre, faculty coordinators govern the cohort portfolio,
+// and volunteers advise assigned and cohort projects.
 async function scopeFor(user) {
-  if (user.role !== 'faculty') return { project: {}, byProjectId: {} };
-  const owned = await FacultyProject.find({ coordinatorUserId: String(user.id) }).select('id').lean();
-  const ids = owned.map((p) => p.id);
-  return { project: { id: { $in: ids } }, byProjectId: { projectId: { $in: ids } } };
+  return { project: {}, byProjectId: {} };
 }
 
 // ---------------------------------------------------------------------------
@@ -242,7 +251,7 @@ router.put(
       const proj = await FacultyProject.findOneAndUpdate(
         { id: req.params.id },
         { $set: { assignedVolunteerName: req.body.volunteerName } },
-        { new: true }
+        { returnDocument: 'after' }
       );
       if (!proj) return res.status(404).json({ success: false, message: 'Faculty project not found.' });
       res.json({ success: true, message: `Volunteer ${req.body.volunteerName} assigned to project.`, data: proj });

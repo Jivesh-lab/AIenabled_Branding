@@ -28,7 +28,7 @@ async function authenticate(req, res, next) {
       
       // If mongoose is connected and User.findById is available, verify status in database
       if (typeof User.findById === 'function' && mongoose.connection?.readyState === 1 && mongoose.isValidObjectId(payload.sub)) {
-        const user = await User.findById(payload.sub).select('status isSoftDeleted role email name isInvestorVerified');
+        const user = await User.findById(payload.sub).select('status isSoftDeleted role facultyRole email name isInvestorVerified');
         if (user) {
           if (user.isSoftDeleted) {
             return res.status(401).json({
@@ -44,6 +44,7 @@ async function authenticate(req, res, next) {
           }
           req.user = {
             id: user._id.toString(),
+            facultyRole: user.facultyRole || (user.role === 'faculty' ? 'coordinator' : undefined),
             role: user.role,
             status: user.status,
             email: user.email,

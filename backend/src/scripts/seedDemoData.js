@@ -99,7 +99,7 @@ async function seed() {
     await StartupProfile.findOneAndUpdate(
       { applicationId: id },
       { $set: { applicationId: id, founderId: founder._id, name: s.title, tagline: s.tagline, problem: `${s.tagline}. Demo record.`, solution: `A working ${s.domain} product. Demo record.`, sector: s.domain, stage: s.profileStage, status: 'active', isApproved: true, approvedAt: new Date(), readinessScore: s.progress, tractionSummary: null, tags: [s.domain] } },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
     await FacultyProject.findOneAndUpdate(
       { id },
@@ -112,7 +112,7 @@ async function seed() {
           createdAt: new Date(Date.now() - s.ageDays * DAY),
         },
       },
-      { upsert: true, new: true, timestamps: false }
+      { upsert: true, returnDocument: 'after', timestamps: false }
     );
     if (mentor) {
       await MentorAllocation.findOneAndUpdate(

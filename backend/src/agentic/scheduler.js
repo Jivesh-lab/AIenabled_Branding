@@ -20,7 +20,7 @@ const WORKER_ID = `${os.hostname()}:${process.pid}`;
 let lastSweepAt = 0;
 
 async function heartbeat(patch) {
-  await AgentRuntime.findOneAndUpdate({ key: 'scheduler' }, { $set: { workerId: WORKER_ID, ...patch } }, { upsert: true, new: true });
+  await AgentRuntime.findOneAndUpdate({ key: 'scheduler' }, { $set: { workerId: WORKER_ID, ...patch } }, { upsert: true, returnDocument: 'after' });
 }
 
 async function markStarted() {
