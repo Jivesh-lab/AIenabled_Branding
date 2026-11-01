@@ -105,8 +105,8 @@ export default function DbitLogo({
 
   // Full horizontal lockup
   const logoSrc = theme === "dark" ? "/logo-horizontal-white.png" : "/logo-horizontal.png";
-  // Aspect ratio is 893 x 260 (~3.43:1)
-  const calculatedWidth = Math.round(markHeight * 3.43);
+  // Aspect ratio is 806 x 240 (~3.36:1)
+  const calculatedWidth = Math.round(markHeight * 3.36);
 
   const content = (
     <div
