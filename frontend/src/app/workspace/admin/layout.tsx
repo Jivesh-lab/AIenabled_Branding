@@ -10,6 +10,9 @@ import {
   Megaphone,
   FileText,
   Settings,
+  Sparkles,
+  Zap,
+  Activity,
 } from "lucide-react";
 import { NavSection } from "@/components/shared/DashboardSidebar";
 
@@ -28,6 +31,12 @@ const ADMIN_NAV: NavSection[] = [
         label: "Startup Applications",
       },
       {
+        href: "/workspace/admin/applications",
+        icon: Sparkles,
+        label: "AI Application Evaluation",
+        isAI: true,
+      },
+      {
         href: "/workspace/admin/introductions",
         icon: Megaphone,
         label: "Investor Introductions",
@@ -41,6 +50,26 @@ const ADMIN_NAV: NavSection[] = [
         href: "/workspace/admin/approvals",
         icon: UserCheck,
         label: "Approvals & Vetting",
+      },
+    ],
+  },
+  {
+    label: "Autonomous AI Agents",
+    items: [
+      {
+        href: "/workspace/admin/mentor-matching",
+        icon: Sparkles,
+        label: "AI Mentor Matching",
+      },
+      {
+        href: "/workspace/admin/workflow",
+        icon: Zap,
+        label: "AI Workflow Automation",
+      },
+      {
+        href: "/workspace/admin/monitoring",
+        icon: Activity,
+        label: "AI Startup Monitoring",
       },
     ],
   },

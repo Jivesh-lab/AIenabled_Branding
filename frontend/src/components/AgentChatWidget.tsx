@@ -18,6 +18,15 @@ import { usePathname } from 'next/navigation';
 import StudentAssistantPanel from '@/components/StudentAssistantPanel';
 import cn from 'clsx';
 
+const ROLE_ASSISTANCE: Record<string, { label: string; questions: string[] }> = {
+  faculty: { label: 'Faculty Coordinator', questions: ['Which assigned startups need follow-up?', 'What mentor allocation issues need attention?', 'Which meetings or tasks are pending?'] },
+  mentor: { label: 'Mentor', questions: ['What should I follow up on with my startups?', 'Which mentoring tasks are pending?', 'How should I record mentorship feedback?'] },
+  industry: { label: 'Industry Partner', questions: ['What collaboration opportunities are authorized for me?', 'How does industry mentoring work?', 'What startup information can I access?'] },
+  investor: { label: 'Investor', questions: ['How does startup matchmaking work?', 'What are the investor verification steps?', 'How do introductions and watchlists work?'] },
+  admin: { label: 'Admin', questions: ['Which applications need review?', 'Are there workflow exceptions requiring attention?', 'How do I verify an investor?'] },
+  super_admin: { label: 'Super Admin', questions: ['How do I check agent health?', 'Which executions recently failed?', 'Where can I review security and audit information?'] },
+};
+
 export default function AgentChatWidget() {
   const { data: session } = useSession();
   // On Student Portal pages the assistant answers from the signed-in student's saved records (server-side, authorized).
@@ -29,6 +38,7 @@ export default function AgentChatWidget() {
   const userId = session?.user?.id || 'guest';
   const userRole = (session?.user as { role?: string })?.role || 'student';
   const startupId = (session?.user as { startupId?: string })?.startupId || undefined;
+  const roleGuidance = ROLE_ASSISTANCE[userRole] || { label: 'Student', questions: ['What is the current status of my application?', 'What documents do I need?', 'What should I work on next?'] };
 
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -93,7 +103,7 @@ export default function AgentChatWidget() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-sm">Incubation AI Assistant</h3>
-                  <p className="text-blue-100 text-xs">{studentMode ? 'Answers from your saved records' : 'Multi-Agent System Active'}</p>
+                  <p className="text-blue-100 text-xs">{studentMode ? 'Answers from your saved records' : `${roleGuidance.label} guidance`}</p>
                 </div>
               </div>
               <div className="flex items-center gap-1">
@@ -121,7 +131,14 @@ export default function AgentChatWidget() {
               {messages.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center text-gray-500 dark:text-gray-400 p-6">
                   <MessageSquare className="w-12 h-12 mb-4 text-blue-300 dark:text-blue-900" />
-                  <p className="text-sm">Hi! I&apos;m your AI assistant powered by a team of specialized agents. How can I help with your startup journey today?</p>
+                  <p className="text-sm">Hi! I&apos;m your AI assistant for {roleGuidance.label.toLowerCase()} work. Choose a question or ask anything within your authorized workspace.</p>
+                  <div className="mt-4 flex w-full flex-col gap-2">
+                    {roleGuidance.questions.map((question) => (
+                      <button key={question} type="button" onClick={() => sendMessage(question)} disabled={isLoading} className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-left text-xs text-gray-700 hover:bg-blue-50 disabled:opacity-60 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">
+                        {question}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               ) : (
                 messages.map((msg) => (

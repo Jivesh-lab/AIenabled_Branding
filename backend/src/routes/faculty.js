@@ -652,4 +652,201 @@ router.post(
   }
 );
 
+
+// ===========================================================================
+// AI AGENT HUBS: MENTOR-MATCHING, WORKFLOW AUTOMATION, STARTUP MONITORING
+// ===========================================================================
+const agentHubService = require('../services/agentHubService');
+
+// 1. AI MENTOR MATCHING
+router.get('/mentor-matching/startups', async (req, res) => {
+  try {
+    await ensureSeedData();
+    const startups = await agentHubService.getStartupsForMatching();
+    res.json({ success: true, data: startups });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/mentor-matching/run', async (req, res) => {
+  try {
+    const { projectId } = req.body;
+    if (!projectId) {
+      return res.status(400).json({ success: false, message: 'projectId is required' });
+    }
+    const run = await agentHubService.runMentorMatching({ projectId, actor: req.user });
+    res.status(201).json({ success: true, data: run });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.get('/mentor-matching/runs', async (req, res) => {
+  try {
+    const runs = await agentHubService.getMentorMatchingRuns(req.query.projectId);
+    res.json({ success: true, data: runs });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.put('/mentor-matching/runs/:id/decide', async (req, res) => {
+  try {
+    const { decision, selectedMentorId, selectedMentorName, comments } = req.body;
+    if (!['approved', 'rejected'].includes(decision)) {
+      return res.status(400).json({ success: false, message: 'Decision must be approved or rejected' });
+    }
+    const updated = await agentHubService.decideMentorRecommendation({
+      runId: req.params.id,
+      decision,
+      selectedMentorId,
+      selectedMentorName,
+      comments,
+      actor: req.user,
+    });
+    res.json({ success: true, message: `Recommendation successfully ${decision}.`, data: updated });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 2. AI WORKFLOW AUTOMATION
+router.get('/workflow/executions', async (req, res) => {
+  try {
+    const { projectId, actionType, status } = req.query;
+    const executions = await agentHubService.getWorkflowExecutions({ projectId, actionType, status });
+    res.json({ success: true, data: executions });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/workflow/coordinate', async (req, res) => {
+  try {
+    const { action_type, project_id, project_title, target_id, target_name, target_role, target_email, payload } = req.body;
+    if (!action_type || !target_id) {
+      return res.status(400).json({ success: false, message: 'action_type and target_id are required' });
+    }
+    const exec = await agentHubService.coordinateWorkflowAction({
+      actionType: action_type,
+      projectId: project_id,
+      projectTitle: project_title,
+      targetId: target_id,
+      targetName: target_name,
+      targetRole: target_role,
+      targetEmail: target_email,
+      payload: payload || {},
+      actor: req.user,
+    });
+    res.status(201).json({ success: true, message: 'Workflow action coordinated and confirmed.', data: exec });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/workflow/executions/:id/retry', async (req, res) => {
+  try {
+    const exec = await agentHubService.retryWorkflowExecution({
+      executionId: req.params.id,
+      actor: req.user,
+    });
+    res.json({ success: true, message: 'Workflow action retried successfully.', data: exec });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/workflow/executions/:id/cancel', async (req, res) => {
+  try {
+    const exec = await agentHubService.cancelWorkflowExecution({
+      executionId: req.params.id,
+      actor: req.user,
+    });
+    res.json({ success: true, message: 'Workflow action cancelled.', data: exec });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 3. AI STARTUP MONITORING
+router.get('/monitoring/overview', async (req, res) => {
+  try {
+    await ensureSeedData();
+    const overview = await agentHubService.getMonitoringOverview();
+    res.json({ success: true, data: overview });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.get('/monitoring/reports', async (req, res) => {
+  try {
+    const { projectId, healthStatus } = req.query;
+    const reports = await agentHubService.getMonitoringReports({ projectId, healthStatus });
+    res.json({ success: true, data: reports });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/monitoring/evaluate', async (req, res) => {
+  try {
+    const { projectId } = req.body;
+    if (!projectId) {
+      return res.status(400).json({ success: false, message: 'projectId is required' });
+    }
+    const report = await agentHubService.evaluateStartupMonitoring({
+      projectId,
+      actor: req.user,
+    });
+    res.status(201).json({ success: true, message: 'Startup health evaluation completed.', data: report });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/monitoring/portfolio', async (req, res) => {
+  try {
+    await ensureSeedData();
+    const result = await agentHubService.evaluatePortfolioMonitoring({ actor: req.user });
+    res.json({ success: true, message: 'Portfolio-wide monitoring evaluation completed.', data: result });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/monitoring/reports/:id/acknowledge', async (req, res) => {
+  try {
+    const report = await agentHubService.acknowledgeMonitoringAlert({
+      reportId: req.params.id,
+      actor: req.user,
+      notes: req.body.notes,
+    });
+    res.json({ success: true, message: 'Alert acknowledged.', data: report });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/monitoring/reports/:id/intervene', async (req, res) => {
+  try {
+    const { interventionId, assignedTo, customTitle } = req.body;
+    if (!interventionId) {
+      return res.status(400).json({ success: false, message: 'interventionId is required' });
+    }
+    const result = await agentHubService.assignMonitoringIntervention({
+      reportId: req.params.id,
+      interventionId,
+      assignedTo,
+      customTitle,
+      actor: req.user,
+    });
+    res.status(201).json({ success: true, message: 'Intervention coordinated and workflow task created.', data: result });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;
+

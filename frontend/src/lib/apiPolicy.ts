@@ -4,7 +4,7 @@
  * directly (see apiPolicy.test.ts).
  */
 
-export type Role = "student" | "faculty" | "mentor" | "investor" | "admin" | "super_admin";
+export type Role = "student" | "faculty" | "mentor" | "industry" | "investor" | "admin" | "super_admin";
 
 export interface SessionUser {
   id?: string | null;

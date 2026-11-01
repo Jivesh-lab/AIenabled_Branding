@@ -9,6 +9,9 @@ import {
   Users,
   Briefcase,
   LayoutDashboard,
+  Sparkles,
+  Zap,
+  Activity,
 } from "lucide-react";
 
 const COORDINATOR_SECTIONS: NavSection[] = [
@@ -17,6 +20,14 @@ const COORDINATOR_SECTIONS: NavSection[] = [
     items: [
       { label: "Coordinator Control", icon: ShieldCheck, href: "/workspace/faculty/coordinator" },
       { label: "Management Hub", icon: Briefcase, href: "/workspace/faculty" },
+    ],
+  },
+  {
+    label: "Autonomous AI Agents",
+    items: [
+      { label: "AI Mentor Matching", icon: Sparkles, href: "/workspace/faculty/mentor-matching" },
+      { label: "AI Workflow Automation", icon: Zap, href: "/workspace/faculty/workflow" },
+      { label: "AI Startup Monitoring", icon: Activity, href: "/workspace/faculty/monitoring" },
     ],
   },
   {
@@ -34,6 +45,7 @@ const VOLUNTEER_SECTIONS: NavSection[] = [
     items: [
       { label: "Volunteer Workdesk", icon: UserCheck, href: "/workspace/faculty/volunteer" },
       { label: "Assigned Projects", icon: Users, href: "/workspace/faculty/student-projects" },
+      { label: "AI Startup Monitoring", icon: Activity, href: "/workspace/faculty/monitoring" },
       { label: "Team Oversight", icon: Briefcase, href: "/workspace/faculty/oversight" },
     ],
   },
@@ -46,6 +58,14 @@ const DEFAULT_FACULTY_SECTIONS: NavSection[] = [
       { label: "Coordinator Portal", icon: ShieldCheck, href: "/workspace/faculty/coordinator" },
       { label: "Volunteer Portal", icon: UserCheck, href: "/workspace/faculty/volunteer" },
       { label: "Student Projects", icon: Users, href: "/workspace/faculty/student-projects" },
+    ],
+  },
+  {
+    label: "Autonomous AI Agents",
+    items: [
+      { label: "AI Mentor Matching", icon: Sparkles, href: "/workspace/faculty/mentor-matching" },
+      { label: "AI Workflow Automation", icon: Zap, href: "/workspace/faculty/workflow" },
+      { label: "AI Startup Monitoring", icon: Activity, href: "/workspace/faculty/monitoring" },
     ],
   },
 ];

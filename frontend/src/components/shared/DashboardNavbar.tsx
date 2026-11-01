@@ -297,10 +297,19 @@ export default function DashboardNavbar({
 }: DashboardNavbarProps) {
   const pathname = usePathname();
 
-  // Show "+ New Idea" button only on the Student workspace
+  // Show "+ New Idea" button strictly on the Student workspace
+  const isNonStudentPath = Boolean(
+    pathname &&
+      (pathname.startsWith("/workspace/faculty") ||
+        pathname.startsWith("/workspace/admin") ||
+        pathname.startsWith("/workspace/super-admin") ||
+        pathname.startsWith("/workspace/mentor") ||
+        pathname.startsWith("/workspace/investor"))
+  );
+
   const isStudent =
-    allowedRole === "student" ||
-    (pathname ? pathname.startsWith("/workspace/student") : false);
+    !isNonStudentPath &&
+    (allowedRole === "student" || (pathname ? pathname.startsWith("/workspace/student") : false));
 
   return (
     <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-line bg-white px-4 lg:px-6">

@@ -34,6 +34,10 @@ import {
 import Link from "next/link";
 import AuditLogViewer from "../_components/AuditLogViewer";
 import SecurityPolicyPanel from "../_components/SecurityPolicyPanel";
+import { Sparkles, Zap } from "lucide-react";
+import AiMentorMatchingDashboard from "@/components/agents/AiMentorMatchingDashboard";
+import AiWorkflowAutomationDashboard from "@/components/agents/AiWorkflowAutomationDashboard";
+import AiStartupMonitoringDashboard from "@/components/agents/AiStartupMonitoringDashboard";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -61,6 +65,7 @@ interface UserRow {
 
 const TABS = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
+  { id: "agents", label: "Autonomous AI Agents", icon: Sparkles },
   { id: "users", label: "User Management", icon: UserCog },
   { id: "workspaces", label: "Workspace Inspector", icon: Eye },
   { id: "announce", label: "Broadcast", icon: Megaphone },
@@ -594,6 +599,59 @@ function UserManagementTab() {
   );
 }
 
+// ─── Autonomous AI Agents Tab ───────────────────────────────────────────────
+
+function AgentsTab() {
+  const [subAgent, setSubAgent] = useState<"mentor-matching" | "workflow" | "monitoring">("mentor-matching");
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-4">
+        <div>
+          <h2 className="text-base font-bold text-slate-900">Autonomous AI Agents Governance & Control</h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Executive oversight, execution telemetry, and intervention management across all active specialist agents.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 p-1">
+          <button
+            onClick={() => setSubAgent("mentor-matching")}
+            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+              subAgent === "mentor-matching" ? "bg-white text-slate-900 shadow-xs" : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <Sparkles className="size-3.5 text-brand" />
+            Mentor Matching
+          </button>
+          <button
+            onClick={() => setSubAgent("workflow")}
+            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+              subAgent === "workflow" ? "bg-white text-slate-900 shadow-xs" : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <Zap className="size-3.5 text-indigo-600" />
+            Workflow Automation
+          </button>
+          <button
+            onClick={() => setSubAgent("monitoring")}
+            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+              subAgent === "monitoring" ? "bg-white text-slate-900 shadow-xs" : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <Activity className="size-3.5 text-emerald-600" />
+            Startup Monitoring
+          </button>
+        </div>
+      </div>
+
+      {subAgent === "mentor-matching" && <AiMentorMatchingDashboard />}
+      {subAgent === "workflow" && <AiWorkflowAutomationDashboard />}
+      {subAgent === "monitoring" && <AiStartupMonitoringDashboard />}
+    </div>
+  );
+}
+
 // ─── Workspace Inspector Tab ───────────────────────────────────────────────────
 
 function WorkspaceInspectorTab() {
@@ -880,6 +938,7 @@ function SuperAdminDashboardContent() {
 
         {/* Tab content */}
         {activeTab === "overview" && <OverviewTab stats={stats} loading={statsLoading} />}
+        {activeTab === "agents" && <AgentsTab />}
         {activeTab === "users" && <UserManagementTab />}
         {activeTab === "workspaces" && <WorkspaceInspectorTab />}
         {activeTab === "announce" && <BroadcastTab />}

@@ -552,6 +552,51 @@ async def get_application_details(
 
 # ── Reviewer decision ────────────────────────────────────────────────────────
 
+@router.post("/{application_id}/assessment")
+async def assess_existing_application(
+    application_id: str,
+    current_user: AuthenticatedUser = Depends(get_internal_service),
+    pool=Depends(get_db),
+):
+    """Regenerate an advisory Application Agent assessment without changing review status."""
+    _require_reviewer(current_user)
+    if not pool:
+        raise HTTPException(status_code=503, detail="Application assessment requires the database service")
+
+    try:
+        async with pool.acquire() as conn:
+            record = await conn.fetchrow(
+                "SELECT form_data, ai_summary, ai_feedback FROM applications WHERE id = $1",
+                application_id,
+            )
+        if not record:
+            raise HTTPException(status_code=404, detail="Application not found")
+
+        from agents.application_agent import assess_application
+        assessment = await assess_application(_json(record["form_data"], {}))
+        if not assessment.get("assessment_available"):
+            raise HTTPException(status_code=503, detail="Application Agent assessment is unavailable")
+
+        summary = assessment.get("summary", {})
+        feedback = {
+            "preliminary_assessment": assessment.get("preliminary_assessment", {}),
+            "questions_for_reviewers": assessment.get("questions_for_reviewers", []),
+            "missing_evidence": assessment.get("missing_evidence", []),
+            "validation": assessment.get("validation", {}),
+            "recommendation_summary": assessment.get("recommendation_summary", ""),
+        }
+        async with pool.acquire() as conn:
+            await conn.execute(
+                "UPDATE applications SET ai_summary = $1, ai_feedback = $2, updated_at = NOW() WHERE id = $3",
+                json.dumps(summary), json.dumps(feedback), application_id,
+            )
+        return {"success": True, "assessment": assessment, "status": "completed", "human_review_required": True}
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("application_assessment_failed", application_id=application_id)
+        raise HTTPException(status_code=500, detail="Failed to generate application assessment")
+
 @router.post("/{application_id}/decide")
 async def decide_application(
     application_id: str,
