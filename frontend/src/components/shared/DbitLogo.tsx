@@ -30,7 +30,7 @@ export interface DbitLogoProps {
 }
 
 // Version stamp to guarantee instant cache busting across browser and Turbopack proxy
-const BRAND_VERSION = "hex_v3_2026";
+const BRAND_VERSION = "hex_orbit_v4_2026";
 
 /**
  * High-resolution Standalone Hex Prism Mark for DBIT Incubation Centre.
@@ -112,8 +112,8 @@ export default function DbitLogo({
     ? `/brand/dbit-hex-logo-white.png?v=${BRAND_VERSION}`
     : `/brand/dbit-hex-logo.png?v=${BRAND_VERSION}`;
 
-  // Aspect ratio is 806 x 240 (~3.36:1)
-  const calculatedWidth = Math.round(markHeight * 3.36);
+  // Aspect ratio is 750 x 325 (~2.31:1)
+  const calculatedWidth = Math.round(markHeight * 2.31);
 
   const content = (
     <div
