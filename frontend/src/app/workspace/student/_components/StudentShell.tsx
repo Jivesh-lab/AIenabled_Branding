@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import BaseWorkspaceLayout from "@/components/shared/BaseWorkspaceLayout";
+import StudentSearch from "./StudentSearch";
 import type { NavbarUser } from "@/components/shared/DashboardNavbar";
 import { NavSection } from "@/components/shared/DashboardSidebar";
 import {
@@ -35,17 +35,15 @@ const STUDENT_SECTIONS: NavSection[] = [
 
 /** `user` comes from the server-verified session (see ../layout.tsx), not a placeholder. */
 export default function StudentShell({ user, children }: { user: NavbarUser; children: React.ReactNode }) {
-  const router = useRouter();
   // `student-portal` scopes the "no visible scrollbars" rule in globals.css to this workspace only.
   return (
     <div className="student-portal">
       <BaseWorkspaceLayout
         sections={STUDENT_SECTIONS}
         user={user}
-        workspaceLabel="Student Workspace"
+        workspaceLabel="Researcher Workspace"
         allowedRole="student"
-        searchPlaceholder="Search your projects"
-        onSearch={(query) => router.push(`/workspace/student/projects?q=${encodeURIComponent(query)}`)}
+        searchSlot={<StudentSearch />}
       >
         {children}
       </BaseWorkspaceLayout>

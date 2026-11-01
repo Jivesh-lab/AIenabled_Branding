@@ -92,7 +92,7 @@ export default function FacultyDashboardPage() {
   return (
     <PageContainer
       title="Faculty Research Dashboard"
-      description="Oversight of supervised student projects, IP filings, grant management, and research progression."
+      description="Oversight of supervised researcher projects, IP filings, grant management, and research progression."
     >
       <div className="space-y-6">
         {/* KPI Row */}
@@ -147,7 +147,7 @@ export default function FacultyDashboardPage() {
         {/* Supervised Projects */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <SectionHeading title="Supervised Student Projects & AI Health Tracking" action={{ label: "View all", href: "/workspace/faculty/student-projects" }} />
+            <SectionHeading title="Supervised Researcher Projects & AI Health Tracking" action={{ label: "View all", href: "/workspace/faculty/student-projects" }} />
             <span className="text-[11px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-full">
               Monitoring Agent Active
             </span>
@@ -168,7 +168,7 @@ export default function FacultyDashboardPage() {
             <div className="rounded-xl border border-line bg-canvas p-10 text-center">
               <GraduationCap className="size-10 text-muted-ink mx-auto mb-3 opacity-40" />
               <p className="text-sm font-semibold text-ink">No supervised projects yet</p>
-              <p className="text-xs text-muted-ink mt-1">Projects will appear here once students are enrolled in your cohort.</p>
+              <p className="text-xs text-muted-ink mt-1">Projects will appear here once researchers are enrolled in your cohort.</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -206,7 +206,7 @@ export default function FacultyDashboardPage() {
                         <strong>Monitoring Agent Intervention:</strong>{" "}
                         {proj.overdueMilestonesCount > 1
                           ? `${proj.overdueMilestonesCount} milestones overdue. Coordinator check-in recommended.`
-                          : "1 milestone overdue. Review sprint task deadlines with student founder."}
+                          : "1 milestone overdue. Review sprint task deadlines with researcher founder."}
                       </div>
                     </div>
                   )}

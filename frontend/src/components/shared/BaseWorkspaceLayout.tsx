@@ -22,6 +22,7 @@ interface BaseWorkspaceLayoutProps {
   allowedRole: AllowedRole;
   onSearch?: (query: string) => void;
   searchPlaceholder?: string;
+  searchSlot?: React.ReactNode;
 }
 
 export default function BaseWorkspaceLayout({
@@ -32,6 +33,7 @@ export default function BaseWorkspaceLayout({
   allowedRole,
   onSearch,
   searchPlaceholder,
+  searchSlot,
 }: BaseWorkspaceLayoutProps) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const { data: session } = useSession();
@@ -80,6 +82,7 @@ export default function BaseWorkspaceLayout({
           user={user}
           onSearch={onSearch}
           searchPlaceholder={searchPlaceholder}
+          searchSlot={searchSlot}
           onMenuClick={openMobile}
           allowedRole={allowedRole}
         />

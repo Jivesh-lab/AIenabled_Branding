@@ -38,7 +38,7 @@ export default function StartupRoadblocksPage() {
               .map((p: any) => ({
                 id: p.id || p._id,
                 projectTitle: p.title || "Project",
-                leadStudent: p.leadStudent || "Student Founder",
+                leadStudent: p.leadStudent || "Researcher Founder",
                 stage: p.stage || `TRL ${p.trl || 1}`,
                 health: p.health || "Needs Attention",
                 issue:
@@ -132,7 +132,7 @@ export default function StartupRoadblocksPage() {
               </div>
               <h3 className="text-sm font-bold text-ink">No active roadblocks reported</h3>
               <p className="text-xs text-muted-ink mt-1 max-w-md">
-                Great news! All student innovator teams are progressing on schedule with no overdue milestones or escalation flags.
+                Great news! All researcher innovator teams are progressing on schedule with no overdue milestones or escalation flags.
               </p>
               <Link
                 href="/workspace/mentor/mentees"

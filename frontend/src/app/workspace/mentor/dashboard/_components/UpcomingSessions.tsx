@@ -30,7 +30,7 @@ export default function UpcomingSessions() {
               .slice(0, 3)
               .map((m: any) => ({
                 id: m.id || m._id,
-                startup: m.studentLead || m.projectTitle || "Student Project",
+                startup: m.studentLead || m.projectTitle || "Researcher Project",
                 topic: m.agenda || "Advisory Mentorship Review",
                 date: m.date ? new Date(m.date).toLocaleDateString() : "Upcoming",
                 time: m.time || "Scheduled",

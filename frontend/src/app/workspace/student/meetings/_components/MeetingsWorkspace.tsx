@@ -8,6 +8,7 @@
  * every render; nothing is copied into state.
  */
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { CalendarDaysIcon } from "@heroicons/react/24/outline";
 import { formatDayLabel } from "@/lib/dates";
 import { Card } from "@/components/shared/Surface";
@@ -89,8 +90,9 @@ export default function MeetingsWorkspace({
           const data = await res.json();
           setInvestorMeetings(data.introductions || []);
         }
-      } catch (err) {
-        console.error("Failed to load investor intros", err);
+        else toast.error("We couldn't load your investor introductions. Please refresh to try again.", { id: "intros-load" });
+      } catch {
+        toast.error("We couldn't load your investor introductions. Please refresh to try again.", { id: "intros-load" });
       }
     }
     loadInvestorIntros();

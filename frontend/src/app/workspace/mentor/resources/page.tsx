@@ -47,7 +47,7 @@ const RESOURCES = [
   },
   {
     id: "3",
-    title: "Understanding TRL 1–9: A Practical Primer for Students",
+    title: "Understanding TRL 1–9: A Practical Primer for Researchers",
     type: "Video" as ResourceType,
     description: "45-minute explainer video covering Technology Readiness Levels with Indian startup case studies across AgriTech, HealthTech, and CleanTech.",
     tags: ["TRL", "Deep Tech", "Research"],
@@ -69,9 +69,9 @@ const RESOURCES = [
   },
   {
     id: "5",
-    title: "IP Fundamentals for Student Innovators",
+    title: "IP Fundamentals for Researcher Innovators",
     type: "PDF" as ResourceType,
-    description: "Beginner's guide to Patents, Copyrights, Trademarks, and Trade Secrets for student entrepreneurs. Includes provisional patent filing checklist.",
+    description: "Beginner's guide to Patents, Copyrights, Trademarks, and Trade Secrets for researcher entrepreneurs. Includes provisional patent filing checklist.",
     tags: ["IP", "Legal", "Innovation"],
     savedBy: 15,
     url: "#",

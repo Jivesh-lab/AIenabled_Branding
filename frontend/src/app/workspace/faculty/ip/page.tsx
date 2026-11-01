@@ -75,7 +75,7 @@ export default function FacultyIPPage() {
               title: `${p.title} (IP Asset)`,
               type: p.trl >= 4 ? "Patent" : "Provisional Patent",
               applicationNo: `DBIT-IP-${new Date().getFullYear()}-${1000 + idx}`,
-              student: p.leadStudent || "Student Innovator",
+              student: p.leadStudent || "Researcher Innovator",
               filedDate: p.updatedAt ? new Date(p.updatedAt).toLocaleDateString() : "Recent",
               status: (p.stage === "Completed" ? "Granted" : p.stage === "In Review" ? "Filed" : "Pending") as IPStatus,
               trl: p.trl || 1,
@@ -278,7 +278,7 @@ export default function FacultyIPPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-ink mb-1.5">Inventor / Lead Student *</label>
+                    <label className="block text-xs font-semibold text-ink mb-1.5">Inventor / Lead Researcher *</label>
                     {students.length > 0 ? (
                       <select
                         value={newStudent}
@@ -296,7 +296,7 @@ export default function FacultyIPPage() {
                         type="text"
                         value={newStudent}
                         onChange={(e) => setNewStudent(e.target.value)}
-                        placeholder="Student / Researcher Name"
+                        placeholder="Researcher / Researcher Name"
                         className="w-full px-3 py-2 text-sm border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
                       />
                     )}

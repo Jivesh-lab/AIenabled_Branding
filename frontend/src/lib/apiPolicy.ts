@@ -48,6 +48,23 @@ const KIND_MESSAGE: Record<FailureKind, string> = {
   unavailable: "The application service is unavailable. Please try again shortly.",
 };
 
+/**
+ * What a PAGE shows when its data could not be loaded. Deliberately never the service's own text: a student reading a
+ * dashboard cannot act on "Internal Server Error" or an upstream detail string, so every kind gets one calm message.
+ */
+export function friendlyLoadMessage(kind: FailureKind): string {
+  switch (kind) {
+    case "unauthenticated":
+      return "Your session has expired. Please sign in again.";
+    case "forbidden":
+      return "You don't have access to this page.";
+    case "not-found":
+      return "We couldn't find what you were looking for.";
+    default:
+      return "We're having trouble loading this right now. Please try again in a moment.";
+  }
+}
+
 /** Human message for an upstream failure: the service's own detail when it gave one, else a safe default. */
 export function failureMessage(kind: FailureKind, body: unknown): string {
   const b = (body ?? {}) as { message?: unknown; detail?: unknown };

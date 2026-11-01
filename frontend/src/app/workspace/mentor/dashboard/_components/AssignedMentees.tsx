@@ -29,7 +29,7 @@ export default function AssignedMentees() {
             const mapped: MenteeItem[] = json.data.map((p: any) => ({
               id: p.id || p._id,
               startup: p.title || "Untitled Project",
-              founders: p.leadStudent || (p.teamMembers && p.teamMembers[0]) || "Student Founder",
+              founders: p.leadStudent || (p.teamMembers && p.teamMembers[0]) || "Researcher Founder",
               stage: p.stage || `TRL ${p.trl || 1}`,
               health: p.health === "At Risk" ? "at_risk" : p.health === "Needs Attention" ? "needs_attention" : "on_track",
               lastInteraction: p.updatedAt ? new Date(p.updatedAt).toLocaleDateString() : "Recent",

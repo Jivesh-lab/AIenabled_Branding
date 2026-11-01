@@ -34,7 +34,7 @@ const EXECUTION_STEPS: ExecutionStep[] = [
   {
     id: "compliance",
     title: "Deterministic Rule & Policy Validation",
-    description: "Checking mandatory disclosures, student declarations, domain eligibility, and duplicate records.",
+    description: "Checking mandatory disclosures, researcher declarations, domain eligibility, and duplicate records.",
     agentName: "Compliance Agent",
     detail: "Validating against DBIT Incubation Centre policy standards and submission guidelines.",
     durationMs: 3000,

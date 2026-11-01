@@ -3,9 +3,11 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
+import { toast } from "sonner";
 import { ArrowPathIcon, CheckCircleIcon, InformationCircleIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { cn } from "@/lib/utils";
 import { formatLongDate } from "@/lib/dates";
+import { friendlyActionMessage, friendlyThrown } from "@/lib/friendlyError";
 import { controlClass, describedBy, FormField } from "@/components/shared/form/FormField";
 import type { StudentProject } from "@/types/student-application";
 
@@ -135,11 +137,19 @@ function RequestForm({ projects, today, onClose }: { projects: StudentProject[];
         body: JSON.stringify({ projectId: draft.projectId, date: draft.date, startTime: draft.time, agenda: draft.agenda }),
       });
       const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(typeof body.message === "string" ? body.message : "The request could not be sent.");
+      if (!res.ok) {
+        const message = friendlyActionMessage(res.status, body, "We couldn't send your request. Please try again.");
+        setFailure(message);
+        toast.error(message);
+        return;
+      }
       setSent(true);
+      toast.success("Meeting request sent. You'll see it once the host confirms a time.");
       router.refresh(); // the new request appears in the list
     } catch (error) {
-      setFailure(error instanceof Error ? error.message : "The request could not be sent.");
+      const message = friendlyThrown(error, "We couldn't send your request. Please try again.");
+      setFailure(message);
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }

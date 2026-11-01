@@ -22,7 +22,7 @@ const COORDINATOR_SECTIONS: NavSection[] = [
   {
     label: "Incubation Teams",
     items: [
-      { label: "Student Projects", icon: Users, href: "/workspace/faculty/student-projects" },
+      { label: "Researcher Projects", icon: Users, href: "/workspace/faculty/student-projects" },
       { label: "Research Oversight", icon: LayoutDashboard, href: "/workspace/faculty/oversight" },
     ],
   },
@@ -30,7 +30,7 @@ const COORDINATOR_SECTIONS: NavSection[] = [
 
 const VOLUNTEER_SECTIONS: NavSection[] = [
   {
-    label: "Student Mentorship & Guidance",
+    label: "Researcher Mentorship & Guidance",
     items: [
       { label: "Volunteer Workdesk", icon: UserCheck, href: "/workspace/faculty/volunteer" },
       { label: "Assigned Projects", icon: Users, href: "/workspace/faculty/student-projects" },
@@ -45,7 +45,7 @@ const DEFAULT_FACULTY_SECTIONS: NavSection[] = [
     items: [
       { label: "Coordinator Portal", icon: ShieldCheck, href: "/workspace/faculty/coordinator" },
       { label: "Volunteer Portal", icon: UserCheck, href: "/workspace/faculty/volunteer" },
-      { label: "Student Projects", icon: Users, href: "/workspace/faculty/student-projects" },
+      { label: "Researcher Projects", icon: Users, href: "/workspace/faculty/student-projects" },
     ],
   },
 ];

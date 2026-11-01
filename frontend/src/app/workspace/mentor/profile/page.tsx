@@ -31,7 +31,7 @@ const PROFILE_DATA = {
   location: "Bengaluru, Karnataka",
   linkedin: "linkedin.com/in/anjalikrishnan",
   website: "anjalikrishnan.in",
-  bio: "Seasoned entrepreneur and investor with 18+ years of experience in AgriTech and Deep Tech. Founded 2 successful startups (1 acquired), invested in 14 early-stage companies, and mentored 60+ student entrepreneurs across IIT, NIT, and state-level incubation programs.",
+  bio: "Seasoned entrepreneur and investor with 18+ years of experience in AgriTech and Deep Tech. Founded 2 successful startups (1 acquired), invested in 14 early-stage companies, and mentored 60+ researcher entrepreneurs across IIT, NIT, and state-level incubation programs.",
   expertise: ["AgriTech", "IoT & Hardware", "Fundraising Strategy", "Product-Market Fit", "Go-to-Market", "IP Strategy", "B2B SaaS", "Deep Tech"],
   education: [
     { degree: "Ph.D., Agricultural Engineering", institution: "IISc Bangalore", year: "2006" },
@@ -77,7 +77,7 @@ export default function MentorProfilePage() {
   return (
     <PageContainer
       title="My Profile"
-      description="Your public mentor profile — visible to students, incubation management, and partner institutions."
+      description="Your public mentor profile — visible to researchers, incubation management, and partner institutions."
     >
       <div className="space-y-6 max-w-4xl">
         {/* Profile Header Card */}

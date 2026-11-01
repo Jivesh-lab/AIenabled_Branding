@@ -24,7 +24,7 @@ export default function RecentActivity() {
           if (json.success && Array.isArray(json.data?.projects)) {
             const list: ActivityItem[] = json.data.projects.slice(0, 4).map((p: any) => ({
               id: p.id || p._id,
-              user: p.leadStudent || "Student Founder",
+              user: p.leadStudent || "Researcher Founder",
               action: `updated milestone status to ${p.stage || "In Review"}`,
               time: p.updatedAt ? new Date(p.updatedAt).toLocaleDateString() : "Recent",
             }));

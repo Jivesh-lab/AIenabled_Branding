@@ -72,7 +72,7 @@ export default function ReportsPage() {
               <Briefcase className="size-4 text-emerald-600" />
             </div>
             <div className="text-3xl font-extrabold text-slate-900">1 : 3.8</div>
-            <p className="text-xs text-blue-600 font-semibold">22 Active Mentors guiding 84 Student projects</p>
+            <p className="text-xs text-blue-600 font-semibold">22 Active Mentors guiding 84 Researcher projects</p>
             <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
               <div className="bg-emerald-500 h-full rounded-full" style={{ width: "78%" }} />
             </div>
@@ -97,8 +97,8 @@ export default function ReportsPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
-              { title: "Cohort Onboarding & Demographic Report", desc: "Detailed breakdown of student, faculty, and industry partner registrations per cohort quarter." },
-              { title: "Mentorship Session & Guidance Log Report", desc: "Audit of completed mentor sessions, rating feedback, and unassigned student requests." },
+              { title: "Cohort Onboarding & Demographic Report", desc: "Detailed breakdown of researcher, faculty, and industry partner registrations per cohort quarter." },
+              { title: "Mentorship Session & Guidance Log Report", desc: "Audit of completed mentor sessions, rating feedback, and unassigned researcher requests." },
               { title: "Industry Collaboration & Opportunity Report", desc: "List of active corporate challenges, applications received, and signed agreements." },
               { title: "Startup Incubation & Grant Disbursement Report", desc: "Venture milestone completion rates, KPI progress, and funding allocation tracking." },
             ].map((rep, idx) => (

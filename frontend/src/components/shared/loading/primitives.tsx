@@ -50,23 +50,23 @@ export function SectionHeadingSkeleton({ withAction = true }: { withAction?: boo
 
 export function PageHeadingSkeleton() {
   return (
-    <div className="space-y-2.5">
-      <Skeleton className="h-7 w-56 sm:w-72" />
-      <Skeleton className="h-4 w-full max-w-md" />
+    <div className="space-y-2">
+      <Skeleton className="h-6 w-48 sm:w-60" />
+      <Skeleton className="h-3.5 w-full max-w-md" />
     </div>
   );
 }
 
+/** Matches the live KPI card: label and icon on one row, number below. */
 export function KpiCardSkeleton() {
   return (
-    <SkeletonCard className="flex h-[112px] items-start justify-between gap-3">
-      <div className="min-w-0 flex-1 space-y-3">
+    <div className="flex items-start justify-between gap-3 rounded-xl border border-line bg-white p-4 shadow-sm">
+      <div className="min-w-0 flex-1 space-y-2.5">
         <Skeleton className="h-3 w-24" />
-        <Skeleton className="h-8 w-14" />
-        <Skeleton className="h-3 w-32" />
+        <Skeleton className="h-6 w-12" />
       </div>
-      <Skeleton className="size-10 shrink-0 rounded-lg" />
-    </SkeletonCard>
+      <Skeleton className="size-[18px] shrink-0 rounded" />
+    </div>
   );
 }
 

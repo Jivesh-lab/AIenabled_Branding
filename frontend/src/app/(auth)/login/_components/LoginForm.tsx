@@ -446,7 +446,7 @@ export default function LoginForm() {
             }}
             className="flex flex-col items-start rounded-lg border border-emerald-200 bg-emerald-50/50 p-2 text-left hover:border-emerald-300 hover:bg-emerald-100/60 transition-colors"
           >
-            <span className="text-[11px] font-bold text-emerald-800">🚀 Student Founder</span>
+            <span className="text-[11px] font-bold text-emerald-800">🚀 Researcher Founder</span>
             <span className="text-[10px] text-emerald-600 font-mono">student@...</span>
             <span className="text-[9px] text-slate-500 mt-0.5">Student#2026!Pass</span>
           </button>

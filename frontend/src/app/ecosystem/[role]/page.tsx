@@ -18,9 +18,9 @@ const roles = {
   },
   "faculty-volunteers": {
     label: "Faculty Volunteers",
-    title: "Give every student a better next step.",
+    title: "Give every researcher a better next step.",
     description: "A lightweight space to discover projects where your expertise can create immediate progress.",
-    tasks: ["Browse student projects", "Offer structured feedback", "Join a review group", "Recommend a resource"],
+    tasks: ["Browse researcher projects", "Offer structured feedback", "Join a review group", "Recommend a resource"],
     metrics: [["18", "Projects needing input"], ["07", "Open requests"], ["05", "Suggested resources"]],
   },
   "industry-guides": {

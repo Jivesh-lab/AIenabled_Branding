@@ -42,7 +42,7 @@ export default function MentorFeedbackPage() {
         if (json.success) {
           const mapped: FeedbackEntry[] = (json.data || []).map((m: any) => ({
             _id: m._id || m.id,
-            from: m.participants?.[1] || "Student",
+            from: m.participants?.[1] || "Researcher",
             projectTitle: m.projectTitle,
             sessionDate: m.date,
             sessionType: m.meetingType || "Mentorship Session",

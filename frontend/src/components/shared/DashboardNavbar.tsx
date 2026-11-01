@@ -52,6 +52,8 @@ interface DashboardNavbarProps {
   /** When given, the header shows a working search box and calls this on submit. Omitted = no search box. */
   onSearch?: (query: string) => void;
   searchPlaceholder?: string;
+  /** A role-specific search (e.g. the student portal's global search). Replaces the default box when given. */
+  searchSlot?: React.ReactNode;
 }
 
 /** Compact label for the navbar: drops a trailing "(Student Founder)" style suffix. The dropdown keeps the full name. */
@@ -302,6 +304,7 @@ export default function DashboardNavbar({
   allowedRole,
   onSearch,
   searchPlaceholder = "Search",
+  searchSlot,
 }: DashboardNavbarProps) {
   const pathname = usePathname();
 
@@ -346,7 +349,11 @@ export default function DashboardNavbar({
       </div>
 
       {/* CENTER */}
-      {onSearch && <GlobalSearch onSearch={onSearch} placeholder={searchPlaceholder} />}
+      {searchSlot ? (
+        <div className="flex min-w-0 flex-1 items-center">{searchSlot}</div>
+      ) : (
+        onSearch && <GlobalSearch onSearch={onSearch} placeholder={searchPlaceholder} />
+      )}
 
       {/* RIGHT */}
       <div className="ml-auto flex shrink-0 items-center gap-1">

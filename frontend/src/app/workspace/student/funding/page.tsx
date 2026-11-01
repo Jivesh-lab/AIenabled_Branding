@@ -5,6 +5,7 @@ import Link from "next/link";
 import PageContainer from "@/components/shared/PageContainer";
 import PageHeader from "@/components/shared/PageHeader";
 import { Card } from "@/components/shared/Surface";
+import { GRANT_OPPORTUNITIES, type GrantOpportunity } from "@/lib/fundingGrants";
 import {
   Sparkles,
   Calendar,
@@ -19,138 +20,6 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { BanknotesIcon, ShieldCheckIcon, TrophyIcon } from "@heroicons/react/24/outline";
-
-interface GrantOpportunity {
-  id: string;
-  name: string;
-  provider: string;
-  category: "Institutional" | "Government Scheme" | "Industry Partner";
-  domain: string;
-  amount: string;
-  deadline: string;
-  stage: string;
-  description: string;
-  eligibility: string[];
-  disbursement: string[];
-  openCall: boolean;
-}
-
-const GRANT_OPPORTUNITIES: GrantOpportunity[] = [
-  {
-    id: "f1",
-    name: "AI Innovation Grant",
-    provider: "DBIT Incubation Centre & AI Research Lab",
-    category: "Institutional",
-    domain: "AI / Deep Tech",
-    amount: "Up to ₹2 Lakh",
-    deadline: "28 Sep 2026",
-    stage: "TRL 3 - Proof of Concept",
-    description:
-      "Catalyst grant to fund computational resources, cloud GPUs, edge sensor hardware, and dataset procurement for student AI innovations.",
-    eligibility: [
-      "DBIT student founder team (min 2 members)",
-      "Clear AI/ML architecture & problem definition",
-      "Endorsement by department faculty guide",
-    ],
-    disbursement: ["50% on grant sanction", "30% upon algorithm benchmark test", "20% on final demo day"],
-    openCall: true,
-  },
-  {
-    id: "f2",
-    name: "Student Startup Seed Fund",
-    provider: "Institutional Innovation Corpus",
-    category: "Institutional",
-    domain: "Any Domain",
-    amount: "Up to ₹5 Lakh",
-    deadline: "05 Oct 2026",
-    stage: "TRL 4 - Lab Prototype",
-    description:
-      "Early-stage seed capital for promising college startups transitioning from academic capstones to commercial legal entities.",
-    eligibility: [
-      "Admitted DBIT incubation startup",
-      "Formal corporate incorporation / DPIIT registration plan",
-      "Completed milestone roadmap agreed with Faculty Coordinator",
-    ],
-    disbursement: ["40% upon incubation agreement", "30% upon MVP pilot test", "30% on incorporation & compliance"],
-    openCall: true,
-  },
-  {
-    id: "f3",
-    name: "AgriTech Incubation Support Grant",
-    provider: "AgriCore Diagnostics & BioVentures Partnership",
-    category: "Industry Partner",
-    domain: "AgriTech",
-    amount: "Up to ₹3 Lakh",
-    deadline: "12 Oct 2026",
-    stage: "TRL 4 - Field Prototype",
-    description:
-      "Industry-sponsored grant supporting pilot field trials, sensor fabrication, and rural deployment testing for automated farming solutions.",
-    eligibility: [
-      "Startup addressing agriculture or food supply chain",
-      "Willingness to conduct on-site field testing",
-      "Pass AI Application Agent screening with readiness score ≥ 75",
-    ],
-    disbursement: ["50% hardware fabrication advance", "50% post 30-day field deployment report"],
-    openCall: true,
-  },
-  {
-    id: "f4",
-    name: "DST NIDHI-PRAYAS Prototype Grant",
-    provider: "Department of Science & Technology (Govt. of India)",
-    category: "Government Scheme",
-    domain: "Hardware / CleanTech / IoT",
-    amount: "Up to ₹10 Lakh",
-    deadline: "30 Nov 2026",
-    stage: "TRL 3-5 - Idea to Prototype",
-    description:
-      "Flagship national grant dedicated to turning innovative hardware and technology ideas into tangible market-ready prototypes with zero equity taken.",
-    eligibility: [
-      "Indian citizen student innovators aged 18-35",
-      "Original intellectual property not commercially launched yet",
-      "Tangible product development (physical device/component)",
-    ],
-    disbursement: ["30% upon grant sanction", "40% upon mid-stage prototype review", "30% on final prototype delivery"],
-    openCall: true,
-  },
-  {
-    id: "f5",
-    name: "MeitY TIDE 2.0 Incubation Scheme",
-    provider: "Ministry of Electronics & Information Technology",
-    category: "Government Scheme",
-    domain: "ICT / Software / Electronics",
-    amount: "Up to ₹7 Lakh",
-    deadline: "15 Dec 2026",
-    stage: "TRL 4 - Validation",
-    description:
-      "Technology Incubation and Development of Entrepreneurs grant promoting emerging technologies in IoT, AI, blockchain, and robotics.",
-    eligibility: [
-      "Registered with a recognized TIDE 2.0 incubation center",
-      "Technology solving national priority area",
-      "Structured product roadmap with defined milestones",
-    ],
-    disbursement: ["40% initial tranche", "30% on technical milestone", "30% on customer pilot report"],
-    openCall: true,
-  },
-  {
-    id: "f6",
-    name: "BIRAC BIG (Biotechnology Ignition Grant)",
-    provider: "Biotechnology Industry Research Assistance Council",
-    category: "Government Scheme",
-    domain: "HealthTech / BioTech",
-    amount: "Up to ₹50 Lakh",
-    deadline: "15 Jan 2027",
-    stage: "TRL 3 - Pre-commercial",
-    description:
-      "High-value ignition funding for healthcare, medical diagnostics, biomedical engineering, and sustainable biopolymer startups.",
-    eligibility: [
-      "BioTech / MedTech focus with laboratory validation requirements",
-      "Dedicated faculty researcher or technical co-founder",
-      "Formal institutional lab safety pre-clearance",
-    ],
-    disbursement: ["Tranche-based release tied to strict laboratory milestone audits"],
-    openCall: true,
-  },
-];
 
 const DOMAIN_OPTIONS = [
   "AI / Deep Tech",
@@ -334,7 +203,7 @@ export default function StudentFundingPage() {
       <div className="flex flex-col gap-6">
         <PageHeader
           title="Funding & Grant Opportunities"
-          description="Institutional incubation grants, DST PRAYAS, MeitY TIDE, and corporate seed funds available for student innovators at DBIT."
+          description="Institutional incubation grants, DST PRAYAS, MeitY TIDE, and corporate seed funds available for researcher innovators at DBIT."
         />
 
         {/* KPI row - same card style as the dashboard, projects and meetings pages. */}
@@ -350,25 +219,25 @@ export default function StudentFundingPage() {
           ))}
         </div>
 
-        {/* Professional Search & Filtering Toolbar */}
-        <div className="rounded-xl border border-line bg-white p-4 shadow-sm">
-          {/* FIRST ROW: Search Input + Category + Domain + Sort Dropdowns */}
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+        {/* Search & Filtering Controls */}
+        <div className="flex flex-col gap-3">
+          {/* Main Controls Row: Search Input + Category + Domain + Sort Dropdowns */}
+          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
             {/* Search Input */}
-            <div className="relative flex-1 min-w-[260px]">
-              <Search className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-ink" />
+            <div className="relative min-w-0 flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-ink" />
               <input
                 type="text"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 placeholder="Search grants by name, provider or keyword..."
-                className="h-11 w-full rounded-lg border border-line bg-canvas/30 pl-10 pr-9 text-[13px] text-ink placeholder:text-muted-ink transition-colors focus:border-brand focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand/20"
+                className="h-10 w-full rounded-lg border border-line bg-white pl-9 pr-9 text-[13px] text-ink shadow-2xs placeholder:text-muted-ink transition-colors hover:border-slate-300 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/15"
               />
               {searchInput && (
                 <button
                   type="button"
                   onClick={() => setSearchInput("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-ink hover:bg-canvas hover:text-ink transition-colors"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-ink hover:text-ink transition-colors"
                   aria-label="Clear search input"
                 >
                   <X className="size-3.5" />
@@ -377,7 +246,7 @@ export default function StudentFundingPage() {
             </div>
 
             {/* Filter Dropdowns Row */}
-            <div className="flex flex-wrap items-center gap-2.5 sm:flex-nowrap">
+            <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap sm:shrink-0">
               {/* Category Dropdown */}
               <div className="relative w-full sm:w-auto" ref={categoryRef}>
                 <button
@@ -387,10 +256,10 @@ export default function StudentFundingPage() {
                     setDomainOpen(false);
                     setSortOpen(false);
                   }}
-                  className={`inline-flex h-11 w-full sm:w-auto items-center justify-between gap-2 rounded-lg border px-3.5 text-[13px] font-medium transition-colors ${
+                  className={`inline-flex h-10 w-full sm:w-auto items-center justify-between gap-2 rounded-lg border px-3 text-[13px] font-medium shadow-2xs transition-colors ${
                     selectedCategory !== "All"
                       ? "border-brand bg-brand-soft/40 text-brand font-semibold"
-                      : "border-line bg-white text-ink hover:bg-canvas/60 hover:border-line"
+                      : "border-line bg-white text-ink hover:bg-slate-50 hover:border-slate-300"
                   }`}
                   aria-expanded={categoryOpen}
                   aria-haspopup="listbox"
@@ -444,10 +313,10 @@ export default function StudentFundingPage() {
                     setCategoryOpen(false);
                     setSortOpen(false);
                   }}
-                  className={`inline-flex h-11 w-full sm:w-auto items-center justify-between gap-2 rounded-lg border px-3.5 text-[13px] font-medium transition-colors ${
+                  className={`inline-flex h-10 w-full sm:w-auto items-center justify-between gap-2 rounded-lg border px-3 text-[13px] font-medium shadow-2xs transition-colors ${
                     selectedDomains.length > 0
                       ? "border-brand bg-brand-soft/40 text-brand font-semibold"
-                      : "border-line bg-white text-ink hover:bg-canvas/60"
+                      : "border-line bg-white text-ink hover:bg-slate-50 hover:border-slate-300"
                   }`}
                   aria-expanded={domainOpen}
                   aria-haspopup="dialog"
@@ -563,7 +432,7 @@ export default function StudentFundingPage() {
                     setCategoryOpen(false);
                     setDomainOpen(false);
                   }}
-                  className="inline-flex h-11 w-full sm:w-auto items-center justify-between gap-2 rounded-lg border border-line bg-white px-3.5 text-[13px] font-medium text-ink hover:bg-canvas/60 transition-colors"
+                  className="inline-flex h-10 w-full sm:w-auto items-center justify-between gap-2 rounded-lg border border-line bg-white px-3 text-[13px] font-medium text-ink shadow-2xs hover:bg-slate-50 hover:border-slate-300 transition-colors"
                   aria-expanded={sortOpen}
                   aria-haspopup="listbox"
                 >
@@ -610,12 +479,12 @@ export default function StudentFundingPage() {
 
           {/* SECOND ROW: Active Filter Chips */}
           {hasActiveFilters && (
-            <div className="mt-3.5 flex flex-wrap items-center gap-2 border-t border-line/70 pt-3">
+            <div className="flex flex-wrap items-center gap-2 pt-1">
               <span className="text-[11px] font-medium text-muted-ink mr-0.5">Active filters:</span>
 
               {/* Search query chip */}
               {debouncedSearch.trim() && (
-                <span className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-canvas/70 px-2.5 py-1 text-xs font-medium text-ink">
+                <span className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-white px-2.5 py-1 text-xs font-medium text-ink shadow-2xs">
                   Search: <span className="font-semibold text-brand">"{debouncedSearch}"</span>
                   <button
                     type="button"
@@ -623,7 +492,7 @@ export default function StudentFundingPage() {
                       setSearchInput("");
                       setDebouncedSearch("");
                     }}
-                    className="ml-0.5 rounded-full p-0.5 text-muted-ink hover:bg-slate-200 hover:text-ink transition-colors"
+                    className="ml-0.5 rounded-full p-0.5 text-muted-ink hover:bg-slate-100 hover:text-ink transition-colors"
                     aria-label="Remove search query"
                   >
                     <X className="size-3" />

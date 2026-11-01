@@ -32,7 +32,7 @@ export default function MeetingSummariesPage() {
             const mapped: MeetingSummaryItem[] = json.data.map((m: any) => ({
               id: m.id || m._id,
               projectTitle: m.projectTitle || "Advisory Mentorship Session",
-              studentLead: m.studentLead || "Student Innovator",
+              studentLead: m.studentLead || "Researcher Innovator",
               date: m.date ? new Date(m.date).toLocaleDateString() : "Scheduled",
               time: m.time || "10:00 AM",
               agenda: m.agenda || "TRL validation & roadmap alignment",

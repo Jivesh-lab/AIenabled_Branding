@@ -73,8 +73,8 @@ export default function FacultyStudentProjectsPage() {
 
   return (
     <PageContainer
-      title="Student Projects"
-      description="View and manage all student projects under your faculty supervision — track progress, review documents, and schedule milestone reviews."
+      title="Researcher Projects"
+      description="View and manage all researcher projects under your faculty supervision — track progress, review documents, and schedule milestone reviews."
     >
       <div className="space-y-6">
         {/* Stats */}
@@ -116,7 +116,7 @@ export default function FacultyStudentProjectsPage() {
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-ink" />
             <input
               type="text"
-              placeholder="Search projects or students..."
+              placeholder="Search projects or researchers..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-8 pr-3 py-1.5 text-xs border border-line rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand/30 w-52"
@@ -139,7 +139,7 @@ export default function FacultyStudentProjectsPage() {
         ) : projects.length === 0 ? (
           <div className="rounded-xl border border-line bg-canvas p-10 text-center">
             <GraduationCap className="size-10 text-muted-ink mx-auto mb-3 opacity-40" />
-            <p className="text-sm font-semibold text-ink">No student projects enrolled yet</p>
+            <p className="text-sm font-semibold text-ink">No researcher projects enrolled yet</p>
             <p className="text-xs text-muted-ink mt-1">
               New cohort applications will appear here for faculty mentorship and research supervision.
             </p>

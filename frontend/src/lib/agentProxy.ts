@@ -8,7 +8,7 @@ import {
   classifyStatus,
   classifyThrown,
   errorBody,
-  failureMessage,
+  friendlyLoadMessage,
   type FailureKind,
   type Role,
 } from "@/lib/apiPolicy";
@@ -81,12 +81,12 @@ export async function fetchAgent<T>(call: AgentCall): Promise<AgentResult<T>> {
     const result = await callAgent(call);
     if ("denied" in result && result.denied) {
       const kind = classifyStatus(result.denied.status);
-      return { ok: false, kind, status: result.denied.status, message: failureMessage(kind, null) };
+      return { ok: false, kind, status: result.denied.status, message: friendlyLoadMessage(kind) };
     }
     const { response, data } = result as { response: Response; data: unknown };
     if (!response.ok) {
       const kind = classifyStatus(response.status);
-      return { ok: false, kind, status: response.status, message: failureMessage(kind, data) };
+      return { ok: false, kind, status: response.status, message: friendlyLoadMessage(kind) };
     }
     if (data === null) {
       return { ok: false, kind: "unavailable", status: 502, message: "The application service returned an unreadable response." };

@@ -76,8 +76,8 @@ export default function GrantDraftingPage() {
               stage: p.stage || "Application Drafting",
               deadline: "30 Nov 2026",
               utilised: p.progress || 0,
-              description: `Research grant for ${p.title} led by ${p.leadStudent || "student innovator"}.`,
-              eligibility: "Enrolled student founder with faculty guide endorsement.",
+              description: `Research grant for ${p.title} led by ${p.leadStudent || "researcher innovator"}.`,
+              eligibility: "Enrolled researcher founder with faculty guide endorsement.",
               submitted: p.updatedAt ? new Date(p.updatedAt).toLocaleDateString() : "Recent",
               draftScore: 75 + Math.min(20, idx * 5),
             }));

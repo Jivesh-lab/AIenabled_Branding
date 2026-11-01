@@ -105,7 +105,7 @@ export default function FacultyManagementPage() {
     toast.info(`Switched to Faculty ${role === "coordinator" ? "Coordinator" : "Volunteer"} perspective`, {
       description: role === "coordinator" 
         ? "Authorized to approve mentor allocations, assign volunteers, and schedule official reviews."
-        : "Focused on direct student project guidance, recommending mentors, and milestone check-ins.",
+        : "Focused on direct researcher project guidance, recommending mentors, and milestone check-ins.",
     });
   };
 
@@ -344,7 +344,7 @@ export default function FacultyManagementPage() {
     await respondSupportRequest(showGuidanceModal.id, guidanceResponseText.trim());
 
     toast.success("Guidance Logged Successfully", {
-      description: `Saved to MongoDB database and dispatched to student ${showGuidanceModal.studentName}.`,
+      description: `Saved to MongoDB database and dispatched to researcher ${showGuidanceModal.studentName}.`,
     });
 
     setShowGuidanceModal(null);
@@ -408,7 +408,7 @@ export default function FacultyManagementPage() {
       projectTitle: proj?.title || "Incubation Project",
       participants: [
         activeRole === "coordinator" ? "Dr. K. R. Raman" : "Prof. Ananya Sen",
-        proj?.leadStudent || "Student Lead",
+        proj?.leadStudent || "Researcher Lead",
       ],
       date,
       startTime,
@@ -438,7 +438,7 @@ export default function FacultyManagementPage() {
   return (
     <PageContainer
       title="Faculty Management Module"
-      description="Role-aware academic oversight, incubation project governance, mentor allocation workflows, and student supervision for DBIT Incubation Centre."
+      description="Role-aware academic oversight, incubation project governance, mentor allocation workflows, and researcher supervision for DBIT Incubation Centre."
     >
       <div className="space-y-6">
         {loading && <div className="rounded-xl border border-line bg-canvas p-4 text-center text-sm text-muted-ink">Loading live faculty data from the database…</div>}
@@ -479,7 +479,7 @@ export default function FacultyManagementPage() {
               <p className="text-xs text-blue-100/80">
                 {activeRole === "coordinator"
                   ? "Authoritative Governance: Overseeing cohort allocations, mentor approvals, and institutional sign-offs."
-                  : "Direct Advisory: Mentoring assigned student teams, submitting mentor requests, and monitoring daily deliverables."}
+                  : "Direct Advisory: Mentoring assigned researcher teams, submitting mentor requests, and monitoring daily deliverables."}
               </p>
             </div>
           </div>
@@ -566,7 +566,7 @@ export default function FacultyManagementPage() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5">
               {[
                 { label: "Assigned Projects", val: metrics.activeProjects, sub: "Supervised R&D", icon: FolderGit2, color: "bg-brand/10 text-brand" },
-                { label: "Students Supported", val: metrics.totalStudents, sub: "Across 4 teams", icon: Users2, color: "bg-emerald-50 text-emerald-700" },
+                { label: "Researchers Supported", val: metrics.totalStudents, sub: "Across 4 teams", icon: Users2, color: "bg-emerald-50 text-emerald-700" },
                 { label: "Pending Mentors", val: metrics.pendingMentorReqs, sub: "Awaiting decision", icon: Sparkles, color: "bg-amber-50 text-amber-700" },
                 { label: "Upcoming Meetings", val: metrics.upcomingMeets, sub: "Milestone reviews", icon: CalendarDays, color: "bg-indigo-50 text-indigo-700" },
                 { label: "Overdue Milestones", val: metrics.overdueMilestones, sub: "Requires attention", icon: AlertTriangle, color: "bg-red-50 text-danger" },
@@ -623,7 +623,7 @@ export default function FacultyManagementPage() {
                               onClick={() => setActiveTab("volunteer")}
                               className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-700 hover:bg-amber-800 text-white transition-colors"
                             >
-                              View Student Support Requests (1 Open)
+                              View Researcher Support Requests (1 Open)
                             </button>
                             <button
                               onClick={() => setShowNewMentorRequestModal(true)}
@@ -643,7 +643,7 @@ export default function FacultyManagementPage() {
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <h3 className="text-sm font-bold text-ink">Supervised Incubation Portfolio</h3>
-                      <p className="text-xs text-muted-ink">Current status of active student startup cohorts</p>
+                      <p className="text-xs text-muted-ink">Current status of active researcher startup cohorts</p>
                     </div>
                     <button
                       onClick={() => setActiveTab("projects")}
@@ -803,7 +803,7 @@ export default function FacultyManagementPage() {
                 <div>
                   <h3 className="text-sm font-bold text-ink">Mentor Allocation Decision Queue</h3>
                   <p className="text-xs text-muted-ink">
-                    Review mentor requests submitted by students and recommended by faculty volunteers.
+                    Review mentor requests submitted by researchers and recommended by faculty volunteers.
                   </p>
                 </div>
                 <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-800">
@@ -955,7 +955,7 @@ export default function FacultyManagementPage() {
               <div>
                 <h2 className="text-base font-bold text-ink">Faculty Volunteer Advisory Desk</h2>
                 <p className="text-xs text-muted-ink">
-                  Support assigned student innovators, record guidance notes, and recommend industry mentors.
+                  Support assigned researcher innovators, record guidance notes, and recommend industry mentors.
                 </p>
               </div>
               <button
@@ -970,7 +970,7 @@ export default function FacultyManagementPage() {
             <Card className="p-5">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-sm font-bold text-ink">Student Support & Inquiry Queue</h3>
+                  <h3 className="text-sm font-bold text-ink">Researcher Support & Inquiry Queue</h3>
                   <p className="text-xs text-muted-ink">Questions and advisory requests submitted by your project teams</p>
                 </div>
                 <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-brand/10 text-brand">
@@ -1032,7 +1032,7 @@ export default function FacultyManagementPage() {
             <Card className="p-5">
               <h3 className="text-sm font-bold text-ink mb-1">Mentor Nominations (Volunteer Scope)</h3>
               <p className="text-xs text-muted-ink mb-4">
-                Nominate mentors based on student requirements. Nominations will be routed to the Coordinator for official approval.
+                Nominate mentors based on researcher requirements. Nominations will be routed to the Coordinator for official approval.
               </p>
 
               <div className="space-y-3">
@@ -1079,7 +1079,7 @@ export default function FacultyManagementPage() {
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-ink" />
                   <input
                     type="text"
-                    placeholder="Search title, student, roll no..."
+                    placeholder="Search title, researcher, roll no..."
                     value={projectSearch}
                     onChange={(e) => setProjectSearch(e.target.value)}
                     className="pl-8 pr-3 py-1.5 text-xs border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/30 w-56 bg-canvas/30"
@@ -1588,7 +1588,7 @@ export default function FacultyManagementPage() {
 
                 <div className="grid grid-cols-2 gap-3 p-3.5 rounded-xl bg-canvas border border-line">
                   <div>
-                    <span className="text-muted-ink block text-[11px]">Lead Student</span>
+                    <span className="text-muted-ink block text-[11px]">Lead Researcher</span>
                     <strong className="text-ink">{selectedProject.leadStudent} ({selectedProject.rollNumber})</strong>
                   </div>
                   <div>
@@ -1606,7 +1606,7 @@ export default function FacultyManagementPage() {
                 </div>
 
                 <div>
-                  <p className="font-bold text-ink mb-2">Student Team Members</p>
+                  <p className="font-bold text-ink mb-2">Researcher Team Members</p>
                   <div className="space-y-1.5">
                     {selectedProject.teamMembers.map((m) => (
                       <div key={m.rollNumber} className="flex items-center justify-between p-2.5 rounded-lg border border-line bg-white">
@@ -1847,7 +1847,7 @@ export default function FacultyManagementPage() {
                     type="submit"
                     className="px-4 py-2 font-bold bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors shadow-xs"
                   >
-                    Save & Dispatch to Student
+                    Save & Dispatch to Researcher
                   </button>
                 </div>
               </form>
@@ -2029,7 +2029,7 @@ export default function FacultyManagementPage() {
                     required
                     value={announcementContent}
                     onChange={(e) => setAnnouncementContent(e.target.value)}
-                    placeholder="Provide guidelines, deadlines, and submission instructions for student innovators..."
+                    placeholder="Provide guidelines, deadlines, and submission instructions for researcher innovators..."
                     className="w-full px-3 py-2 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/30 resize-none bg-white"
                   />
                 </div>

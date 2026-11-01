@@ -15,7 +15,7 @@ export default function FundingOpportunities() {
         <div className="min-w-0">
           <h3 className="text-[14px] font-semibold text-ink">Institutional Incubation &amp; Seed Grants</h3>
           <p className="mt-0.5 max-w-2xl text-[13px] text-muted-ink">
-            DST NIDHI, MeitY TIDE 2.0, institutional seed funds and corporate prototype grants for DBIT student innovators.
+            DST NIDHI, MeitY TIDE 2.0, institutional seed funds and corporate prototype grants for DBIT researcher innovators.
           </p>
         </div>
 

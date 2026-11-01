@@ -23,7 +23,7 @@ import {
 
 const WORKSPACE_TILES = [
   {
-    title: "Student Workspace Oversight",
+    title: "Researcher Workspace Oversight",
     role: "student",
     path: "/workspace/student/dashboard",
     icon: GraduationCap,

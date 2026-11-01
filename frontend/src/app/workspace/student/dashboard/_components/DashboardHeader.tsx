@@ -12,7 +12,7 @@ export default function DashboardHeader() {
 
   return (
     <header className="min-w-0">
-      <h1 className="text-[18px] font-semibold leading-tight tracking-tight text-ink sm:text-[20px]">Student Dashboard</h1>
+      <h1 className="text-[18px] font-semibold leading-tight tracking-tight text-ink sm:text-[20px]">Researcher Dashboard</h1>
       <p className="mt-0.5 text-[13px] text-muted-ink">
         {firstName ? `Welcome back, ${firstName}. ` : "Welcome back. "}
         Track your startup projects, incubation progress and upcoming activities.

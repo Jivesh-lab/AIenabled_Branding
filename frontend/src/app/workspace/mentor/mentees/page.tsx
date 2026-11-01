@@ -52,7 +52,7 @@ export default function MentorMenteesPage() {
           // Map projects to mentee-like structure
           const mapped: Mentee[] = (json.data || []).map((p: any) => ({
             _id: p._id || p.id,
-            name: p.leadStudent || "Student",
+            name: p.leadStudent || "Researcher",
             rollNumber: p.rollNumber,
             department: p.department,
             projectTitle: p.title,
@@ -87,7 +87,7 @@ export default function MentorMenteesPage() {
   return (
     <PageContainer
       title="My Mentees"
-      description="Manage and monitor all students assigned to you — track progress, session history, health flags, and growth areas."
+      description="Manage and monitor all researchers assigned to you — track progress, session history, health flags, and growth areas."
     >
       <div className="space-y-6">
         {/* Stats */}
@@ -155,7 +155,7 @@ export default function MentorMenteesPage() {
             <p className="text-sm font-semibold text-ink">No mentees found</p>
             <p className="text-xs text-muted-ink mt-1">
               {mentees.length === 0
-                ? "No students are currently assigned to you as mentees."
+                ? "No researchers are currently assigned to you as mentees."
                 : "Try adjusting your search or filter."}
             </p>
           </div>

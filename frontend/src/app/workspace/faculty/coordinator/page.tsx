@@ -212,7 +212,7 @@ export default function FacultyCoordinatorPage() {
       title: scheduleTitle,
       projectId: scheduleProjectId,
       projectTitle: proj?.title || "Incubation Project",
-      participants: ["Dr. K. R. Raman (Coordinator)", proj?.assignedVolunteerName || "Volunteer", proj?.leadStudent || "Student"],
+      participants: ["Dr. K. R. Raman (Coordinator)", proj?.assignedVolunteerName || "Volunteer", proj?.leadStudent || "Researcher"],
       date: scheduleDate,
       startTime: scheduleTime,
       durationMinutes: 45,
@@ -366,7 +366,7 @@ export default function FacultyCoordinatorPage() {
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-ink" />
                 <input
                   type="text"
-                  placeholder="Search project, lead student, domain..."
+                  placeholder="Search project, lead researcher, domain..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-8 pr-3 py-1.5 text-xs border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/30 w-64 bg-canvas/30"
@@ -431,7 +431,7 @@ export default function FacultyCoordinatorPage() {
 
                       <div className="mt-3.5 p-3 rounded-lg bg-canvas/40 border border-line text-xs space-y-1.5">
                         <div className="flex justify-between text-muted-ink">
-                          <span>Student Lead:</span>
+                          <span>Researcher Lead:</span>
                           <strong className="text-ink">{proj.leadStudent} ({proj.rollNumber})</strong>
                         </div>
                         <div className="flex justify-between text-muted-ink">
@@ -468,7 +468,7 @@ export default function FacultyCoordinatorPage() {
                 <p className="font-bold">Official Governance Authorization Gate</p>
                 <p className="text-amber-900/80 mt-0.5">
                   Only the Faculty Coordinator possesses legal and institutional authority to issue appointment letters
-                  and finalize mentor allocations for student startups.
+                  and finalize mentor allocations for researcher startups.
                 </p>
               </div>
             </div>
@@ -847,7 +847,7 @@ export default function FacultyCoordinatorPage() {
                 </div>
                 <div>
                   <label className="block font-bold text-ink mb-1">Content / Instructions *</label>
-                  <textarea rows={4} required value={announcementBody} onChange={(e) => setAnnouncementBody(e.target.value)} placeholder="Provide instructions for all student founders..." className="w-full px-3 py-2 border border-line rounded-lg resize-none bg-white" />
+                  <textarea rows={4} required value={announcementBody} onChange={(e) => setAnnouncementBody(e.target.value)} placeholder="Provide instructions for all researcher founders..." className="w-full px-3 py-2 border border-line rounded-lg resize-none bg-white" />
                 </div>
                 <div className="flex justify-end gap-2 pt-2 border-t border-line">
                   <button type="button" onClick={() => setShowAnnouncementModal(false)} className="px-4 py-2 font-semibold text-muted-ink border border-line rounded-lg">Cancel</button>
@@ -872,7 +872,7 @@ export default function FacultyCoordinatorPage() {
               <div className="p-6 overflow-y-auto space-y-4 text-xs text-ink">
                 <p className="text-muted-ink bg-canvas/40 p-3 rounded-xl border border-line leading-relaxed">{selectedProject.description}</p>
                 <div className="grid grid-cols-2 gap-3 p-3.5 rounded-xl bg-canvas border border-line">
-                  <div><span className="text-muted-ink block text-[11px]">Lead Student</span><strong className="text-ink">{selectedProject.leadStudent} ({selectedProject.rollNumber})</strong></div>
+                  <div><span className="text-muted-ink block text-[11px]">Lead Researcher</span><strong className="text-ink">{selectedProject.leadStudent} ({selectedProject.rollNumber})</strong></div>
                   <div><span className="text-muted-ink block text-[11px]">Assigned Volunteer</span><strong className="text-brand">{selectedProject.assignedVolunteerName || "Unassigned"}</strong></div>
                   <div><span className="text-muted-ink block text-[11px]">Allocated Mentor</span><strong className="text-emerald-700">{selectedProject.allocatedMentorName || "Pending Allocation"}</strong></div>
                   <div><span className="text-muted-ink block text-[11px]">Next Milestone</span><strong className="text-ink">{selectedProject.nextMilestone} ({selectedProject.nextMilestoneDate})</strong></div>
