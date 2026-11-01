@@ -679,3 +679,58 @@ export async function broadcastFacultyAnnouncement(title: string, body: string, 
     return false;
   }
 }
+
+export async function updateMeetingNotes(id: string, notes: string, attendanceLogged: boolean = true): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_BASE}/api/faculty/meetings/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ notes, attendanceLogged, invitationStatus: "Confirmed" }),
+    });
+    return res.ok;
+  } catch (err) {
+    console.error("[FacultyAPI] updateMeetingNotes error:", err);
+    return false;
+  }
+}
+
+export async function decideProjectReview(
+  id: string,
+  decision: "approved" | "rejected",
+  allocatedMentorName?: string
+): Promise<IncubationProject | null> {
+  try {
+    const res = await fetch(`${API_BASE}/api/faculty/projects/${id}/decision`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ decision, allocatedMentorName }),
+    });
+    if (res.ok) {
+      const json = await res.json();
+      if (json.success && json.data) return json.data;
+    }
+  } catch (err) {
+    console.error("[FacultyAPI] decideProjectReview error:", err);
+  }
+  return null;
+}
+
+export async function assignProjectVolunteer(id: string, volunteerName: string): Promise<IncubationProject | null> {
+  try {
+    const res = await fetch(`${API_BASE}/api/faculty/projects/${id}/assign-volunteer`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ volunteerName }),
+    });
+    if (res.ok) {
+      const json = await res.json();
+      if (json.success && json.data) return json.data;
+    }
+  } catch (err) {
+    console.error("[FacultyAPI] assignProjectVolunteer error:", err);
+  }
+  return null;
+}

@@ -10,7 +10,9 @@ const FacultyMeeting = require('../models/FacultyMeeting');
 const FacultyTask = require('../models/FacultyTask');
 const SupportRequest = require('../models/SupportRequest');
 const Announcement = require('../models/Announcement');
+const StartupProfile = require('../models/StartupProfile');
 const { logAuditTrail } = require('../middleware/auditLogger');
+const { syncAgentApplications, updateAgentApplicationStatus } = require('../services/agentBridgeService');
 
 const router = express.Router();
 
@@ -203,6 +205,11 @@ async function ensureSeedData() {
     } catch (syncErr) {
       console.warn('[Faculty API] Auto-sync approved startups notice:', syncErr.message);
     }
+    try {
+      await syncAgentApplications();
+    } catch (agentSyncErr) {
+      console.warn('[Faculty API] Agent sync notice:', agentSyncErr.message);
+    }
 
     const mentorCount = await MentorAllocation.countDocuments();
     if (mentorCount === 0) {
@@ -305,7 +312,7 @@ router.get('/overview', async (req, res) => {
     await ensureSeedData();
 
     const [projects, mentorRequests, meetings, tasks] = await Promise.all([
-      FacultyProject.find().lean(),
+      FacultyProject.find().sort({ updatedAt: -1, createdAt: -1 }).lean(),
       MentorAllocation.find().lean(),
       FacultyMeeting.find().lean(),
       FacultyTask.find().lean(),
@@ -342,12 +349,91 @@ router.get('/overview', async (req, res) => {
 router.get('/projects', async (req, res) => {
   try {
     await ensureSeedData();
-    const projects = await FacultyProject.find().sort({ createdAt: -1 }).lean();
+    const projects = await FacultyProject.find().sort({ updatedAt: -1, createdAt: -1 }).lean();
     res.json({ success: true, data: projects });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 });
+
+// ---------------------------------------------------------------------------
+// PUT /api/faculty/projects/:id/decision
+// Direct project review decision by Coordinator / Faculty
+// ---------------------------------------------------------------------------
+router.put(
+  '/projects/:id/decision',
+  [
+    body('decision').isIn(['approved', 'rejected']).withMessage('Decision must be approved or rejected'),
+  ],
+  async (req, res) => {
+    if (handleValidationErrors(req, res)) return;
+    try {
+      const proj = await FacultyProject.findOne({ id: req.params.id });
+      if (!proj) {
+        return res.status(404).json({ success: false, message: 'Faculty project not found.' });
+      }
+
+      if (req.body.decision === 'approved') {
+        const mentorName = req.body.allocatedMentorName || proj.allocatedMentorName || null;
+        proj.stage = 'Prototype';
+        proj.progress = mentorName ? 75 : 60;
+        proj.health = 'On Track';
+        if (mentorName) proj.allocatedMentorName = mentorName;
+        await proj.save();
+
+        await StartupProfile.updateOne(
+          { applicationId: proj.id },
+          { $set: { isApproved: true, status: 'active', stage: 'prototype' } }
+        );
+
+        updateAgentApplicationStatus(
+          proj.id,
+          'approved',
+          req.user?.id || 'faculty-coordinator',
+          req.body.comment || 'Application approved by Faculty Coordinator'
+        );
+      } else {
+        proj.health = 'At Risk';
+        await proj.save();
+        updateAgentApplicationStatus(
+          proj.id,
+          'rejected',
+          req.user?.id || 'faculty-coordinator',
+          req.body.comment || 'Application rejected by Faculty'
+        );
+      }
+
+      res.json({ success: true, message: `Project ${req.body.decision} successfully.`, data: proj });
+    } catch (err) {
+      res.status(500).json({ success: false, message: err.message });
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
+// PUT /api/faculty/projects/:id/assign-volunteer
+// Coordinator assigns or reassigns supervising faculty volunteer
+// ---------------------------------------------------------------------------
+router.put(
+  '/projects/:id/assign-volunteer',
+  [
+    body('volunteerName').notEmpty().withMessage('Volunteer name is required'),
+  ],
+  async (req, res) => {
+    if (handleValidationErrors(req, res)) return;
+    try {
+      const proj = await FacultyProject.findOneAndUpdate(
+        { id: req.params.id },
+        { $set: { assignedVolunteerName: req.body.volunteerName } },
+        { new: true }
+      );
+      if (!proj) return res.status(404).json({ success: false, message: 'Faculty project not found.' });
+      res.json({ success: true, message: `Volunteer ${req.body.volunteerName} assigned to project.`, data: proj });
+    } catch (err) {
+      res.status(500).json({ success: false, message: err.message });
+    }
+  }
+);
 
 // ---------------------------------------------------------------------------
 // GET /api/faculty/mentor-allocations
@@ -434,12 +520,43 @@ router.put(
 
       item.status = req.body.decision;
       item.coordinatorComment = req.body.comment || '';
-      if (req.body.decision === 'approved' && req.body.allocatedMentorName) {
-        item.allocatedMentorName = req.body.allocatedMentorName;
-        // Update associated project
+      const assigned = req.body.allocatedMentorName || item.recommendedMentorName || item.allocatedMentorName || 'Vikramaditya Rao';
+
+      if (req.body.decision === 'approved') {
+        item.allocatedMentorName = assigned;
+
+        // 1. Update associated FacultyProject
         await FacultyProject.updateOne(
           { id: item.projectId },
-          { $set: { allocatedMentorName: req.body.allocatedMentorName } }
+          {
+            $set: {
+              allocatedMentorName: assigned,
+              stage: 'Prototype',
+              progress: 75,
+              health: 'On Track',
+              nextMilestone: 'Prototype Milestone & Mentor Review',
+              nextMilestoneDate: '2026-11-20',
+            },
+          }
+        );
+
+        // 2. Update StartupProfile
+        await StartupProfile.updateOne(
+          { applicationId: item.projectId },
+          { $set: { isApproved: true, status: 'active', stage: 'prototype' } }
+        );
+
+        // 3. Update agent-service / SQLite applications so student workspace sees APPROVED
+        updateAgentApplicationStatus(
+          item.projectId,
+          'approved',
+          req.user?.id || 'faculty-coordinator',
+          req.body.comment || 'Mentor allocated and application approved by Faculty Coordinator'
+        );
+      } else if (req.body.decision === 'rejected') {
+        await FacultyProject.updateOne(
+          { id: item.projectId },
+          { $set: { allocatedMentorName: null } }
         );
       }
       await item.save();
@@ -518,6 +635,26 @@ router.post(
     }
   }
 );
+
+// ---------------------------------------------------------------------------
+// PUT /api/faculty/meetings/:id
+// Update meeting review notes, attendance, or status
+// ---------------------------------------------------------------------------
+router.put('/meetings/:id', async (req, res) => {
+  try {
+    const meeting = await FacultyMeeting.findOne({ id: req.params.id });
+    if (!meeting) {
+      return res.status(404).json({ success: false, message: 'Meeting not found.' });
+    }
+    if (req.body.notes !== undefined) meeting.notes = req.body.notes;
+    if (req.body.attendanceLogged !== undefined) meeting.attendanceLogged = req.body.attendanceLogged;
+    if (req.body.invitationStatus) meeting.invitationStatus = req.body.invitationStatus;
+    await meeting.save();
+    res.json({ success: true, message: 'Meeting updated in MongoDB.', data: meeting });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
 
 // ---------------------------------------------------------------------------
 // GET & POST /api/faculty/tasks

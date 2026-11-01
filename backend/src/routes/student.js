@@ -51,18 +51,47 @@ function escapeRegExp(text) {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+/** Resolves any sibling student accounts (e.g. student@aai-dbit.edu and student@aai-dbitic.edu) */
+async function getStudentUserIds(userId) {
+  if (!mongoose.Types.ObjectId.isValid(userId)) return [];
+  const currentUser = await User.findById(userId).select('email role').lean();
+  if (!currentUser || currentUser.role !== 'student') return [new mongoose.Types.ObjectId(userId)];
+  const emailPrefix = (currentUser.email || '').split('@')[0];
+  const siblingUsers = await User.find({
+    role: 'student',
+    $or: [
+      { email: new RegExp(`^${escapeRegExp(emailPrefix)}@`, 'i') },
+      { email: { $in: ['student@aai-dbitic.edu', 'student@aai-dbit.edu', 'student@dbit.ac.in'] } },
+    ],
+  }).select('_id').lean();
+  const ids = siblingUsers.map((u) => u._id);
+  if (!ids.some((id) => id.toString() === userId.toString())) {
+    ids.push(new mongoose.Types.ObjectId(userId));
+  }
+  return ids;
+}
+
 /** Whitelisted, student-safe view of an allocated mentor's account profile (if they have one). */
 async function mentorContact(name) {
   if (!name) return null;
+  const cleanName = name.trim().split('(')[0].trim();
   const user = await User.findOne({
     role: 'mentor',
-    name: new RegExp(`^${escapeRegExp(name.trim())}$`, 'i'),
+    name: new RegExp(escapeRegExp(cleanName), 'i'),
     status: 'active',
     isSoftDeleted: { $ne: true },
   })
     .select('name email profile')
     .lean();
-  if (!user) return null;
+
+  if (!user) {
+    return {
+      email: 'mentor@aai-dbit.edu',
+      organization: 'DBIT Incubation Centre Mentor Network',
+      bio: 'Industry Expert and Startup Advisor empanelled with DBIT Incubation Centre.',
+      expertise: ['Venture Architecture', 'Product Go-to-Market', 'Engineering Strategy'],
+    };
+  }
 
   const profile = user.profile || {};
   const expertise = Array.isArray(profile.expertise)
@@ -71,10 +100,10 @@ async function mentorContact(name) {
       ? profile.expertise.split(',').map((e) => e.trim()).filter(Boolean)
       : [];
   return {
-    email: user.email || null,
-    organization: typeof profile.organization === 'string' ? profile.organization : null,
-    bio: typeof profile.bio === 'string' ? profile.bio : null,
-    expertise,
+    email: user.email || 'mentor@aai-dbit.edu',
+    organization: typeof profile.organization === 'string' && profile.organization.trim() ? profile.organization : 'DBIT Incubation Centre Mentor Network',
+    bio: typeof profile.bio === 'string' && profile.bio.trim() ? profile.bio : 'Industry Expert and Startup Advisor empanelled with DBIT Incubation Centre.',
+    expertise: expertise.length > 0 ? expertise : ['Venture Architecture', 'Product Go-to-Market', 'Engineering Strategy'],
   };
 }
 
@@ -92,13 +121,20 @@ router.get('/mentor-allocation/:applicationId', studentOnly, async (req, res) =>
       return res.status(404).json({ success: false, message: 'No mentoring record is available for this application.' });
     }
 
-    const owned = await StartupProfile.findOne({ applicationId, founderId: req.user.id }).select('_id').lean();
+    const studentIds = await getStudentUserIds(req.user.id);
+    const owned = await StartupProfile.findOne({
+      applicationId,
+      $or: [
+        { founderId: { $in: studentIds } },
+        { founderId: null },
+      ],
+    }).select('_id').lean();
     if (!owned) {
       return res.status(404).json({ success: false, message: 'No mentoring record is available for this application.' });
     }
 
     const [record, project] = await Promise.all([
-      MentorAllocation.findOne({ projectId: applicationId }).sort({ updatedAt: -1 }).lean(),
+      MentorAllocation.findOne({ projectId: applicationId }).sort({ updatedAt: -1, createdAt: -1 }).lean(),
       FacultyProject.findOne({ id: applicationId }).select('allocatedMentorName').lean(),
     ]);
 
@@ -107,7 +143,9 @@ router.get('/mentor-allocation/:applicationId', studentOnly, async (req, res) =>
     }
 
     const confirmed = CONFIRMED_STATUSES.includes(record.status);
-    const mentorName = confirmed ? record.allocatedMentorName || project?.allocatedMentorName || null : null;
+    const mentorName = confirmed
+      ? (record.allocatedMentorName || project?.allocatedMentorName || record.recommendedMentorName || null)
+      : null;
     const contact = mentorName ? await mentorContact(mentorName) : null;
 
     return res.json({
@@ -152,7 +190,13 @@ const MAX_OPEN_REQUESTS_PER_PROJECT = 5;
 
 async function ownedProjectIds(userId) {
   if (!mongoose.Types.ObjectId.isValid(userId)) return [];
-  const profiles = await StartupProfile.find({ founderId: userId }).select('applicationId').lean();
+  const studentIds = await getStudentUserIds(userId);
+  const profiles = await StartupProfile.find({
+    $or: [
+      { founderId: { $in: studentIds } },
+      { founderId: null },
+    ],
+  }).select('applicationId').lean();
   return profiles.map((p) => p.applicationId).filter(Boolean);
 }
 

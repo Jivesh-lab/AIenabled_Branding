@@ -71,9 +71,15 @@ function RouteProgressInner() {
     };
   }, [start]);
 
-  if (!visible) return null;
+
   return (
-    <div role="status" className="pointer-events-none fixed inset-x-0 top-0 z-[100] h-[3px] overflow-hidden bg-brand/15">
+    <div
+      role="status"
+      aria-hidden={!visible}
+      className={`pointer-events-none fixed inset-x-0 top-0 z-[100] h-[3px] overflow-hidden bg-brand/15 transition-opacity duration-150 ${
+        visible ? "opacity-100" : "opacity-0"
+      }`}
+    >
       <span className="sr-only">Loading page</span>
       <div className="h-full w-2/5 bg-brand motion-reduce:w-full motion-reduce:opacity-70 animate-[route-progress-slide_1.1s_ease-in-out_infinite] motion-reduce:animate-none" />
     </div>
