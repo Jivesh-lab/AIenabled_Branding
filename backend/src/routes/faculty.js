@@ -1,6 +1,5 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
-const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 
 // MongoDB Models
@@ -13,51 +12,22 @@ const Announcement = require('../models/Announcement');
 const StartupProfile = require('../models/StartupProfile');
 const { logAuditTrail } = require('../middleware/auditLogger');
 const { syncAgentApplications, updateAgentApplicationStatus } = require('../services/agentBridgeService');
+const MentorMatchingRun = require('../models/MentorMatchingRun');
+const WorkflowExecution = require('../models/WorkflowExecution');
+const MonitoringReport = require('../models/MonitoringReport');
+const { authenticate, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Role-aware authentication with development fallback
-router.use((req, res, next) => {
-  let token = req.cookies?.aai_token;
+// Real authentication only: the shared middleware verifies the token and the user's
+// current status in the database. There is no implicit identity (see DEV_AUTH_FALLBACK in auth.js).
+router.use(authenticate, requireRole('faculty', 'admin'));
 
-  if (!token && req.headers.authorization) {
-    token = req.headers.authorization.replace(/^Bearer\s+/i, '');
-  }
-
-  if (token) {
-    try {
-      const payload = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
-      if (['faculty', 'admin', 'super_admin'].includes(payload.role)) {
-        req.user = {
-          id: payload.sub,
-          role: payload.role,
-          email: payload.email || 'dr.raman@dbit.ac.in',
-          name: payload.name || 'Faculty Coordinator',
-        };
-        return next();
-      }
-      return res.status(403).json({ success: false, message: 'Access denied: faculty or admin role required.' });
-    } catch {
-      // Token invalid or expired, continue to dev fallback
-    }
-  }
-
-  // Development / Local incubation environment fallback so that faculty hub is immediately usable
-  if (process.env.NODE_ENV !== 'production') {
-    req.user = {
-      id: new mongoose.Types.ObjectId('64d000000000000000000001'),
-      role: 'faculty',
-      email: 'dr.raman@dbit.ac.in',
-      name: 'Dr. K. R. Raman',
-    };
-    return next();
-  }
-
-  return res.status(401).json({
-    success: false,
-    message: 'Authentication required. Please sign in.',
-  });
-});
+// Manual agent runs are an override for Super Admins. The agents run by themselves on events and schedules.
+function superAdminOnly(req, res, next) {
+  if (req.user && req.user.role === 'super_admin') return next();
+  return res.status(403).json({ success: false, message: 'The agents run automatically. Manual runs are limited to Super Admins (Run now - override).' });
+}
 
 function handleValidationErrors(req, res) {
   const errors = validationResult(req);
@@ -71,237 +41,44 @@ function handleValidationErrors(req, res) {
   return null;
 }
 
-// ---------------------------------------------------------------------------
-// DB Auto-Seeding Helper (Initializes DBITIC sample cohort if collections empty)
-// ---------------------------------------------------------------------------
-async function ensureSeedData() {
-  try {
-    const projectCount = await FacultyProject.countDocuments();
-    if (projectCount === 0) {
-      await FacultyProject.insertMany([
-        {
-          id: "proj-1",
-          title: "AI-Driven Crop Disease Detection using CNNs",
-          domain: "AgriTech / ML",
-          stage: "Prototype",
-          leadStudent: "Priya Sharma",
-          rollNumber: "CSE21B042",
-          department: "Computer Science",
-          teamMembers: [
-            { name: "Priya Sharma", rollNumber: "CSE21B042", email: "priya@student.dbit.ac.in", role: "Lead" },
-            { name: "Siddharth Rao", rollNumber: "CSE21B049", email: "siddharth@student.dbit.ac.in", role: "ML Dev" },
-          ],
-          assignedCoordinatorName: "Dr. K. R. Raman",
-          assignedVolunteerName: "Prof. Ananya Sen",
-          allocatedMentorName: "Dr. Vikram Malhotra",
-          trl: 5,
-          progress: 74,
-          health: "On Track",
-          overdueMilestonesCount: 0,
-          nextMilestone: "Field Pilot Validation in Nashik",
-          nextMilestoneDate: "15 Nov 2026",
-          description: "Edge deep convolutional network for visual plant leaf disease classification.",
-        },
-        {
-          id: "proj-2",
-          title: "Sugarcane Bagasse Biodegradable Packaging Formulation",
-          domain: "GreenTech / Materials",
-          stage: "Research",
-          leadStudent: "Arjun Mehta",
-          rollNumber: "CHEM22A018",
-          department: "Chemical Tech",
-          teamMembers: [
-            { name: "Arjun Mehta", rollNumber: "CHEM22A018", email: "arjun@student.dbit.ac.in", role: "Materials" },
-          ],
-          assignedCoordinatorName: "Dr. K. R. Raman",
-          assignedVolunteerName: "Prof. Ananya Sen",
-          allocatedMentorName: null,
-          trl: 3,
-          progress: 38,
-          health: "Needs Attention",
-          overdueMilestonesCount: 1,
-          nextMilestone: "ASTM Biodegradation Tests",
-          nextMilestoneDate: "28 Oct 2026",
-          description: "Composite natural binder packaging achieving 180-day biodegradation cycle.",
-        },
-        {
-          id: "proj-3",
-          title: "Smart IoT Water Quality Monitor with Edge Sensing",
-          domain: "IoT / Environment",
-          stage: "Validation",
-          leadStudent: "Kavita Nair",
-          rollNumber: "ECE21C077",
-          department: "Electronics",
-          teamMembers: [
-            { name: "Kavita Nair", rollNumber: "ECE21C077", email: "kavita@student.dbit.ac.in", role: "Hardware" },
-          ],
-          assignedCoordinatorName: "Dr. K. R. Raman",
-          assignedVolunteerName: "Prof. Rajiv Menon",
-          allocatedMentorName: "Sanjay Singhal",
-          trl: 6,
-          progress: 88,
-          health: "On Track",
-          overdueMilestonesCount: 0,
-          nextMilestone: "Municipal Water Board Commercial Trial",
-          nextMilestoneDate: "10 Dec 2026",
-          description: "Embedded signal processing sensor node for industrial effluent water safety assessment.",
-        },
-        {
-          id: "proj-4",
-          title: "Decentralized Electronic Health Records on Hyperledger",
-          domain: "HealthTech / Blockchain",
-          stage: "Ideation",
-          leadStudent: "Rohan Das",
-          rollNumber: "IT22D031",
-          department: "Information Technology",
-          teamMembers: [
-            { name: "Rohan Das", rollNumber: "IT22D031", email: "rohan@student.dbit.ac.in", role: "Architecture" },
-          ],
-          assignedCoordinatorName: "Dr. K. R. Raman",
-          assignedVolunteerName: "Prof. Ananya Sen",
-          allocatedMentorName: null,
-          trl: 2,
-          progress: 20,
-          health: "At Risk",
-          overdueMilestonesCount: 2,
-          nextMilestone: "Smart Contract POC Specification",
-          nextMilestoneDate: "20 Oct 2026",
-          description: "Zero-knowledge proof rollup health data sovereign records architecture.",
-        },
-      ]);
-    }
 
     // Automatically bridge any approved startups into the active Faculty Coordinator cohort
     try {
       const StartupProfile = require('../models/StartupProfile');
-      const approvedProfiles = await StartupProfile.find({ isApproved: true, applicationId: { $ne: null } }).lean();
-      for (const p of approvedProfiles) {
-        const exists = await FacultyProject.findOne({ id: p.applicationId });
+      const approvedProfiles = await StartupProfile.find({ isApproved: true }).lean();
+      for (const sp of approvedProfiles) {
+        const exists = await FacultyProject.findOne({ id: sp.applicationId || sp.id });
         if (!exists) {
-          const stageRaw = p.stage || 'Prototype';
-          const stageCap = stageRaw.charAt(0).toUpperCase() + stageRaw.slice(1).toLowerCase();
           await FacultyProject.create({
-            id: p.applicationId,
-            title: p.name,
-            domain: p.sector || 'Technology',
-            stage: stageCap,
-            leadStudent: 'Student Founder',
-            rollNumber: 'DBIT-2026',
-            department: 'Information Technology',
-            teamMembers: [{ name: 'Student Founder', email: 'founder@dbit.ac.in', role: 'Founder' }],
-            assignedCoordinatorName: 'Dr. K. R. Raman',
-            assignedVolunteerName: 'Prof. Ananya Sen',
-            allocatedMentorName: null,
-            trl: stageCap.toLowerCase().includes('mvp') ? 5 : 4,
-            progress: 50,
+            id: sp.applicationId || sp.id,
+            title: sp.companyName || sp.title || 'Supervised Student Startup',
+            description: sp.problemStatement || sp.tagline || 'Active incubation cohort startup.',
+            leadStudent: sp.leadStudent || sp.contactEmail || 'Student Founder',
+            rollNumber: sp.rollNumber || 'INC-2026',
+            domain: sp.industry || sp.domain || 'Tech & Innovation',
+            stage: 'Prototype',
+            progress: 75,
+            trl: 6,
             health: 'On Track',
+            allocatedMentorName: sp.allocatedMentorName || null,
+            assignedVolunteerName: 'Prof. Ananya Sen',
+            nextMilestone: 'Prototype Milestone Review',
+            nextMilestoneDate: '2026-11-20',
             overdueMilestonesCount: 0,
-            nextMilestone: 'Cohort Induction & Guide Allocation',
-            nextMilestoneDate: '15 Nov 2026',
-            description: p.tagline || p.problem || '',
+            teamMembers: [],
           });
         }
       }
-    } catch (syncErr) {
-      console.warn('[Faculty API] Auto-sync approved startups notice:', syncErr.message);
-    }
-    try {
-      await syncAgentApplications();
-    } catch (agentSyncErr) {
-      console.warn('[Faculty API] Agent sync notice:', agentSyncErr.message);
+    } catch (e) {
+      console.warn('[Faculty Bridge] Could not sync StartupProfiles:', e.message);
     }
 
-    const mentorCount = await MentorAllocation.countDocuments();
-    if (mentorCount === 0) {
-      await MentorAllocation.insertMany([
-        {
-          id: "mr-1",
-          projectId: "proj-2",
-          projectTitle: "Sugarcane Bagasse Biodegradable Packaging Formulation",
-          studentName: "Arjun Mehta",
-          studentRollNo: "CHEM22A018",
-          domain: "GreenTech / Materials",
-          requestedExpertise: ["Biopolymer Scale-up", "Industrial Extrusion Tooling"],
-          justification: "Team needs industry guidance on transitioning from 50g bench-scale samples to 5kg pilot runs.",
-          recommendedMentorName: "Dr. Sunita Kapoor",
-          recommendedMentorOrg: "Biopack Innovations Ltd.",
-          recommendedByVolunteerName: "Prof. Ananya Sen",
-          status: "recommended",
-          coordinatorComment: "Reviewing company NDA before issuing official letter of mentorship.",
-        },
-        {
-          id: "mr-2",
-          projectId: "proj-4",
-          projectTitle: "Decentralized Electronic Health Records on Hyperledger",
-          studentName: "Rohan Das",
-          studentRollNo: "IT22D031",
-          domain: "HealthTech / Web3",
-          requestedExpertise: ["Health Data Compliance (DISHA/HIPAA)", "Private Permissioned Blockchain Architecture"],
-          justification: "Student is struggling to structure cryptographic keys across hospital and patient nodes.",
-          status: "under_review",
-        },
-      ]);
-    }
-
-    const meetingCount = await FacultyMeeting.countDocuments();
-    if (meetingCount === 0) {
-      await FacultyMeeting.insertMany([
-        {
-          id: "meet-1",
-          title: "Stage-3 Milestone Review: AgriTech Edge Accuracy",
-          projectId: "proj-1",
-          projectTitle: "AI-Driven Crop Disease Detection using CNNs",
-          participants: ["Dr. K. R. Raman", "Prof. Ananya Sen", "Priya Sharma"],
-          date: "2026-10-18",
-          startTime: "14:00",
-          durationMinutes: 45,
-          meetingType: "Milestone Review",
-          agenda: "Review benchmark confusion matrix across 10,000 leaf images.",
-          meetingProvider: "In-Person (DBITIC Lab 402)",
-          meetingLinkOrLocation: "DBIT Incubation Centre, Lab 402",
-          invitationStatus: "Confirmed",
-          notes: "Prior lab report accepted. Hardware verified.",
-          attendanceLogged: true,
-        },
-      ]);
-    }
-
-    const taskCount = await FacultyTask.countDocuments();
-    if (taskCount === 0) {
-      await FacultyTask.insertMany([
-        {
-          id: "task-1",
-          title: "Verify ASTM Biodegradation Lab Certificate",
-          projectId: "proj-2",
-          projectTitle: "Sugarcane Bagasse Biodegradable Packaging Formulation",
-          assignedTo: "Prof. Ananya Sen",
-          assignedRole: "volunteer",
-          dueDate: "2026-10-20",
-          priority: "High",
-          status: "In Progress",
-          description: "Check if testing facility complies with ISO 17025 accreditation.",
-        },
-      ]);
-    }
-
-    const supportCount = await SupportRequest.countDocuments();
-    if (supportCount === 0) {
-      await SupportRequest.insertMany([
-        {
-          id: "sr-1",
-          projectId: "proj-4",
-          projectTitle: "Decentralized Electronic Health Records",
-          studentName: "Rohan Das",
-          category: "Cloud Architecture",
-          question: "We need access to the college server rack to deploy our 3-node Hyperledger test network.",
-          submittedAt: "Yesterday at 11:20 AM",
-          status: "Open",
-        },
-      ]);
-    }
-  } catch (err) {
-    console.error('[Faculty Seed] Seed check error:', err.message);
-  }
+// A faculty coordinator only ever sees the startups assigned to them; admins and super admins see the centre.
+async function scopeFor(user) {
+  if (user.role !== 'faculty') return { project: {}, byProjectId: {} };
+  const owned = await FacultyProject.find({ coordinatorUserId: String(user.id) }).select('id').lean();
+  const ids = owned.map((p) => p.id);
+  return { project: { id: { $in: ids } }, byProjectId: { projectId: { $in: ids } } };
 }
 
 // ---------------------------------------------------------------------------
@@ -309,19 +86,20 @@ async function ensureSeedData() {
 // ---------------------------------------------------------------------------
 router.get('/overview', async (req, res) => {
   try {
-    await ensureSeedData();
 
+    const scope = await scopeFor(req.user);
     const [projects, mentorRequests, meetings, tasks] = await Promise.all([
-      FacultyProject.find().sort({ updatedAt: -1, createdAt: -1 }).lean(),
-      MentorAllocation.find().lean(),
-      FacultyMeeting.find().lean(),
-      FacultyTask.find().lean(),
+      FacultyProject.find(scope.project).sort({ updatedAt: -1, createdAt: -1 }).lean(),
+      MentorAllocation.find(scope.byProjectId).lean(),
+      FacultyMeeting.find(scope.byProjectId).lean(),
+      FacultyTask.find(scope.byProjectId).lean(),
     ]);
 
     const metrics = {
       activeProjects: projects.length,
       totalStudents: projects.reduce((acc, p) => acc + (p.teamMembers ? p.teamMembers.length : 1), 0),
       pendingMentorRequests: mentorRequests.filter(m => m.status === 'requested' || m.status === 'recommended' || m.status === 'under_review').length,
+      pendingMentorDecisions: await require('../agentic/approvals').countPending(req.user, { type: 'mentor_allocation' }),
       upcomingMeetings: meetings.filter(m => m.invitationStatus !== 'Completed').length,
       pendingTasks: tasks.filter(t => t.status !== 'Completed').length,
       overdueMilestones: projects.reduce((acc, p) => acc + (p.overdueMilestonesCount || 0), 0),
@@ -344,12 +122,44 @@ router.get('/overview', async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
+// GET /api/faculty/volunteers - volunteer faculty accounts and how many of the visible startups each advises
+// ---------------------------------------------------------------------------
+router.get('/volunteers', async (req, res) => {
+  try {
+    const User = require('../models/User');
+    const scope = await scopeFor(req.user);
+    const [people, projects] = await Promise.all([
+      User.find({ role: 'faculty', facultyRole: 'volunteer', status: 'active', isSoftDeleted: { $ne: true } }).select('_id name profile').lean(),
+      FacultyProject.find(scope.project).select('assignedVolunteerName').lean(),
+    ]);
+    const clean = (name) => String(name || '').replace(/\s*\([^)]*\)\s*$/, '').trim();
+    res.json({
+      success: true,
+      data: people.map((u) => {
+        const active = projects.filter((p) => clean(p.assignedVolunteerName).toLowerCase() === clean(u.name).toLowerCase()).length;
+        return {
+          id: String(u._id),
+          name: clean(u.name),
+          dept: u.profile?.department || '',
+          activeProjects: active,
+          specialization: Array.isArray(u.profile?.researchAreas) ? u.profile.researchAreas.join(', ') : u.profile?.specialization || '',
+          workloadStatus: active >= 4 ? 'Full' : active >= 2 ? 'Optimal' : 'Available',
+        };
+      }),
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ---------------------------------------------------------------------------
 // GET /api/faculty/projects
 // ---------------------------------------------------------------------------
 router.get('/projects', async (req, res) => {
   try {
     await ensureSeedData();
-    const projects = await FacultyProject.find().sort({ updatedAt: -1, createdAt: -1 }).lean();
+    const scope = await scopeFor(req.user);
+    const projects = await FacultyProject.find(scope.project).sort({ updatedAt: -1, createdAt: -1 }).lean();
     res.json({ success: true, data: projects });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -440,8 +250,8 @@ router.put(
 // ---------------------------------------------------------------------------
 router.get('/mentor-allocations', async (req, res) => {
   try {
-    await ensureSeedData();
-    const allocations = await MentorAllocation.find().sort({ createdAt: -1 }).lean();
+    const scope = await scopeFor(req.user);
+    const allocations = await MentorAllocation.find(scope.byProjectId).sort({ createdAt: -1 }).lean();
     res.json({ success: true, data: allocations });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -467,7 +277,7 @@ router.post(
         id: `mr-${Date.now()}`,
         projectId: req.body.projectId,
         projectTitle: proj?.title || 'Incubation Project',
-        studentName: proj?.leadStudent || req.body.studentName || 'Student Founder',
+        studentName: proj?.leadStudent || req.body.studentName || '',
         studentRollNo: proj?.rollNumber || '',
         domain: proj?.domain || '',
         requestedExpertise: req.body.requestedExpertise || [],
@@ -482,7 +292,7 @@ router.post(
 
       logAuditTrail({
         userId: req.user.id,
-        email: req.user.email || 'faculty@dbit.ac.in',
+        email: req.user.email || '',
         role: req.user.role,
         action: 'CREATE_MENTOR_ALLOCATION_REQUEST',
         resource: 'mentor_allocations',
@@ -561,9 +371,25 @@ router.put(
       }
       await item.save();
 
+      if (req.body.decision === 'approved') {
+        await enqueueEvent({
+          eventType: 'mentor.allocation.approved',
+          aggregateType: 'mentor_allocation',
+          aggregateId: item.id,
+          projectId: item.projectId,
+          actorId: req.user.id,
+          idempotencyKey: `mentor-allocation-approved:${item.id}`,
+          payload: {
+            projectTitle: item.projectTitle,
+            allocatedMentorName: item.allocatedMentorName,
+            participants: [item.studentName, item.allocatedMentorName].filter(Boolean),
+          },
+        });
+      }
+
       logAuditTrail({
         userId: req.user.id,
-        email: req.user.email || 'faculty@dbit.ac.in',
+        email: req.user.email || '',
         role: req.user.role,
         action: req.body.decision === 'approved' ? 'AUTHORIZE_MENTOR_ALLOCATION' : 'REJECT_MENTOR_ALLOCATION',
         resource: 'mentor_allocations',
@@ -586,8 +412,8 @@ router.put(
 // ---------------------------------------------------------------------------
 router.get('/meetings', async (req, res) => {
   try {
-    await ensureSeedData();
-    const meetings = await FacultyMeeting.find().sort({ createdAt: -1 }).lean();
+    const scope = await scopeFor(req.user);
+    const meetings = await FacultyMeeting.find(scope.byProjectId).sort({ createdAt: -1 }).lean();
     res.json({ success: true, data: meetings });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -624,6 +450,15 @@ router.post(
       });
 
       await newMeeting.save();
+      await enqueueEvent({
+        eventType: 'meeting.confirmed',
+        aggregateType: 'meeting',
+        aggregateId: newMeeting.id,
+        projectId: newMeeting.projectId,
+        actorId: req.user.id,
+        idempotencyKey: `meeting-confirmed:${newMeeting.id}`,
+        payload: { title: newMeeting.title, date: newMeeting.date, startTime: newMeeting.startTime },
+      });
 
       res.status(201).json({
         success: true,
@@ -661,8 +496,8 @@ router.put('/meetings/:id', async (req, res) => {
 // ---------------------------------------------------------------------------
 router.get('/tasks', async (req, res) => {
   try {
-    await ensureSeedData();
-    const tasks = await FacultyTask.find().sort({ createdAt: -1 }).lean();
+    const scope = await scopeFor(req.user);
+    const tasks = await FacultyTask.find(scope.byProjectId).sort({ createdAt: -1 }).lean();
     res.json({ success: true, data: tasks });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -695,6 +530,15 @@ router.post(
       });
 
       await newTask.save();
+      await enqueueEvent({
+        eventType: 'task.created',
+        aggregateType: 'task',
+        aggregateId: newTask.id,
+        projectId: newTask.projectId,
+        actorId: req.user.id,
+        idempotencyKey: `task-created:${newTask.id}`,
+        payload: { title: newTask.title, assignedTo: newTask.assignedTo, dueDate: newTask.dueDate },
+      });
 
       res.status(201).json({
         success: true,
@@ -715,6 +559,15 @@ router.put('/tasks/:id/status', async (req, res) => {
     }
     task.status = req.body.status || 'Completed';
     await task.save();
+    await enqueueEvent({
+      eventType: task.status === 'Completed' ? 'task.completed' : 'task.updated',
+      aggregateType: 'task',
+      aggregateId: task.id,
+      projectId: task.projectId,
+      actorId: req.user.id,
+      idempotencyKey: `task-status:${task.id}:${task.status}:${task.updatedAt?.getTime?.() || Date.now()}`,
+      payload: { status: task.status, title: task.title },
+    });
     res.json({ success: true, message: 'Task status updated.', data: task });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -726,7 +579,6 @@ router.put('/tasks/:id/status', async (req, res) => {
 // ---------------------------------------------------------------------------
 router.get('/support-requests', async (req, res) => {
   try {
-    await ensureSeedData();
     const requests = await SupportRequest.find().sort({ createdAt: -1 }).lean();
     res.json({ success: true, data: requests });
   } catch (err) {
@@ -789,4 +641,331 @@ router.post(
   }
 );
 
+
+// ===========================================================================
+// AI AGENT HUBS: MENTOR-MATCHING, WORKFLOW AUTOMATION, STARTUP MONITORING
+// ===========================================================================
+const agentHubService = require('../services/agentHubService');
+const { enqueueEvent } = require('../services/eventOrchestrator');
+const DomainEvent = require('../models/DomainEvent');
+
+// 1. AI MENTOR MATCHING
+router.get('/agent-events', async (req, res) => {
+  try {
+    const filter = {};
+    if (req.query.status && req.query.status !== 'all') filter.status = req.query.status;
+    if (req.query.projectId && req.query.projectId !== 'all') filter.projectId = req.query.projectId;
+
+    if (req.user.role === 'faculty') {
+      const assigned = await FacultyProject.find({ assignedCoordinatorName: req.user.name }).select('id').lean();
+      filter.projectId = { $in: assigned.map((project) => project.id) };
+    }
+
+    const events = await DomainEvent.find(filter).sort({ createdAt: -1 }).limit(200).lean();
+    res.json({ success: true, data: events });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+
+router.post('/agent-events/:id/reprocess', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const event = await DomainEvent.findOne({
+      $or: [{ eventId: id }, ...(mongoose.Types.ObjectId.isValid(id) ? [{ _id: id }] : [])],
+    });
+    if (!event) {
+      return res.status(404).json({ success: false, message: 'Event not found' });
+    }
+    if (!['failed', 'dead_letter'].includes(event.status)) {
+      return res.status(400).json({ success: false, message: `Only failed or dead_letter events can be reprocessed (current: ${event.status})` });
+    }
+
+    event.status = 'pending';
+    event.attempts = 0;
+    event.nextAttemptAt = new Date();
+    event.lastError = null;
+    await event.save();
+
+    const { processOneEvent } = require('../services/eventOrchestrator');
+    const result = await processOneEvent();
+
+    const updated = await DomainEvent.findById(event._id).lean();
+    return res.json({ success: true, message: 'Event reprocessed successfully', event: updated, processResult: result });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.get('/mentor-matching/startups', async (req, res) => {
+  try {
+    let startups = await agentHubService.getStartupsForMatching();
+    if (req.user.role === 'faculty') {
+      const coordinatorName = req.user.name || 'Faculty';
+      const lastName = coordinatorName.split(' ').pop().toLowerCase();
+      startups = startups.filter(s => 
+        !s.assignedCoordinatorName || 
+        s.assignedCoordinatorName.toLowerCase().includes(lastName) ||
+        s.assignedCoordinatorName === coordinatorName
+      );
+    }
+    res.json({ success: true, data: startups });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/mentor-matching/run', superAdminOnly, async (req, res) => {
+  try {
+    const { projectId } = req.body;
+    if (!projectId) {
+      return res.status(400).json({ success: false, message: 'projectId is required' });
+    }
+    if (req.user.role === 'faculty') {
+      const project = await FacultyProject.findOne({ id: projectId });
+      if (project && project.assignedCoordinatorName) {
+        const coordinatorName = req.user.name || 'Faculty';
+        const lastName = coordinatorName.split(' ').pop().toLowerCase();
+        if (!project.assignedCoordinatorName.toLowerCase().includes(lastName)) {
+          return res.status(403).json({ success: false, message: 'Access denied: You are not the assigned coordinator for this startup.' });
+        }
+      }
+    }
+    const run = await agentHubService.runMentorMatching({ projectId, actor: req.user });
+    res.status(201).json({ success: true, data: run });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.get('/mentor-matching/runs', async (req, res) => {
+  try {
+    const runs = await agentHubService.getMentorMatchingRuns(req.query.projectId);
+    res.json({ success: true, data: runs });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.put('/mentor-matching/runs/:id/decide', async (req, res) => {
+  try {
+    // Only Faculty Coordinators can confirm mentor allocations
+    if (req.user.role !== 'faculty') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: Mentor allocation approvals are restricted to authorized Faculty Coordinators.',
+      });
+    }
+    const { decision, selectedMentorId, selectedMentorName, comments } = req.body;
+    if (!['approved', 'rejected'].includes(decision)) {
+      return res.status(400).json({ success: false, message: 'Decision must be approved or rejected' });
+    }
+    const updated = await agentHubService.decideMentorRecommendation({
+      runId: req.params.id,
+      decision,
+      selectedMentorId,
+      selectedMentorName,
+      comments,
+      actor: req.user,
+    });
+    res.json({ success: true, message: `Recommendation successfully ${decision}.`, data: updated });
+  } catch (err) {
+    if (err.message && err.message.includes('not found')) {
+      return res.status(404).json({ success: false, message: err.message });
+    }
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 2. AI WORKFLOW AUTOMATION
+router.get('/workflow/executions', async (req, res) => {
+  try {
+    const { projectId, actionType, status } = req.query;
+    if (req.user.role === 'faculty' && !projectId) {
+      const coordinatorName = req.user.name || 'Faculty';
+      const lastName = coordinatorName.split(' ').pop().toLowerCase();
+      const myProjects = await FacultyProject.find({
+        $or: [
+          { assignedCoordinatorName: { $regex: lastName, $options: 'i' } },
+          { assignedCoordinatorName: coordinatorName }
+        ]
+      }).select('id').lean();
+      const myProjectIds = myProjects.map(p => p.id);
+      const executions = await WorkflowExecution.find({
+        ...(myProjectIds.length > 0 ? { projectId: { $in: myProjectIds } } : {}),
+        ...(actionType ? { actionType } : {}),
+        ...(status ? { status } : {}),
+      }).sort({ createdAt: -1 }).lean();
+      return res.json({ success: true, data: executions });
+    }
+    const executions = await agentHubService.getWorkflowExecutions({ projectId, actionType, status });
+    res.json({ success: true, data: executions });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/workflow/coordinate', async (req, res) => {
+  try {
+    const { action_type, project_id, project_title, target_id, target_name, target_role, target_email, payload } = req.body;
+    if (!action_type || !target_id) {
+      return res.status(400).json({ success: false, message: 'action_type and target_id are required' });
+    }
+    const exec = await agentHubService.coordinateWorkflowAction({
+      actionType: action_type,
+      projectId: project_id,
+      projectTitle: project_title,
+      targetId: target_id,
+      targetName: target_name,
+      targetRole: target_role,
+      targetEmail: target_email,
+      payload: payload || {},
+      actor: req.user,
+    });
+    res.status(201).json({ success: true, message: 'Workflow action coordinated and confirmed.', data: exec });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/workflow/executions/:id/retry', async (req, res) => {
+  try {
+    const exec = await agentHubService.retryWorkflowExecution({
+      executionId: req.params.id,
+      actor: req.user,
+    });
+    res.json({ success: true, message: 'Workflow action retried successfully.', data: exec });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/workflow/executions/:id/cancel', async (req, res) => {
+  try {
+    const exec = await agentHubService.cancelWorkflowExecution({
+      executionId: req.params.id,
+      actor: req.user,
+    });
+    res.json({ success: true, message: 'Workflow action cancelled.', data: exec });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 3. AI STARTUP MONITORING
+router.get('/monitoring/overview', async (req, res) => {
+  try {
+    let overview = await agentHubService.getMonitoringOverview();
+    if (req.user.role === 'faculty') {
+      const coordinatorName = req.user.name || 'Faculty';
+      const lastName = coordinatorName.split(' ').pop().toLowerCase();
+      const myProjects = await FacultyProject.find({
+        $or: [
+          { assignedCoordinatorName: { $regex: lastName, $options: 'i' } },
+          { assignedCoordinatorName: coordinatorName }
+        ]
+      }).lean();
+      const myProjectIds = new Set(myProjects.map(p => p.id));
+      
+      const filteredReports = (overview.reports || []).filter(r => myProjectIds.has(r.projectId));
+      overview = {
+        totalStartups: myProjects.length,
+        onTrackCount: myProjects.filter(p => p.health === 'On Track').length,
+        needsAttentionCount: myProjects.filter(p => p.health === 'Needs Attention').length,
+        atRiskCount: myProjects.filter(p => p.health === 'At Risk').length,
+        activeAlertsCount: filteredReports.filter(r => r.healthStatus !== 'On Track').length,
+        reports: filteredReports,
+      };
+    }
+    res.json({ success: true, data: overview });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.get('/monitoring/reports', async (req, res) => {
+  try {
+    const { projectId, healthStatus } = req.query;
+    if (req.user.role === 'faculty' && !projectId) {
+      const coordinatorName = req.user.name || 'Faculty';
+      const lastName = coordinatorName.split(' ').pop().toLowerCase();
+      const myProjects = await FacultyProject.find({
+        $or: [
+          { assignedCoordinatorName: { $regex: lastName, $options: 'i' } },
+          { assignedCoordinatorName: coordinatorName }
+        ]
+      }).select('id').lean();
+      const myProjectIds = myProjects.map(p => p.id);
+      const reports = await MonitoringReport.find({
+        ...(myProjectIds.length > 0 ? { projectId: { $in: myProjectIds } } : {}),
+        ...(healthStatus ? { healthStatus } : {}),
+      }).sort({ createdAt: -1 }).lean();
+      return res.json({ success: true, data: reports });
+    }
+    const reports = await agentHubService.getMonitoringReports({ projectId, healthStatus });
+    res.json({ success: true, data: reports });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/monitoring/evaluate', superAdminOnly, async (req, res) => {
+  try {
+    const { projectId } = req.body;
+    if (!projectId) {
+      return res.status(400).json({ success: false, message: 'projectId is required' });
+    }
+    const report = await agentHubService.evaluateStartupMonitoring({
+      projectId,
+      actor: req.user,
+    });
+    res.status(201).json({ success: true, message: 'Startup health evaluation completed.', data: report });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/monitoring/portfolio', superAdminOnly, async (req, res) => {
+  try {
+    const result = await agentHubService.evaluatePortfolioMonitoring({ actor: req.user });
+    res.json({ success: true, message: 'Portfolio-wide monitoring evaluation completed.', data: result });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/monitoring/reports/:id/acknowledge', async (req, res) => {
+  try {
+    const report = await agentHubService.acknowledgeMonitoringAlert({
+      reportId: req.params.id,
+      actor: req.user,
+      notes: req.body.notes,
+    });
+    res.json({ success: true, message: 'Alert acknowledged.', data: report });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/monitoring/reports/:id/intervene', async (req, res) => {
+  try {
+    const { interventionId, assignedTo, customTitle } = req.body;
+    if (!interventionId) {
+      return res.status(400).json({ success: false, message: 'interventionId is required' });
+    }
+    const result = await agentHubService.assignMonitoringIntervention({
+      reportId: req.params.id,
+      interventionId,
+      assignedTo,
+      customTitle,
+      actor: req.user,
+    });
+    res.status(201).json({ success: true, message: 'Intervention coordinated and workflow task created.', data: result });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;
+

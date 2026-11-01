@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 const ALL_WORKSPACE_OPTIONS = [
   { label: "Super Admin Portal", path: "/workspace/super-admin/dashboard", superAdminOnly: true },
   { label: "Admin Operational Workspace", path: "/workspace/admin/dashboard" },
-  { label: "Student Workspace", path: "/workspace/student/dashboard" },
+  { label: "Researcher Workspace", path: "/workspace/student/dashboard" },
   { label: "Faculty Coordinator Workspace", path: "/workspace/faculty/coordinator" },
   { label: "Faculty Volunteer Workspace", path: "/workspace/faculty/volunteer" },
   { label: "Mentor Workspace", path: "/workspace/mentor/dashboard" },

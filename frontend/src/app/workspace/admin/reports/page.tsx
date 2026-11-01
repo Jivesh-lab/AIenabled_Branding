@@ -97,8 +97,8 @@ export default function ReportsPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
-              { title: "Cohort Onboarding & Demographic Report", desc: "Detailed breakdown of student, faculty, and industry partner registrations per cohort quarter." },
-              { title: "Mentorship Session & Guidance Log Report", desc: "Audit of completed mentor sessions, rating feedback, and unassigned student requests." },
+              { title: "Cohort Onboarding & Demographic Report", desc: "Detailed breakdown of researcher, faculty, and industry partner registrations per cohort quarter." },
+              { title: "Mentorship Session & Guidance Log Report", desc: "Audit of completed mentor sessions, rating feedback, and unassigned researcher requests." },
               { title: "Industry Collaboration & Opportunity Report", desc: "List of active corporate challenges, applications received, and signed agreements." },
               { title: "Startup Incubation & Grant Disbursement Report", desc: "Venture milestone completion rates, KPI progress, and funding allocation tracking." },
             ].map((rep, idx) => (

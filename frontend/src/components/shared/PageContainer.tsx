@@ -16,10 +16,10 @@ export default function PageContainer({
   className?: string;
 }) {
   return (
-    <div className={cn("mx-auto w-full max-w-[1400px] px-5 py-6 sm:px-8 sm:py-8 space-y-6", className)}>
+    <div className={cn("mx-auto w-full max-w-[1440px] px-6 pt-2 pb-6 lg:px-8 lg:pt-2.5 lg:pb-8 space-y-6", className)}>
       {title && (
         <div className="space-y-1 pb-2 border-b border-line/60 max-w-2xl">
-          <h1 className="font-heading text-[24px] sm:text-[26px] font-semibold tracking-[-0.02em] text-ink">
+          <h1 className="text-[20px] sm:text-[22px] font-semibold leading-tight tracking-tight text-ink">
             {title}
           </h1>
           {description && (

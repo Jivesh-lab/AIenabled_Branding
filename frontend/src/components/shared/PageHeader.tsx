@@ -24,7 +24,7 @@ export default function PageHeader({
     <header className="flex flex-col gap-3 pb-2 sm:flex-row sm:items-start sm:justify-between border-b border-line/60">
       <div className="min-w-0 max-w-2xl">
         <div className="flex items-center gap-3">
-          <h1 className="font-heading text-[24px] sm:text-[26px] font-semibold leading-snug tracking-[-0.02em] text-ink">
+          <h1 className="font-heading text-[20px] sm:text-[22px] font-semibold leading-tight tracking-tight text-ink">
             {title}
           </h1>
           {badge}

@@ -49,6 +49,7 @@ export default function ApplicationsReviewPage() {
 
   const [selectedApp, setSelectedApp] = useState<ApplicationDetails | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
+  const [assessmentLoading, setAssessmentLoading] = useState(false);
 
   const [decisionModalOpen, setDecisionModalOpen] = useState(false);
   const [decisionType, setDecisionType] = useState<"approved" | "rejected" | "revision_requested">("approved");
@@ -88,6 +89,22 @@ export default function ApplicationsReviewPage() {
       toast.error("Error fetching details");
     } finally {
       setDetailsLoading(false);
+    }
+  }
+
+  async function generateAssessment() {
+    if (!selectedApp) return;
+    setAssessmentLoading(true);
+    try {
+      const res = await fetch(`/api/admin/applications/${selectedApp.id}/assessment`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || data.detail || "Assessment failed");
+      toast.success("AI assessment generated. Human review is still required.");
+      await viewDetails(selectedApp.id);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Assessment failed");
+    } finally {
+      setAssessmentLoading(false);
     }
   }
 
@@ -297,6 +314,14 @@ export default function ApplicationsReviewPage() {
 
               {/* ACTION BUTTONS */}
               <div className="flex items-center justify-end gap-3 pt-4 border-t">
+                <button
+                  onClick={generateAssessment}
+                  disabled={assessmentLoading}
+                  className="mr-auto inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 disabled:opacity-60"
+                >
+                  <RefreshCw className={`size-3.5 ${assessmentLoading ? "animate-spin" : ""}`} />
+                  {assessmentLoading ? "Generating..." : selectedApp.aiSummary ? "Regenerate AI Assessment" : "Generate AI Assessment"}
+                </button>
                 <button
                   onClick={() => openDecisionModal("rejected")}
                   className="px-4 py-2 rounded-lg bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 text-xs font-semibold"

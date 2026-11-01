@@ -13,10 +13,12 @@ from db.standalone_store import (
     standalone_save_draft,
     standalone_update_application,
     standalone_check_resubmittable,
+    standalone_record_domain_event,
 )
 from core import application_status as st
 from core import milestones as ms
 import json
+import uuid
 import structlog
 
 logger = structlog.get_logger(__name__)
@@ -105,6 +107,23 @@ def _json(value: Any, default: Any) -> Any:
     if not value:
         return default
     return json.loads(value) if isinstance(value, str) else value
+
+async def _record_event(conn, *, event_type: str, application_id: str, actor_id: str, payload: Dict[str, Any]) -> None:
+    event_id = str(uuid.uuid4())
+    transition_id = payload.get("transition_id", event_id)
+    await conn.execute(
+        """INSERT INTO domain_events
+           (event_id, event_type, aggregate_type, aggregate_id, application_id, actor_id,
+            correlation_id, idempotency_key, payload)
+           VALUES ($1, $2, 'application', $3, $3, $4, $1, $5, $6::jsonb)
+           ON CONFLICT (idempotency_key) DO NOTHING""",
+        event_id,
+        event_type,
+        str(application_id),
+        str(actor_id),
+        f"{event_type}:{application_id}:{transition_id}",
+        json.dumps(payload),
+    )
 
 
 # ── Submit / resubmit ────────────────────────────────────────────────────────
@@ -212,6 +231,14 @@ async def submit_application(
                 solution=solution, stage=stage, sector=sector, documents=documents, form_data=form_data,
                 completeness=completeness, ai_summary=ai_summary_str, ai_feedback=ai_feedback_str,
             )
+        standalone_record_domain_event(
+            "application.resubmitted" if submission.applicationId else "application.submitted",
+            "application",
+            str(application_id),
+            applicant_id,
+            {"status": "submitted", "applicant_id": applicant_id, "transition_id": str(uuid.uuid4()), "assessment_available": agent_evaluation_result["assessment_available"]},
+            application_id=str(application_id),
+        )
         return {"success": True, "application_id": str(application_id), "status": "submitted", "agent_evaluation": agent_evaluation_result}
 
     try:
@@ -250,6 +277,13 @@ async def submit_application(
                         "Resubmitted after revision request" if record["status"] == st.REVISION_REQUESTED else "Submitted by applicant",
                     )
                     application_id = submission.applicationId
+                    await _record_event(
+                        conn,
+                        event_type="application.resubmitted" if record["status"] == st.REVISION_REQUESTED else "application.submitted",
+                        application_id=str(application_id),
+                        actor_id=applicant_id,
+                        payload={"status": "submitted", "applicant_id": applicant_id, "transition_id": str(uuid.uuid4()), "assessment_available": agent_evaluation_result["assessment_available"]},
+                    )
                 else:
                     # Serialise concurrent first-time submits of the same idea (double-click / retry).
                     await conn.execute("SELECT pg_advisory_xact_lock(hashtext($1))", f"{applicant_id}:{startup_name.lower()}")
@@ -288,6 +322,13 @@ async def submit_application(
                         VALUES ($1, $2, NULL, 'submitted', 'Submitted by applicant')
                         """,
                         application_id, applicant_id,
+                    )
+                    await _record_event(
+                        conn,
+                        event_type="application.submitted",
+                        application_id=str(application_id),
+                        actor_id=applicant_id,
+                        payload={"status": "submitted", "applicant_id": applicant_id, "transition_id": str(uuid.uuid4()), "assessment_available": agent_evaluation_result["assessment_available"]},
                     )
     except HTTPException:
         raise
@@ -552,6 +593,51 @@ async def get_application_details(
 
 # ── Reviewer decision ────────────────────────────────────────────────────────
 
+@router.post("/{application_id}/assessment")
+async def assess_existing_application(
+    application_id: str,
+    current_user: AuthenticatedUser = Depends(get_internal_service),
+    pool=Depends(get_db),
+):
+    """Regenerate an advisory Application Agent assessment without changing review status."""
+    _require_reviewer(current_user)
+    if not pool:
+        raise HTTPException(status_code=503, detail="Application assessment requires the database service")
+
+    try:
+        async with pool.acquire() as conn:
+            record = await conn.fetchrow(
+                "SELECT form_data, ai_summary, ai_feedback FROM applications WHERE id = $1",
+                application_id,
+            )
+        if not record:
+            raise HTTPException(status_code=404, detail="Application not found")
+
+        from agents.application_agent import assess_application
+        assessment = await assess_application(_json(record["form_data"], {}))
+        if not assessment.get("assessment_available"):
+            raise HTTPException(status_code=503, detail="Application Agent assessment is unavailable")
+
+        summary = assessment.get("summary", {})
+        feedback = {
+            "preliminary_assessment": assessment.get("preliminary_assessment", {}),
+            "questions_for_reviewers": assessment.get("questions_for_reviewers", []),
+            "missing_evidence": assessment.get("missing_evidence", []),
+            "validation": assessment.get("validation", {}),
+            "recommendation_summary": assessment.get("recommendation_summary", ""),
+        }
+        async with pool.acquire() as conn:
+            await conn.execute(
+                "UPDATE applications SET ai_summary = $1, ai_feedback = $2, updated_at = NOW() WHERE id = $3",
+                json.dumps(summary), json.dumps(feedback), application_id,
+            )
+        return {"success": True, "assessment": assessment, "status": "completed", "human_review_required": True}
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("application_assessment_failed", application_id=application_id)
+        raise HTTPException(status_code=500, detail="Failed to generate application assessment")
+
 @router.post("/{application_id}/decide")
 async def decide_application(
     application_id: str,
@@ -569,18 +655,28 @@ async def decide_application(
         raise HTTPException(status_code=400, detail="Revision requests require comments")
 
     if not pool:
-        return standalone_decide_application(
+        applicant_id = standalone_get_application_details(application_id, current_user.id, True).get("applicantId")
+        result = standalone_decide_application(
             application_id=application_id,
             decision=decision,
             reviewer_id=current_user.id,
             comments=payload.comments,
         )
+        standalone_record_domain_event(
+            f"application.{decision}",
+            "application",
+            application_id,
+            current_user.id,
+            {"decision": decision, "comments": payload.comments or "", "applicant_id": applicant_id, "transition_id": str(uuid.uuid4())},
+            application_id=application_id,
+        )
+        return result
 
     try:
         async with pool.acquire() as conn:
             async with conn.transaction():
                 current_app = await conn.fetchrow(
-                    "SELECT status FROM applications WHERE id = $1 FOR UPDATE", application_id
+                    "SELECT status, applicant_id FROM applications WHERE id = $1 FOR UPDATE", application_id
                 )
                 if not current_app:
                     raise HTTPException(status_code=404, detail="Application not found")
@@ -606,6 +702,13 @@ async def decide_application(
                     VALUES ($1, $2, $3, $4, $5)
                     """,
                     application_id, current_user.id, prev_status, decision, payload.comments
+                )
+                await _record_event(
+                    conn,
+                    event_type=f"application.{decision}",
+                    application_id=application_id,
+                    actor_id=current_user.id,
+                    payload={"decision": decision, "comments": payload.comments or "", "applicant_id": str(current_app["applicant_id"]), "transition_id": str(uuid.uuid4())},
                 )
 
         return {"success": True, "status": decision}

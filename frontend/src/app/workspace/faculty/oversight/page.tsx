@@ -2,11 +2,14 @@
 
 import { useState, useEffect } from "react";
 import PageContainer from "@/components/shared/PageContainer";
+import { friendlyThrown } from "@/lib/friendlyError";
+import { FacultyListSkeleton } from "@/components/shared/loading/facultySkeletons";
 import { Card, SectionHeading, StatusBadge, ProgressBar } from "@/components/shared/Surface";
+import MetricCard from "@/components/shared/MetricCard";
 import {
   Search, AlertTriangle, CheckCircle2, Clock,
   Users, MessageSquare, ExternalLink, ChevronDown,
-  Loader2, AlertCircle,
+  AlertCircle,
 } from "lucide-react";
 
 interface Milestone {
@@ -54,7 +57,7 @@ export default function FacultyOversightPage() {
           throw new Error(json.message || "Failed to load projects");
         }
       } catch (err: any) {
-        setError(err.message);
+        setError(friendlyThrown(err, "We couldn't load this right now. Please try again in a moment."));
       } finally {
         setLoading(false);
       }
@@ -72,29 +75,19 @@ export default function FacultyOversightPage() {
 
   return (
     <PageContainer
-      title="Student Project Oversight"
-      description="Real-time supervision of student progress, milestone completion, health status, and intervention flags across your cohort."
+      title="Researcher Project Oversight"
+      description="Real-time supervision of researcher progress, milestone completion, health status, and intervention flags across your cohort."
     >
       <div className="space-y-6">
         {/* Summary */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           {[
             { label: "Total Supervised", value: projects.length, icon: Users, color: "bg-brand/10 text-brand" },
             { label: "On Track", value: projects.filter((p) => p.health === "On Track").length, icon: CheckCircle2, color: "bg-emerald-50 text-emerald-700" },
             { label: "Needs Attention", value: projects.filter((p) => p.health === "Needs Attention").length, icon: Clock, color: "bg-amber-50 text-amber-700" },
             { label: "At Risk", value: projects.filter((p) => p.health === "At Risk").length, icon: AlertTriangle, color: "bg-red-50 text-danger" },
           ].map((s) => (
-            <Card key={s.label} className="p-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-xs font-medium text-muted-ink">{s.label}</p>
-                  <p className="text-2xl font-bold text-ink mt-1">{s.value}</p>
-                </div>
-                <div className={`flex size-9 items-center justify-center rounded-lg ${s.color}`}>
-                  <s.icon className="size-4" />
-                </div>
-              </div>
-            </Card>
+            <MetricCard key={s.label} label={s.label} value={s.value} icon={s.icon} tone={s.color.includes("danger") ? "danger" : s.color.includes("amber") ? "attention" : "default"} loading={loading} />
           ))}
         </div>
 
@@ -115,7 +108,7 @@ export default function FacultyOversightPage() {
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-ink" />
             <input
               type="text"
-              placeholder="Search student or project..."
+              placeholder="Search researcher or project..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-8 pr-3 py-1.5 text-xs border border-line rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand/30 w-52"
@@ -125,10 +118,7 @@ export default function FacultyOversightPage() {
 
         {/* Project Cards */}
         {loading ? (
-          <div className="flex items-center justify-center py-16 text-muted-ink gap-2">
-            <Loader2 className="size-5 animate-spin" />
-            <span className="text-sm">Loading oversight data from database…</span>
-          </div>
+          <FacultyListSkeleton />
         ) : error ? (
           <div className="rounded-xl border border-red-100 bg-red-50 p-6 text-center">
             <AlertCircle className="size-8 text-danger mx-auto mb-2" />
@@ -140,7 +130,7 @@ export default function FacultyOversightPage() {
             <Users className="size-10 text-muted-ink mx-auto mb-3 opacity-40" />
             <p className="text-sm font-semibold text-ink">No cohort projects enrolled yet</p>
             <p className="text-xs text-muted-ink mt-1">
-              Supervised student capstones and startup projects will appear here as cohorts begin.
+              Supervised researcher capstones and startup projects will appear here as cohorts begin.
             </p>
           </div>
         ) : filtered.length === 0 ? (

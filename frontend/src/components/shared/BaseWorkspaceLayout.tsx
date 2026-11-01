@@ -5,12 +5,14 @@ import { useSession } from "next-auth/react";
 import DashboardNavbar, { NavbarUser } from "@/components/shared/DashboardNavbar";
 import DashboardSidebar, { NavSection } from "@/components/shared/DashboardSidebar";
 import SuperAdminBanner from "@/components/shared/SuperAdminBanner";
+import IntegrationNotice from "@/components/agentic/IntegrationNotice";
 
 export type AllowedRole =
   | "student"
   | "faculty"
   | "mentor"
   | "investor"
+  | "industry"
   | "admin"
   | "super_admin";
 
@@ -22,6 +24,9 @@ interface BaseWorkspaceLayoutProps {
   allowedRole: AllowedRole;
   onSearch?: (query: string) => void;
   searchPlaceholder?: string;
+  searchSlot?: React.ReactNode;
+  /** Roles whose layout only has a placeholder identity wait for the session before showing a name. */
+  waitForSession?: boolean;
 }
 
 export default function BaseWorkspaceLayout({
@@ -32,9 +37,11 @@ export default function BaseWorkspaceLayout({
   allowedRole,
   onSearch,
   searchPlaceholder,
+  searchSlot,
+  waitForSession = false,
 }: BaseWorkspaceLayoutProps) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
 
   const closeMobile = useCallback(() => setIsMobileOpen(false), []);
   const openMobile = useCallback(() => setIsMobileOpen(true), []);
@@ -66,6 +73,7 @@ export default function BaseWorkspaceLayout({
   return (
     <div className="flex flex-col min-h-screen w-full bg-canvas">
       <SuperAdminBanner />
+      <IntegrationNotice />
       <div className="flex flex-1 min-w-0">
         <DashboardSidebar
           sections={sections}
@@ -80,6 +88,8 @@ export default function BaseWorkspaceLayout({
           user={user}
           onSearch={onSearch}
           searchPlaceholder={searchPlaceholder}
+          searchSlot={searchSlot}
+          userLoading={waitForSession && status === "loading"}
           onMenuClick={openMobile}
           allowedRole={allowedRole}
         />

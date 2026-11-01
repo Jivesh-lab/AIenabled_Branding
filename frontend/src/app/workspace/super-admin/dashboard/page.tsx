@@ -1,5 +1,6 @@
 "use client";
 
+import AgentHealthPanel from "@/components/agentic/AgentHealthPanel";
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import PageContainer from "@/components/shared/PageContainer";
@@ -34,6 +35,10 @@ import {
 import Link from "next/link";
 import AuditLogViewer from "../_components/AuditLogViewer";
 import SecurityPolicyPanel from "../_components/SecurityPolicyPanel";
+import { Sparkles, Zap } from "lucide-react";
+import SuperAdminMentorMatchingDashboard from "@/components/agents/SuperAdminMentorMatchingDashboard";
+import SuperAdminWorkflowDashboard from "@/components/agents/SuperAdminWorkflowDashboard";
+import SuperAdminMonitoringDashboard from "@/components/agents/SuperAdminMonitoringDashboard";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -61,6 +66,7 @@ interface UserRow {
 
 const TABS = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
+  { id: "agents", label: "Autonomous AI Agents", icon: Sparkles },
   { id: "users", label: "User Management", icon: UserCog },
   { id: "workspaces", label: "Workspace Inspector", icon: Eye },
   { id: "announce", label: "Broadcast", icon: Megaphone },
@@ -88,14 +94,14 @@ const STATUS_COLORS: Record<string, string> = {
 
 const WORKSPACES = [
   {
-    title: "Student Workspace",
+    title: "Researcher Workspace",
     role: "student",
     path: "/workspace/student/dashboard",
     icon: GraduationCap,
     color: "from-blue-500/10 to-indigo-500/10 border-blue-200",
     iconColor: "text-blue-600",
     badgeColor: "bg-blue-100 text-blue-800",
-    description: "Inspect student project submissions, milestone trackers, meeting requests, and team profiles.",
+    description: "Inspect researcher project submissions, milestone trackers, meeting requests, and team profiles.",
   },
   {
     title: "Faculty Workspace",
@@ -139,7 +145,7 @@ const WORKSPACES = [
   },
 ];
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API = "/api/backend"; // authenticated same-origin proxy
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
@@ -220,7 +226,7 @@ function OverviewTab({ stats, loading }: { stats: SystemStats | null; loading: b
           color="bg-red-50 text-red-600"
         />
         <StatCard
-          label="Mentor:Student Ratio"
+          label="Mentor:Researcher Ratio"
           value={stats.mentorStudentRatio}
           sub="Current cohort"
           icon={Activity}
@@ -300,7 +306,7 @@ function UserManagementTab() {
       if (roleFilter !== "all") params.set("role", roleFilter);
       if (statusFilter !== "all") params.set("status", statusFilter);
 
-      const res = await fetch(`${API}/api/admin/users?${params}`, { credentials: "include" });
+      const res = await fetch(`${API}/admin/users?${params}`, { credentials: "include" });
       if (res.ok) {
         const data = await res.json();
         setUsers(data.users || []);
@@ -324,14 +330,14 @@ function UserManagementTab() {
     try {
       let res: Response;
       if (actionType === "reset") {
-        res = await fetch(`${API}/api/admin/users/${actionTarget._id}/reset-password`, {
+        res = await fetch(`${API}/admin/users/${actionTarget._id}/reset-password`, {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ newPassword: actionValue || undefined, mustChangePassword: true }),
         });
       } else if (actionType === "role") {
-        res = await fetch(`${API}/api/admin/users/${actionTarget._id}`, {
+        res = await fetch(`${API}/admin/users/${actionTarget._id}`, {
           method: "PUT",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
@@ -339,7 +345,7 @@ function UserManagementTab() {
         });
       } else {
         // deactivate
-        res = await fetch(`${API}/api/admin/users/${actionTarget._id}`, {
+        res = await fetch(`${API}/admin/users/${actionTarget._id}`, {
           method: "PUT",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
@@ -594,6 +600,60 @@ function UserManagementTab() {
   );
 }
 
+// ─── Autonomous AI Agents Tab ───────────────────────────────────────────────
+
+function AgentsTab() {
+  const [subAgent, setSubAgent] = useState<"mentor-matching" | "workflow" | "monitoring">("mentor-matching");
+
+  return (
+    <div className="space-y-8">
+      <AgentHealthPanel />
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-4">
+        <div>
+          <h2 className="text-base font-bold text-slate-900">Manual override: per-agent controls</h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            The agents run on their own. These screens exist for inspection, replaying a failed step and forcing a run when you need to (Run now - override).
+          </p>
+        </div>
+
+        <div className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 p-1">
+          <button
+            onClick={() => setSubAgent("mentor-matching")}
+            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+              subAgent === "mentor-matching" ? "bg-white text-slate-900 shadow-xs" : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <Sparkles className="size-3.5 text-brand" />
+            Mentor Matching
+          </button>
+          <button
+            onClick={() => setSubAgent("workflow")}
+            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+              subAgent === "workflow" ? "bg-white text-slate-900 shadow-xs" : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <Zap className="size-3.5 text-indigo-600" />
+            Workflow Automation
+          </button>
+          <button
+            onClick={() => setSubAgent("monitoring")}
+            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+              subAgent === "monitoring" ? "bg-white text-slate-900 shadow-xs" : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <Activity className="size-3.5 text-emerald-600" />
+            Startup Monitoring
+          </button>
+        </div>
+      </div>
+
+      {subAgent === "mentor-matching" && <SuperAdminMentorMatchingDashboard />}
+      {subAgent === "workflow" && <SuperAdminWorkflowDashboard />}
+      {subAgent === "monitoring" && <SuperAdminMonitoringDashboard />}
+    </div>
+  );
+}
+
 // ─── Workspace Inspector Tab ───────────────────────────────────────────────────
 
 function WorkspaceInspectorTab() {
@@ -666,7 +726,7 @@ function BroadcastTab() {
 
   useEffect(() => {
     setLoadingList(true);
-    fetch(`${API}/api/admin/announcements`, { credentials: "include" })
+    fetch(`${API}/admin/announcements`, { credentials: "include" })
       .then((r) => r.json())
       .then((d) => { if (d.announcements) setAnnouncements(d.announcements); })
       .catch(() => {})
@@ -681,7 +741,7 @@ function BroadcastTab() {
     setSubmitting(true);
     setMsg(null);
     try {
-      const res = await fetch(`${API}/api/admin/announcements`, {
+      const res = await fetch(`${API}/admin/announcements`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -730,7 +790,7 @@ function BroadcastTab() {
               className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300"
             >
               <option value="all">All Users (System-wide)</option>
-              <option value="student">Students Only</option>
+              <option value="student">Researchers Only</option>
               <option value="faculty">Faculty Coordinators</option>
               <option value="mentor">Mentors</option>
               <option value="investor">Investors</option>
@@ -843,7 +903,7 @@ function SuperAdminDashboardContent() {
 
   useEffect(() => {
     setStatsLoading(true);
-    fetch(`${API}/api/admin/stats`, { credentials: "include" })
+    fetch(`${API}/admin/stats`, { credentials: "include" })
       .then((r) => r.json())
       .then((d) => { if (d.stats) setStats(d.stats); })
       .catch(() => {})
@@ -880,6 +940,7 @@ function SuperAdminDashboardContent() {
 
         {/* Tab content */}
         {activeTab === "overview" && <OverviewTab stats={stats} loading={statsLoading} />}
+        {activeTab === "agents" && <AgentsTab />}
         {activeTab === "users" && <UserManagementTab />}
         {activeTab === "workspaces" && <WorkspaceInspectorTab />}
         {activeTab === "announce" && <BroadcastTab />}

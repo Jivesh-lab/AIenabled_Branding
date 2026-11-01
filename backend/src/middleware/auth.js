@@ -6,8 +6,15 @@ const User = require('../models/User');
  * authenticate
  * Verifies the `aai_token` httpOnly cookie or Authorization header.
  * Attaches req.user = { id, role } on success.
- * Falls back to seeded Admin user if cookie is missing (in dev mode).
+ * There is no implicit identity: a request without a valid token gets a 401 unless the
+ * explicit local-development fallback below is switched on.
  */
+function devFallbackEnabled() {
+  return process.env.NODE_ENV === 'development'
+    && process.env.DEV_AUTH_FALLBACK === 'true'
+    && Boolean(process.env.DEV_AUTH_FALLBACK_EMAIL);
+}
+
 async function authenticate(req, res, next) {
   let token = req.cookies?.aai_token;
 
@@ -20,7 +27,7 @@ async function authenticate(req, res, next) {
       const payload = jwt.verify(token, process.env.JWT_SECRET);
       
       // If mongoose is connected and User.findById is available, verify status in database
-      if (typeof User.findById === 'function' && mongoose.connection?.readyState === 1) {
+      if (typeof User.findById === 'function' && mongoose.connection?.readyState === 1 && mongoose.isValidObjectId(payload.sub)) {
         const user = await User.findById(payload.sub).select('status isSoftDeleted role email name isInvestorVerified');
         if (user) {
           if (user.isSoftDeleted) {
@@ -54,14 +61,18 @@ async function authenticate(req, res, next) {
     }
   }
 
-  // Development fallback (as documented in docstring):
-  // When running locally in dev mode and browser NextAuth session doesn't forward aai_token cookie,
-  // fall back to the active super_admin/admin user so dashboards remain fully operational.
-  if (process.env.NODE_ENV !== 'production' && typeof User.findOne === 'function' && mongoose.connection?.readyState === 1) {
+  // Explicit, opt-in local-development identity. It is never active by default and never
+  // in production: it requires NODE_ENV=development AND DEV_AUTH_FALLBACK=true, and it uses
+  // the account named by DEV_AUTH_FALLBACK_EMAIL so the identity is visible and deliberate.
+  if (devFallbackEnabled() && typeof User.findOne === 'function' && mongoose.connection?.readyState === 1) {
     try {
-      const devUser = await User.findOne({ role: 'super_admin', status: 'active', isSoftDeleted: { $ne: true } })
-        || await User.findOne({ role: 'admin', status: 'active', isSoftDeleted: { $ne: true } });
+      const devUser = await User.findOne({
+        email: String(process.env.DEV_AUTH_FALLBACK_EMAIL || '').toLowerCase(),
+        status: 'active',
+        isSoftDeleted: { $ne: true },
+      });
       if (devUser) {
+        console.warn(`[AUTH] DEV_AUTH_FALLBACK active: acting as ${devUser.email} (${devUser.role}). Never enable outside local development.`);
         req.user = {
           id: devUser._id.toString(),
           role: devUser.role,

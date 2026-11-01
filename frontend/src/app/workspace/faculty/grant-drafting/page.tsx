@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from "react";
 import PageContainer from "@/components/shared/PageContainer";
+import { FacultyListSkeleton } from "@/components/shared/loading/facultySkeletons";
 import { Card, StatusBadge, ProgressBar } from "@/components/shared/Surface";
+import MetricCard from "@/components/shared/MetricCard";
 import {
   FileText,
   Plus,
@@ -76,8 +78,8 @@ export default function GrantDraftingPage() {
               stage: p.stage || "Application Drafting",
               deadline: "30 Nov 2026",
               utilised: p.progress || 0,
-              description: `Research grant for ${p.title} led by ${p.leadStudent || "student innovator"}.`,
-              eligibility: "Enrolled student founder with faculty guide endorsement.",
+              description: `Research grant for ${p.title} led by ${p.leadStudent || "researcher innovator"}.`,
+              eligibility: "Enrolled researcher founder with faculty guide endorsement.",
               submitted: p.updatedAt ? new Date(p.updatedAt).toLocaleDateString() : "Recent",
               draftScore: 75 + Math.min(20, idx * 5),
             }));
@@ -155,7 +157,7 @@ export default function GrantDraftingPage() {
     >
       <div className="space-y-6">
         {/* Summary Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           {[
             { label: "Total Grants Tracked", value: grants.length, icon: FileText, color: "bg-brand/10 text-brand" },
             { label: "Active Grants", value: grants.filter((g) => g.status === "Active").length, icon: CheckCircle2, color: "bg-emerald-50 text-emerald-700" },
@@ -167,17 +169,7 @@ export default function GrantDraftingPage() {
               color: "bg-brand-cyan/10 text-brand-cyan-ink",
             },
           ].map((s) => (
-            <Card key={s.label} className="p-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-xs font-medium text-muted-ink">{s.label}</p>
-                  <p className="text-2xl font-bold text-ink mt-1">{loading ? "—" : s.value}</p>
-                </div>
-                <div className={`flex size-9 items-center justify-center rounded-lg ${s.color}`}>
-                  <s.icon className="size-4" />
-                </div>
-              </div>
-            </Card>
+            <MetricCard key={s.label} label={s.label} value={loading ? "—" : s.value} icon={s.icon} tone={s.color.includes("danger") ? "danger" : s.color.includes("amber") ? "attention" : "default"} loading={loading} />
           ))}
         </div>
 
@@ -248,10 +240,7 @@ export default function GrantDraftingPage() {
         {/* Grant Cards */}
         <div className="space-y-3">
           {loading ? (
-            <div className="flex items-center justify-center py-16 text-muted-ink">
-              <Loader2 className="size-5 animate-spin mr-2" />
-              <span className="text-xs">Loading grant proposals...</span>
-            </div>
+            <FacultyListSkeleton />
           ) : filtered.length === 0 ? (
             <div className="text-center py-16 text-muted-ink text-sm border border-dashed border-line rounded-xl bg-card">
               <FileText className="size-8 mx-auto text-muted-ink/40 mb-2" />

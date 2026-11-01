@@ -1,7 +1,7 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
 import { cn } from "@/lib/utils";
 import { formatLongDate } from "@/lib/dates";
-import { MONTH_NAMES, monthGrid } from "../_lib/meetings";
+import { MONTH_NAMES, monthGrid } from "@/lib/calendarGrid";
 
 const WEEKDAY_HEADERS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -10,7 +10,7 @@ const WEEKDAY_HEADERS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
  * outlined; days with meetings carry a small cyan dot. Controlled: the parent
  * owns the visible month and the selection.
  */
-export default function MeetingCalendar({
+export default function MonthCalendar({
   year,
   month,
   today,
@@ -45,10 +45,10 @@ export default function MeetingCalendar({
         </h2>
         <div className="flex gap-1">
           <button type="button" onClick={() => shift(-1)} aria-label="Previous month" className={navButton}>
-            <ChevronLeft className="size-4" aria-hidden="true" />
+            <ChevronLeftIcon className="size-4" aria-hidden="true" />
           </button>
           <button type="button" onClick={() => shift(1)} aria-label="Next month" className={navButton}>
-            <ChevronRight className="size-4" aria-hidden="true" />
+            <ChevronRightIcon className="size-4" aria-hidden="true" />
           </button>
         </div>
       </div>

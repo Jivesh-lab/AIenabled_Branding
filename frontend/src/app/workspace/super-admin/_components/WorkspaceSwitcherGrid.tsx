@@ -15,13 +15,13 @@ import {
 
 const WORKSPACES = [
   {
-    title: "Student Workspace",
+    title: "Researcher Workspace",
     role: "student",
     path: "/workspace/student/dashboard",
     icon: GraduationCap,
     color: "from-blue-500/10 to-indigo-500/10 text-blue-600 border-blue-200",
     badgeColor: "bg-blue-100 text-blue-800",
-    description: "Inspect student project submissions, milestone trackers, meeting requests, and team profiles.",
+    description: "Inspect researcher project submissions, milestone trackers, meeting requests, and team profiles.",
   },
   {
     title: "Faculty Workspace",

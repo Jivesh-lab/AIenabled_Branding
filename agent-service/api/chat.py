@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import time
 import uuid
+from urllib.parse import unquote
 from typing import Any
 
 import structlog
@@ -16,7 +17,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
-from api.auth import get_current_user, AuthenticatedUser
+from api.auth import get_current_user, get_internal_service, AuthenticatedUser
 
 from core.orchestrator import build_orchestrator
 from core.state import AgentState
@@ -152,7 +153,7 @@ async def chat(request: ChatRequest, current_user: AuthenticatedUser = Depends(g
         raise HTTPException(status_code=500, detail=f"Agent error: {str(exc)}")
 
     response_text = final_state.get("final_response") or "I was unable to generate a response. Please try again."
-    await _log_session(pool, session_id, request.user_id, request.message, response_text, final_state)
+    await _log_session(pool, session_id, current_user.id, request.message, response_text, final_state)
 
     return ChatResponse(
         session_id=session_id,
@@ -178,10 +179,11 @@ async def chat(request: ChatRequest, current_user: AuthenticatedUser = Depends(g
 async def stream_chat(
     session_id: str,
     message: str,
-    user_id: str,
-    user_role: str = "student",
+    user_id: str | None = None,
+    user_role: str | None = None,
     startup_id: str | None = None,
-    current_user: AuthenticatedUser = Depends(get_current_user),
+    context: str | None = None,
+    current_user: AuthenticatedUser = Depends(get_internal_service),
     pool=Depends(get_db),
 ):
     """
@@ -189,8 +191,25 @@ async def stream_chat(
     The chat widget connects here and receives token-by-token output.
     Each event is: data: {"type": "token"|"step"|"done", "content": "..."}
     """
-    if user_id != current_user.id and current_user.role not in ["admin", "super_admin"]:
-        raise HTTPException(status_code=403, detail="Not authorized to stream as another user")
+    # Identity and role are taken from the signed internal token. Query parameters are
+    # retained only for backwards-compatible clients and are deliberately ignored.
+    user_id = current_user.id
+
+    if pool:
+        async with pool.acquire() as conn:
+            owner_id = await conn.fetchval(
+                "SELECT user_id FROM chat_sessions WHERE id = $1::uuid",
+                session_id,
+            )
+        if owner_id is not None and str(owner_id) != current_user.id:
+            raise HTTPException(status_code=403, detail="This chat session belongs to another user")
+
+    try:
+        authorized_context = json.loads(unquote(context)) if context else {}
+        if not isinstance(authorized_context, dict):
+            authorized_context = {}
+    except (TypeError, ValueError, json.JSONDecodeError):
+        authorized_context = {}
 
     initial_state: AgentState = {
         "session_id": session_id,
@@ -219,9 +238,11 @@ async def stream_chat(
         "error": None,
         "tokens_used": 0,
         "run_metadata": {},
+        "authorized_context": authorized_context,
     }
 
     async def event_generator():
+        last_response = None
         try:
             async for chunk in _orchestrator.astream(initial_state, stream_mode="values"):
                 # Emit "thinking" step notifications
@@ -234,7 +255,9 @@ async def stream_chat(
                         })
                     }
                 # Emit final response tokens
-                if final := chunk.get("final_response"):
+                final = chunk.get("final_response")
+                if final and final != last_response:
+                    last_response = final
                     yield {
                         "data": json.dumps({
                             "type": "response",
@@ -251,6 +274,8 @@ async def stream_chat(
                     "requires_human_review": chunk.get("requires_human_review", False),
                 })
             }
+            response_text = chunk.get("final_response") or ""
+            await _log_session(pool, session_id, current_user.id, message, response_text, chunk)
         except Exception as exc:
             logger.error("sse_stream_error", error=str(exc), session=session_id)
             yield {"data": json.dumps({"type": "error", "content": str(exc)})}

@@ -3,7 +3,15 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import PageContainer from "@/components/shared/PageContainer";
+import { useSession } from "next-auth/react";
+import ApprovalsPanel from "@/components/agentic/ApprovalsPanel";
+import AgentActivityFeed from "@/components/agentic/AgentActivityFeed";
+import AttentionPanel from "@/components/agentic/AttentionPanel";
+import AgentMeetings from "@/components/agentic/AgentMeetings";
+import { friendlyThrown } from "@/lib/friendlyError";
+import { FacultyListSkeleton } from "@/components/shared/loading/facultySkeletons";
 import { Card, SectionHeading, StatusBadge, ProgressBar } from "@/components/shared/Surface";
+import MetricCard from "@/components/shared/MetricCard";
 import {
   BookOpen,
   Lightbulb,
@@ -18,8 +26,7 @@ import {
   Microscope,
   GraduationCap,
   Briefcase,
-  Loader2,
-} from "lucide-react";
+  } from "lucide-react";
 
 interface Project {
   id: string;
@@ -36,6 +43,7 @@ interface Metrics {
   activeProjects: number;
   totalStudents: number;
   pendingMentorRequests: number;
+  pendingMentorDecisions?: number;
   upcomingMeetings: number;
   pendingTasks: number;
   overdueMilestones: number;
@@ -48,6 +56,9 @@ const HEALTH_STATUS_TONE: Record<string, "success" | "attention" | "danger" | "n
 };
 
 export default function FacultyDashboardPage() {
+  const { data: session } = useSession();
+  const firstName = (session?.user?.name || "").replace(/\s*\([^)]*\)\s*$/, "") || "Professor";
+  const [tab, setTab] = useState<"home" | "portfolio">("home");
   const [greeting, setGreeting] = useState("Good morning");
   const [projects, setProjects] = useState<Project[]>([]);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
@@ -74,7 +85,7 @@ export default function FacultyDashboardPage() {
           throw new Error(json.message || "Failed to load data");
         }
       } catch (err: any) {
-        setError(err.message);
+        setError(friendlyThrown(err, "We couldn't load this right now. Please try again in a moment."));
       } finally {
         setLoading(false);
       }
@@ -91,30 +102,38 @@ export default function FacultyDashboardPage() {
 
   return (
     <PageContainer
-      title="Faculty Research Dashboard"
-      description="Oversight of supervised student projects, IP filings, grant management, and research progression."
+      title="Coordinator Home"
+      description="Mentor allocations waiting for you, what the agents did for your startups, and anything they could not resolve."
     >
       <div className="space-y-6">
+        <div role="tablist" aria-label="Coordinator views" className="flex gap-1 border-b border-line">
+          {([["home", "Approvals & activity"], ["portfolio", "Cohort portfolio"]] as const).map(([id, label]) => (
+            <button key={id} role="tab" aria-selected={tab === id} type="button" onClick={() => setTab(id)} className={`-mb-px border-b-2 px-4 py-2.5 text-[13.5px] font-medium ${tab === id ? "border-brand text-brand" : "border-transparent text-muted-ink hover:text-ink"}`}>{label}</button>
+          ))}
+        </div>
+
+        {tab === "home" && (
+          <div className="space-y-8">
+            <ApprovalsPanel title="Approvals needed" types={["mentor_allocation"]} emptyMessage="When a mentor accepts a request for one of your startups, the Mentor-Matching Agent proposes them here with who it asked and why. You confirm; it then arranges the onboarding meeting." />
+            <div className="grid gap-8 xl:grid-cols-2">
+              <AgentActivityFeed title="Agent activity on your startups" limit={12} />
+              <AttentionPanel title="Escalations for your startups" />
+            </div>
+            <AgentMeetings title="Meetings the agents arranged" canRecord />
+          </div>
+        )}
+
+        {tab === "portfolio" && (
+        <>
         {/* KPI Row */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           {[
             { label: "Supervised Projects", value: metrics?.activeProjects ?? "—", sub: "Active this semester", icon: GraduationCap, color: "bg-brand/10 text-brand" },
-            { label: "Pending Mentor Requests", value: metrics?.pendingMentorRequests ?? "—", sub: "Awaiting coordinator action", icon: FileText, color: "bg-amber-50 text-amber-700" },
+            { label: "Mentor decisions waiting", value: metrics?.pendingMentorDecisions ?? "—", sub: "Proposals awaiting your approval", icon: FileText, color: "bg-amber-50 text-amber-700" },
             { label: "Upcoming Meetings", value: metrics?.upcomingMeetings ?? "—", sub: "Scheduled sessions", icon: Award, color: "bg-emerald-50 text-emerald-700" },
             { label: "Overdue Milestones", value: metrics?.overdueMilestones ?? "—", sub: "Across all projects", icon: TrendingUp, color: "bg-brand-cyan/10 text-brand-cyan-ink" },
           ].map((kpi) => (
-            <Card key={kpi.label} className="p-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-xs font-medium text-muted-ink">{kpi.label}</p>
-                  <p className="text-2xl font-bold text-ink mt-1">{kpi.value}</p>
-                  <p className="text-[11px] text-muted-ink mt-0.5">{kpi.sub}</p>
-                </div>
-                <div className={`flex size-9 items-center justify-center rounded-lg ${kpi.color}`}>
-                  <kpi.icon className="size-4" />
-                </div>
-              </div>
-            </Card>
+            <MetricCard key={kpi.label} label={kpi.label} value={kpi.value} sub={kpi.sub} icon={kpi.icon} tone={kpi.color.includes("danger") ? "danger" : kpi.color.includes("amber") ? "attention" : "default"} loading={loading} />
           ))}
         </div>
 
@@ -125,9 +144,9 @@ export default function FacultyDashboardPage() {
               <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/10 border border-white/20 text-[11px] font-semibold uppercase tracking-wider mb-2">
                 Faculty Actions
               </span>
-              <h2 className="text-lg font-bold">{greeting}, Professor</h2>
+              <h2 className="text-lg font-bold">{greeting}, {firstName}</h2>
               <p className="text-xs text-blue-200 mt-1">
-                {metrics ? `${metrics.overdueMilestones} overdue milestones. ${metrics.pendingMentorRequests} mentor requests pending.` : "Loading your activity summary…"}
+                {metrics ? `${metrics.overdueMilestones} overdue milestones. ${metrics.pendingMentorDecisions ?? 0} mentor decisions waiting.` : "Loading your activity summary…"}
               </p>
             </div>
             <div className="flex flex-wrap gap-2.5">
@@ -147,17 +166,14 @@ export default function FacultyDashboardPage() {
         {/* Supervised Projects */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <SectionHeading title="Supervised Student Projects & AI Health Tracking" action={{ label: "View all", href: "/workspace/faculty/student-projects" }} />
+            <SectionHeading title="Supervised Researcher Projects & AI Health Tracking" action={{ label: "View all", href: "/workspace/faculty/student-projects" }} />
             <span className="text-[11px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-full">
               Monitoring Agent Active
             </span>
           </div>
 
           {loading ? (
-            <div className="flex items-center justify-center py-16 text-muted-ink gap-2">
-              <Loader2 className="size-5 animate-spin" />
-              <span className="text-sm">Loading projects from database…</span>
-            </div>
+            <FacultyListSkeleton />
           ) : error ? (
             <div className="rounded-xl border border-red-100 bg-red-50 p-6 text-center">
               <AlertCircle className="size-8 text-danger mx-auto mb-2" />
@@ -168,7 +184,7 @@ export default function FacultyDashboardPage() {
             <div className="rounded-xl border border-line bg-canvas p-10 text-center">
               <GraduationCap className="size-10 text-muted-ink mx-auto mb-3 opacity-40" />
               <p className="text-sm font-semibold text-ink">No supervised projects yet</p>
-              <p className="text-xs text-muted-ink mt-1">Projects will appear here once students are enrolled in your cohort.</p>
+              <p className="text-xs text-muted-ink mt-1">Projects will appear here once researchers are enrolled in your cohort.</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -206,7 +222,7 @@ export default function FacultyDashboardPage() {
                         <strong>Monitoring Agent Intervention:</strong>{" "}
                         {proj.overdueMilestonesCount > 1
                           ? `${proj.overdueMilestonesCount} milestones overdue. Coordinator check-in recommended.`
-                          : "1 milestone overdue. Review sprint task deadlines with student founder."}
+                          : "1 milestone overdue. Review sprint task deadlines with researcher founder."}
                       </div>
                     </div>
                   )}
@@ -215,6 +231,8 @@ export default function FacultyDashboardPage() {
             </div>
           )}
         </div>
+        </>
+        )}
       </div>
     </PageContainer>
   );

@@ -1,70 +1,96 @@
 import Link from "next/link";
-import { AlertCircle, CalendarDays, FolderKanban, ListChecks } from "lucide-react";
+import { CalendarDaysIcon, ClipboardDocumentCheckIcon, ExclamationCircleIcon, FolderIcon } from "@heroicons/react/24/outline";
 import { cn } from "@/lib/utils";
 import type { Kpi } from "@/lib/studentKpis";
 
 const ICON = {
-  "active-projects": FolderKanban,
-  "needs-attention": AlertCircle,
-  "upcoming-meetings": CalendarDays,
-  "overdue-tasks": ListChecks,
+  "active-projects": FolderIcon,
+  "needs-attention": ExclamationCircleIcon,
+  "upcoming-meetings": CalendarDaysIcon,
+  "overdue-tasks": ClipboardDocumentCheckIcon,
 } as const;
 
-/** One short line under each number; the full rule is in the tooltip. */
-const HINT = {
-  "active-projects": "Submitted, in review or approved",
-  "needs-attention": "Actions waiting on you",
-  "upcoming-meetings": "Confirmed, today or later",
-  "overdue-tasks": "Past their due date",
+const THEMES = {
+  "active-projects": {
+    bar: "bg-brand",
+    iconBg: "bg-brand-soft text-brand",
+    hoverBorder: "hover:border-brand/50",
+  },
+  "needs-attention": {
+    bar: "bg-warm",
+    iconBg: "bg-warm-soft text-warm",
+    hoverBorder: "hover:border-warm/50",
+  },
+  "upcoming-meetings": {
+    bar: "bg-teal",
+    iconBg: "bg-teal-soft text-teal",
+    hoverBorder: "hover:border-teal/50",
+  },
+  "overdue-tasks": {
+    bar: "bg-rose-500",
+    iconBg: "bg-rose-50 text-rose-600",
+    hoverBorder: "hover:border-rose-400",
+  },
 } as const;
-
-const STATE_HINT = { unavailable: "Unavailable right now", "not-tracked": "None recorded yet" } as const;
 
 /**
- * KPI ledger. A number is shown only when its source loaded; otherwise the tile explains why
- * ("Unavailable" vs "None recorded"), never 0 as a stand-in.
+ * Premium KPI summary cards for the Student Dashboard.
+ * Clean, spacious, with accent top bars and micro-elevation.
  */
 export default function KpiRow({ kpis }: { kpis: Kpi[] }) {
   return (
-    <section aria-label="Incubation overview">
-      <div className="grid grid-cols-2 divide-y divide-line rounded-lg border border-line bg-white sm:grid-cols-4 sm:divide-x sm:divide-y-0">
+    <section aria-label="At a glance">
+      <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4 lg:gap-4.5">
         {kpis.map((kpi) => {
           const Icon = ICON[kpi.id];
-          const alert = (kpi.id === "overdue-tasks" || kpi.id === "needs-attention") && (kpi.value ?? 0) > 0;
+          const theme = THEMES[kpi.id] || THEMES["active-projects"];
+          const attention = (kpi.id === "overdue-tasks" || kpi.id === "needs-attention") && (kpi.value ?? 0) > 0;
+          const failed = kpi.value === null && kpi.state === "unavailable";
+          const display = kpi.value === null ? (failed ? "—" : "0") : String(kpi.value);
+
           return (
             <Link
               key={kpi.id}
               href={kpi.href}
               title={`${kpi.definition} Source: ${kpi.source}.`}
               className={cn(
-                "group flex flex-col justify-between p-4 sm:p-5 transition-colors hover:bg-[#FAFBFB] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40",
-                alert && "bg-amber-50/40"
+                "group relative overflow-hidden rounded-2xl border bg-white p-4.5 text-left shadow-[0_2px_8px_rgba(16,27,53,0.04)] outline-none",
+                "transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-slate-200/60 focus-visible:ring-2 focus-visible:ring-brand/30",
+                attention
+                  ? "border-warm/40 bg-gradient-to-b from-warm-soft/30 to-white"
+                  : "border-line " + theme.hoverBorder
               )}
             >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[13px] font-medium text-muted-ink">
-                  {kpi.label}
+              {/* Subtle top accent line */}
+              <div
+                className={cn(
+                  "absolute top-0 inset-x-0 h-1 transition-all duration-200 group-hover:h-1.5",
+                  attention ? "bg-warm" : theme.bar
+                )}
+              />
+
+              <div className="flex items-start justify-between gap-3 pt-1">
+                <span className="min-w-0">
+                  <span className="block truncate text-xs font-semibold uppercase tracking-wider text-muted-ink">
+                    {kpi.label}
+                  </span>
+                  <span
+                    className={cn(
+                      "mt-2 block text-2xl lg:text-3xl font-extrabold tracking-tight tabular-nums",
+                      failed ? "text-muted-ink" : attention ? "text-warm" : "text-brand-deep"
+                    )}
+                  >
+                    {display}
+                  </span>
                 </span>
-                <Icon
+                <div
                   className={cn(
-                    "size-4 shrink-0 transition-colors",
-                    alert ? "text-amber-600" : "text-slate-400 group-hover:text-brand"
-                  )}
-                  aria-hidden="true"
-                />
-              </div>
-              <div className="mt-3">
-                <span
-                  className={cn(
-                    "tabular-nums text-[26px] font-semibold tracking-tight",
-                    alert ? "text-amber-900" : "text-ink"
+                    "flex size-9 shrink-0 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-105",
+                    attention ? "bg-warm-soft text-warm" : theme.iconBg
                   )}
                 >
-                  {kpi.value === null ? "—" : kpi.value}
-                </span>
-                <p className="mt-0.5 text-[12px] text-muted-ink">
-                  {kpi.state === "ok" ? HINT[kpi.id] : STATE_HINT[kpi.state]}
-                </p>
+                  <Icon className="size-4.5" aria-hidden="true" />
+                </div>
               </div>
             </Link>
           );

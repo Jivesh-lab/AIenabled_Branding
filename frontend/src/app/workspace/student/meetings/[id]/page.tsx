@@ -59,8 +59,8 @@ export default async function MeetingDetailPage({ params }: { params: Promise<{ 
         <Card className="p-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
-              <h1 className="text-[22px] font-bold tracking-tight text-ink">{meeting.title}</h1>
-              <p className="mt-1 text-[14px] font-medium text-brand-cyan-ink">{meeting.projectTitle}</p>
+              <h1 className="text-[18px] font-semibold leading-tight tracking-tight text-ink sm:text-[20px]">{meeting.title}</h1>
+              <p className="mt-0.5 text-[13px] font-medium text-brand-cyan-ink">{meeting.projectTitle}</p>
             </div>
             <StatusBadge label={MEETING_STATUS_LABEL[status]} tone={MEETING_STATUS_TONE[status]} />
           </div>

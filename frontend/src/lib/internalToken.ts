@@ -2,18 +2,14 @@ import { SignJWT } from "jose";
 
 export const AGENT_SERVICE_URL = process.env.AGENT_SERVICE_URL || "http://127.0.0.1:8000";
 
-const DEV_ONLY_SECRET = "test_internal_secret_key_123";
-
-/** Secret shared with agent-service. Only a missing secret in dev falls back to the test value. */
+/** Secret shared with agent-service. Strictly requires INTERNAL_JWT_SECRET in all environments. */
 function getInternalJwtSecret(): string {
   const secret = process.env.INTERNAL_JWT_SECRET;
-  const isProd = process.env.NODE_ENV === "production";
   if (!secret) {
-    if (isProd) throw new Error("FATAL: INTERNAL_JWT_SECRET must be configured in production.");
-    return DEV_ONLY_SECRET;
+    throw new Error("FATAL: INTERNAL_JWT_SECRET must be configured in environment.");
   }
-  if (isProd && secret === DEV_ONLY_SECRET) {
-    throw new Error("FATAL: Insecure test INTERNAL_JWT_SECRET cannot be used in production.");
+  if (secret === "test_internal_secret_key_123") {
+    throw new Error("FATAL: Insecure test INTERNAL_JWT_SECRET is rejected. Generate a secure random secret.");
   }
   return secret;
 }

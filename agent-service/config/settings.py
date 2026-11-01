@@ -24,7 +24,9 @@ class Settings(BaseSettings):
     log_level: str = "info"
 
     # ── LLM (OpenRouter) ──────────────────────────────────────────────────────
-    openrouter_api_key: str
+    # Optional: without a key the rule-based checks still run and AI-written parts say they are unavailable.
+    openrouter_api_key: str = ""
+    llm_api_key: str = ""  # preferred name; falls back to OPENROUTER_API_KEY
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     openrouter_model: str = "meta-llama/llama-3.1-8b-instruct:free"
     openrouter_embed_model: str = "openai/text-embedding-ada-002"
@@ -52,10 +54,10 @@ class Settings(BaseSettings):
     # ── SMTP ──────────────────────────────────────────────────────────────────
     smtp_host: str = "smtp.gmail.com"
     smtp_port: int = 587
-    smtp_user: str
-    smtp_password: str
+    smtp_user: str = ""
+    smtp_password: str = ""
     smtp_from_name: str = "AAI Incubation Centre"
-    smtp_from_email: str
+    smtp_from_email: str = ""
 
     # ── Web Search ────────────────────────────────────────────────────────────
     tavily_api_key: str = ""
@@ -72,6 +74,14 @@ class Settings(BaseSettings):
     # ── CORS ──────────────────────────────────────────────────────────────────
     frontend_url: str = "http://localhost:3000"
     express_api_url: str = "http://localhost:5000"
+
+    @property
+    def llm_key(self) -> str:
+        return (self.llm_api_key or self.openrouter_api_key or "").strip()
+
+    @property
+    def llm_configured(self) -> bool:
+        return bool(self.llm_key)
 
     @property
     def is_development(self) -> bool:

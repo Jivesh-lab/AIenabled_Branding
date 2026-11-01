@@ -10,6 +10,9 @@ import {
   Megaphone,
   FileText,
   Settings,
+  Sparkles,
+  Zap,
+  Activity,
 } from "lucide-react";
 import { NavSection } from "@/components/shared/DashboardSidebar";
 

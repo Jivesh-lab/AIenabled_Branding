@@ -100,6 +100,19 @@ async def intent_analysis(state: AgentState) -> AgentState:
 
 async def task_planning(state: AgentState) -> AgentState:
     """Decide which agents to invoke and in what order."""
+    # Operational questions must stay on the record-grounded assistant path.
+    # Without this guard, the intent model can mistake a status/follow-up question
+    # for a broad incubation evaluation and invoke slow specialist agents.
+    record_query_terms = (
+        "assigned startup", "assigned startups", "follow-up", "follow up", "pending task",
+        "pending activities", "application status", "what is happening", "agent execution",
+        "failed execution", "overdue", "notification", "mentor allocation", "meeting request",
+    )
+    if any(term in state.get("user_input", "").lower() for term in record_query_terms):
+        state["planned_agents"] = ["incubation_assistant"]
+        logger.info("orchestrator_record_query", agents=state["planned_agents"])
+        return state
+
     # Rules for intent-to-agent dispatching
     intent_to_agents = {
         "research_analysis":     ["research"],

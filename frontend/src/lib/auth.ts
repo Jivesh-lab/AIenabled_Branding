@@ -94,7 +94,7 @@ export const authOptions: NextAuthOptions = {
           id: user.id,
           name: user.name,
           email: user.email,
-          role: user.role as "student" | "faculty" | "mentor" | "investor" | "admin" | "super_admin",
+          role: user.role as "student" | "faculty" | "mentor" | "industry" | "investor" | "admin" | "super_admin",
           facultyRole: user.facultyRole || null,
         };
       },

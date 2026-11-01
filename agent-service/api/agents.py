@@ -21,6 +21,7 @@ from agents.incubation import run_incubation_agent
 from agents.investor import run_investor_agent
 from core.state import AgentState
 from db.postgres import get_db
+from api.auth import AuthenticatedUser, get_internal_service
 
 logger = structlog.get_logger(__name__)
 router = APIRouter(prefix="/api/agents", tags=["agents"])
@@ -115,16 +116,26 @@ async def investor(req: AgentRequest):
 
 
 @router.post("/application/validate")
-async def validate_application_endpoint(submission: dict[str, Any]):
+async def validate_application_endpoint(
+    submission: dict[str, Any],
+    current_user: AuthenticatedUser = Depends(get_internal_service),
+):
     """Check applications for missing, inconsistent, or invalid information before submission."""
+    if "submit_application" not in current_user.permissions:
+        raise HTTPException(status_code=403, detail="Missing submit_application permission")
     from agents.application_agent import validate_application_data
     result = validate_application_data(submission)
     return {"status": "success", "validation": result}
 
 
 @router.post("/application/assess")
-async def assess_application_endpoint(submission: dict[str, Any]):
+async def assess_application_endpoint(
+    submission: dict[str, Any],
+    current_user: AuthenticatedUser = Depends(get_internal_service),
+):
     """Generate application summary, transparent assessment, and reviewer questions."""
+    if "review_applications" not in current_user.permissions and "submit_application" not in current_user.permissions:
+        raise HTTPException(status_code=403, detail="Missing application assessment permission")
     from agents.application_agent import assess_application
     result = await assess_application(submission)
     return {"status": "success", "assessment": result}

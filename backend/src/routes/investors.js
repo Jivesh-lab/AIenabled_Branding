@@ -8,6 +8,7 @@ const InvestorPortfolio = require('../models/InvestorPortfolio');
 const { authenticate, requireRole } = require('../middleware/auth');
 const { logAuditTrail } = require('../middleware/auditLogger');
 const { sendMeetingScheduledEmails } = require('../services/emailService');
+const { enqueueEvent } = require('../services/eventOrchestrator');
 
 const router = express.Router();
 
@@ -459,6 +460,16 @@ router.post(
         status: 'pending_admin_review', // Strict business rule: enters pending_admin_review
       });
 
+      await enqueueEvent({
+        eventType: 'investor.introduction_requested',
+        aggregateType: 'investor_introduction',
+        aggregateId: String(intro._id),
+        projectId: String(startupId),
+        actorId: req.user.id,
+        idempotencyKey: `investor-introduction-requested:${intro._id}`,
+        payload: { type, status: intro.status, startupId: String(startupId) },
+      });
+
       await logAuditTrail({
         userId: req.user.id,
         email: req.investorUser.email,
@@ -597,6 +608,16 @@ router.post(
       intro.reviewedAt = new Date();
       await intro.save();
 
+      await enqueueEvent({
+        eventType: decision === 'forward' ? 'investor.introduction_approved' : 'investor.introduction_declined',
+        aggregateType: 'investor_introduction',
+        aggregateId: String(intro._id),
+        projectId: String(intro.startupId),
+        actorId: req.user.id,
+        idempotencyKey: `investor-introduction-decision:${intro._id}:${decision}`,
+        payload: { decision, status: intro.status },
+      });
+
       await logAuditTrail({
         userId: req.user.id,
         email: req.user.email || 'admin@system',
@@ -625,7 +646,8 @@ router.post(
 // ===========================================================================
 
 // POST /api/investors/schedule-meet
-// AI Agent schedules a meeting directly based on investor & founder availability
+// An investor asks to meet a founder. Investor introductions need a human decision (Tier 3), so this records a
+// request for the administrators. Nothing is booked, no link is invented and no email is claimed.
 router.post(
   '/schedule-meet',
   authenticate,
@@ -644,30 +666,22 @@ router.post(
     try {
       const { startupId, preferredDate, preferredTimeSlot, message } = req.body;
 
-      const startup = await StartupProfile.findOne({ _id: startupId, isApproved: true, status: 'active' })
-        .populate('founderId', 'name email');
+      const startup = await StartupProfile.findOne({ _id: startupId, isApproved: true, status: 'active' }).populate('founderId', 'name');
       if (!startup) {
         return res.status(404).json({ success: false, message: 'Approved startup not found.' });
       }
-
       const founder = startup.founderId;
       if (!founder) {
         return res.status(404).json({ success: false, message: 'Startup founder account not found.' });
       }
 
-      // Determine date & time slot
-      const chosenDate = preferredDate || new Date(Date.now() + 86400000 * 2).toISOString().slice(0, 10);
-      const chosenTime = preferredTimeSlot || '14:00 - 14:45';
-      const meetingRoomId = `meet-${startup.name.toLowerCase().replace(/[^a-z0-9]/g, '')}-${Date.now().toString(36)}`;
-      const meetingLink = `https://meet.aai-dbitic.edu/${meetingRoomId}`;
-
-      // Create or update introduction record
+      const proposed = preferredDate ? [{ date: preferredDate, time: preferredTimeSlot || '', timeZone: 'IST' }] : [];
       let intro = await InvestorIntroduction.findOne({
         investorId: req.user.id,
         startupId,
-        status: { $in: ['pending_admin_review', 'forwarded_to_founder', 'scheduled'] },
+        status: { $in: ['pending_admin_review', 'forwarded_to_founder', 'scheduled', 'approved'] },
       });
-
+      const alreadyOpen = Boolean(intro);
       if (!intro) {
         intro = new InvestorIntroduction({
           investorId: req.user.id,
@@ -675,91 +689,50 @@ router.post(
           founderId: founder._id,
           type: 'meeting_request',
           message,
-          proposedTimes: [{ date: chosenDate, time: chosenTime, timeZone: 'IST' }],
-          status: 'scheduled',
-          scheduledMeeting: {
-            date: chosenDate,
-            time: chosenTime,
-            timeZone: 'IST',
-            meetingLink,
-            scheduledByAgent: true,
-            emailSentToInvestor: true,
-            emailSentToFounder: true,
-            scheduledAt: new Date(),
-          },
+          proposedTimes: proposed,
+          status: 'pending_admin_review',
         });
-      } else {
-        intro.type = 'meeting_request';
-        intro.message = message;
-        intro.status = 'scheduled';
-        intro.scheduledMeeting = {
-          date: chosenDate,
-          time: chosenTime,
-          timeZone: 'IST',
-          meetingLink,
-          scheduledByAgent: true,
-          emailSentToInvestor: true,
-          emailSentToFounder: true,
-          scheduledAt: new Date(),
-        };
+        await intro.save();
+        await enqueueEvent({
+          eventType: 'investor.introduction_requested',
+          aggregateType: 'investor_introduction',
+          aggregateId: String(intro._id),
+          projectId: String(intro.startupId),
+          actorId: req.user.id,
+          idempotencyKey: `investor-meeting-request:${intro._id}`,
+          payload: { type: 'meeting_request', startupName: startup.name },
+        });
+        await logAuditTrail({
+          userId: req.user.id,
+          email: req.investorUser.email,
+          role: req.user.role,
+          action: 'INVESTOR_REQUEST_MEETING',
+          resource: '/api/investors/schedule-meet',
+          workspace: 'investor',
+          details: { introId: intro._id, startupId, startupName: startup.name },
+          req,
+        });
       }
 
-      await intro.save();
-
-      // Dispatch automated confirmation emails to both parties
-      const emailResult = await sendMeetingScheduledEmails({
-        investorEmail: req.investorUser.email,
-        investorName: req.investorUser.name,
-        founderEmail: founder.email,
-        founderName: founder.name,
-        startupName: startup.name,
-        meetingDate: chosenDate,
-        meetingTime: chosenTime,
-        meetingLink,
-        message,
-      });
-
-      await logAuditTrail({
-        userId: req.user.id,
-        email: req.investorUser.email,
-        role: req.user.role,
-        action: 'AI_AGENT_SCHEDULE_INVESTOR_MEETING',
-        resource: `/api/investors/schedule-meet`,
-        workspace: 'investor',
-        details: {
-          introId: intro._id,
-          startupId,
-          startupName: startup.name,
-          founderEmail: founder.email,
-          chosenDate,
-          chosenTime,
-          meetingLink,
-        },
-        req,
-      });
-
-      return res.status(201).json({
+      return res.status(alreadyOpen ? 200 : 201).json({
         success: true,
-        message: 'Meeting successfully coordinated and scheduled by AI Agent. Confirmation emails dispatched.',
+        message: alreadyOpen
+          ? 'You already have an open request for this startup.'
+          : 'Your meeting request was sent to the incubation administrators for approval. The founder is contacted only after they approve it.',
         meeting: {
           id: intro._id,
           startupId: startup._id,
           startupName: startup.name,
           founderName: founder.name,
-          founderEmail: founder.email,
-          investorName: req.investorUser.name,
-          investorEmail: req.investorUser.email,
-          date: chosenDate,
-          time: chosenTime,
+          date: preferredDate || null,
+          time: preferredTimeSlot || null,
           timeZone: 'IST',
-          meetingLink,
-          status: 'scheduled',
-          emailDelivery: emailResult,
+          status: intro.status === 'pending_admin_review' ? 'pending_approval' : intro.status,
         },
       });
     } catch (err) {
-      console.error('[INVESTOR API] Schedule meeting error:', err);
-      return res.status(500).json({ success: false, message: 'Failed to schedule meeting.' });
+      console.error('[INVESTOR API] Meeting request error:', err);
+      return res.status(500).json({ success: false, message: 'Failed to submit the meeting request.' });
     }
   }
 );

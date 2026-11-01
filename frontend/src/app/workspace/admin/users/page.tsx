@@ -334,7 +334,7 @@ export default function UserManagementPage() {
   async function handleApproveUser(user: UserItem) {
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/admin/approvals/${user._id}/decide`,
+        `/api/backend/admin/approvals/${user._id}/decide`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -361,7 +361,7 @@ export default function UserManagementPage() {
   async function handleRejectUser(user: UserItem, reason?: string) {
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/admin/approvals/${user._id}/decide`,
+        `/api/backend/admin/approvals/${user._id}/decide`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -390,7 +390,7 @@ export default function UserManagementPage() {
   async function handleVerifyInvestor(user: UserItem) {
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/admin/approvals/${user._id}/decide`,
+        `/api/backend/admin/approvals/${user._id}/decide`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -531,7 +531,7 @@ export default function UserManagementPage() {
             className="h-9 rounded-md border border-slate-200 bg-white px-3 text-xs text-slate-700 focus:ring-1 focus:ring-indigo-500"
           >
             <option value="all">All Roles</option>
-            <option value="student">Student</option>
+            <option value="student">Researcher</option>
             <option value="faculty">Faculty</option>
             <option value="mentor">Mentor</option>
             <option value="investor">Investor</option>
@@ -786,7 +786,7 @@ export default function UserManagementPage() {
                   onChange={(e) => setCreateForm({ ...createForm, role: e.target.value })}
                   className="w-full h-9 rounded-md border border-slate-200 bg-white px-3 text-xs text-slate-700 focus:ring-1 focus:ring-indigo-500"
                 >
-                  <option value="student">Student</option>
+                  <option value="student">Researcher</option>
                   <option value="faculty">Faculty</option>
                   <option value="mentor">Mentor</option>
                   <option value="investor">Investor</option>

@@ -140,7 +140,7 @@ export default function TRLCalculatorPage() {
   return (
     <PageContainer
       title="TRL Calculator"
-      description="Assess the Technology Readiness Level (TRL) of your student's research project using a structured questionnaire aligned with DST/BIRAC standards."
+      description="Assess the Technology Readiness Level (TRL) of your researcher's research project using a structured questionnaire aligned with DST/BIRAC standards."
     >
       <div className="space-y-6">
         {/* Current TRL Banner */}

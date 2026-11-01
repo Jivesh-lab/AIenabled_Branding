@@ -59,11 +59,8 @@ export function useAgentChat(userId: string, userRole: string = 'student', start
     }));
 
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_AGENT_API_URL || 'http://localhost:8000';
-      const url = new URL(`${baseUrl}/api/chat/stream/${state.sessionId}`);
+      const url = new URL(`/api/chat/stream/${state.sessionId}`, window.location.origin);
       url.searchParams.append('message', text);
-      url.searchParams.append('user_id', userId);
-      url.searchParams.append('user_role', userRole);
       if (startupId) {
         url.searchParams.append('startup_id', startupId);
       }

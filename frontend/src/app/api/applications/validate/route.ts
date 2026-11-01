@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import { AGENT_SERVICE_URL } from "@/lib/internalToken";
+import { AGENT_SERVICE_URL, createInternalToken } from "@/lib/internalToken";
 import { STUDENT_WRITE_ROLES, authorize, classifyThrown, errorBody } from "@/lib/apiPolicy";
 
 /** POST /api/applications/validate - rule-based pre-submission check shown in the review step. Students only. */
@@ -13,10 +13,11 @@ export async function POST(req: NextRequest) {
 
     const payload = await req.json().catch(() => undefined);
     if (payload === undefined) return NextResponse.json({ message: "Request body must be valid JSON." }, { status: 400 });
+    const token = await createInternalToken(session!.user!, ["submit_application"]);
 
     const backendRes = await fetch(`${AGENT_SERVICE_URL}/api/agents/application/validate`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify(payload),
       cache: "no-store",
     });

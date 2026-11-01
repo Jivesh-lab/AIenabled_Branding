@@ -22,7 +22,7 @@ export default function NextActions({ journeys }: { journeys: Journey[] }) {
       <Card>
         {actions.length === 0 ? (
           journeys.length === 0 ? (
-            <EmptyState icon={Circle} title="No actions yet" action={{ label: "Submit your first idea", href: "/workspace/student/submit" }} />
+            <EmptyState icon={Circle} title="No actions yet" description="Tasks, meetings and review steps will appear here after you submit a proposal." action={{ label: "Submit a proposal", href: "/workspace/student/submit" }} />
           ) : (
             <EmptyState icon={CheckCircle2} title="You're all caught up" description="Nothing needs your attention right now." />
           )
@@ -30,13 +30,18 @@ export default function NextActions({ journeys }: { journeys: Journey[] }) {
           <ul className="divide-y divide-line">
             {actions.map((action) => (
               <li key={action.key}>
-                <Link href={action.href} className="flex items-start gap-3 p-4 hover:bg-nav-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand/40">
-                  <Circle className={cn("mt-0.5 size-4 shrink-0", action.urgent ? "text-brand-gold" : "text-icon")} aria-hidden="true" />
+                <Link href={action.href} className="flex items-start gap-3 px-4 py-3.5 hover:bg-nav-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand/40">
+                  {/* A status dot, not a hollow circle: these rows navigate, they are not check-off items. */}
+                  <span className={cn("mt-[6px] size-2 shrink-0 rounded-full", action.urgent ? "bg-brand-gold" : "bg-icon/50")} aria-hidden="true" />
                   <span className="min-w-0 flex-1">
-                    <span className="block text-[14px] font-medium text-ink">{action.label}</span>
+                    <span className="block text-[14px] font-medium leading-snug text-ink">{action.label}</span>
                     <span className="mt-0.5 block truncate text-[12px] text-muted-ink">{action.project}</span>
                   </span>
-                  {action.urgent && <span className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.04em] text-brand-gold-ink">Attention</span>}
+                  {action.urgent && (
+                    <span className="shrink-0 rounded-full bg-brand-gold/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.04em] text-brand-gold-ink">
+                      Attention
+                    </span>
+                  )}
                 </Link>
               </li>
             ))}

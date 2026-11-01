@@ -44,7 +44,7 @@ const investorIntroductionSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['pending_admin_review', 'forwarded_to_founder', 'scheduled', 'accepted', 'declined', 'cancelled'],
+      enum: ['awaiting_founder_consent', 'pending_admin_review', 'approved', 'forwarded_to_founder', 'scheduled', 'accepted', 'declined', 'cancelled'],
       default: 'pending_admin_review',
       index: true,
     },
@@ -57,6 +57,22 @@ const investorIntroductionSchema = new mongoose.Schema(
       emailSentToInvestor: { type: Boolean, default: false },
       emailSentToFounder: { type: Boolean, default: false },
       scheduledAt: { type: Date, default: null },
+    },
+    // Introductions proposed by the Investor Agent: nothing is shared before the founder consents and an admin approves.
+    origin: { type: String, enum: ['investor', 'agent'], default: 'investor', index: true },
+    founderConsent: {
+      status: { type: String, enum: ['not_required', 'pending', 'granted', 'declined'], default: 'not_required' },
+      at: { type: Date, default: null },
+    },
+    matchScore: { type: Number, default: null },
+    matchReasons: { type: [String], default: [] },
+    draftDocumentId: { type: String, default: null },
+    jobId: { type: String, default: null },
+    meetingId: { type: String, default: null },
+    investorResponse: { type: String, enum: ['pending', 'accepted', 'declined'], default: 'pending' },
+    feedback: {
+      type: [{ byUserId: String, byRole: String, rating: Number, comment: String, at: Date, _id: false }],
+      default: [],
     },
     adminNotes: {
       type: String,

@@ -22,6 +22,7 @@
   --color-brand-cyan-soft: #E6F4F6;  /* Soft Teal tint */
   --color-brand-cyan-ink: #065B64;   /* High-contrast Teal text */
   --color-brand-gold: #D97706;       /* Warm Amber - attention */
+  --color-brand-gold-soft: #FDF4ED;  /* Soft orange background */
   --color-brand-gold-ink: #92400E;   /* High-contrast Amber text */
   --color-ink: #121826;              /* Architectural Charcoal-Navy */
   --color-muted-ink: #596579;        /* Legible Slate */
@@ -29,6 +30,14 @@
   --color-canvas: #FBFBFA;           /* Warm Architectural Linen */
   --color-icon: #4B5565;             /* Secondary icons */
   --color-nav-hover: #F4F6F8;        /* Subtle row hover */
+
+  /* Dark Accelerator Theme Tokens */
+  --color-dark-canvas: #0A1124;
+  --color-dark-panel: #101B35;
+  --color-dark-surface: #172545;
+  --color-dark-border: rgba(255, 255, 255, 0.09);
+  --color-dark-text: #F1F5F9;
+  --color-dark-muted: #94A3B8;
 
   /* Role-Specific Identifiers */
   --color-role-student: #087E8B;     /* Studio Teal */
@@ -85,7 +94,7 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
   /* Ocean Royale PRIMARY (#023EBA) */
-  --primary: #2458D3;
+  --primary: #315FE8;
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -96,7 +105,7 @@
   --destructive: oklch(0.577 0.245 27.325);
   --border: #E2E8F0;
   --input: #E2E8F0;
-  --ring: color-mix(in oklch, #2458D3 40%, transparent);
+  --ring: color-mix(in oklch, #1D4ED8 40%, transparent);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -105,12 +114,12 @@
   --radius: 0.5rem;
   --sidebar: #FFFFFF;
   --sidebar-foreground: #0F172A;
-  --sidebar-primary: #2458D3;
+  --sidebar-primary: #315FE8;
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: #E8EFFC;
-  --sidebar-accent-foreground: #2458D3;
+  --sidebar-accent: #EBF1FE;
+  --sidebar-accent-foreground: #315FE8;
   --sidebar-border: #E2E8F0;
-  --sidebar-ring: #2458D3;
+  --sidebar-ring: #315FE8;
 }
 
 
@@ -535,11 +544,18 @@
    Loading motion. Indeterminate on purpose: we never show a made-up percentage.
    Reduced-motion users get a static bar instead of movement.
    ------------------------------------------------------------------------- */
-@keyframes route-progress-slide {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(260%); }
+
+/* Student portal: no visible scrollbars anywhere (page, sidebar, drawers, tabs, lists). Scrolling still works. */
+html:has(.student-portal),
+.student-portal,
+.student-portal * {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
-@keyframes startup-progress-slide {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(300%); }
+html:has(.student-portal)::-webkit-scrollbar,
+.student-portal::-webkit-scrollbar,
+.student-portal *::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }

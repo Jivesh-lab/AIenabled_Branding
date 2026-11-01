@@ -173,7 +173,7 @@ export default function OpportunitiesPage() {
       const data = await res.json();
       if (res.ok && data.success) {
         setScheduledResult(data.meeting);
-        toast.success("Meeting scheduled! Confirmation emails dispatched to founder and investor.");
+        toast.success(data.message || "Your meeting request was sent for approval.");
       } else {
         toast.error(data.message || "Failed to coordinate meeting schedule.");
       }
@@ -466,7 +466,7 @@ export default function OpportunitiesPage() {
                     <h3 className="text-base font-bold text-ink">
                       {requestType === "expression_of_interest"
                         ? "Express Investor Interest"
-                        : "AI Agent: Schedule Founder Meet"}
+                        : "Request a Founder Meeting"}
                     </h3>
                   </div>
                   <p className="text-xs text-muted-ink mt-1 font-medium">
@@ -485,45 +485,29 @@ export default function OpportunitiesPage() {
               </div>
 
               {scheduledResult ? (
-                /* Success View After Meeting is Scheduled */
+                /* Success view: the request is with the administrators, nothing is booked yet */
                 <div className="space-y-4 py-2">
                   <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-950 space-y-2">
                     <div className="flex items-center gap-2 text-emerald-700 font-bold text-sm">
                       <CheckCircle2 className="size-5 shrink-0" />
-                      <span>Meeting Confirmed & Dispatched by AI Agent!</span>
+                      <span>Request sent for approval</span>
                     </div>
                     <p className="text-xs text-emerald-800 leading-relaxed">
-                      The Incubation AI Agent has coordinated mutual availability between you and founder{" "}
-                      <strong>{scheduledResult.founderName}</strong>. Official calendar invites & email notifications have been sent to both parties.
+                      Your request to meet <strong>{scheduledResult.founderName}</strong> is with the incubation administrators. Introductions always need a person&apos;s approval first;
+                      the founder is only contacted once it is approved, and you will see its progress under Introductions.
                     </p>
                   </div>
 
                   <div className="p-3.5 rounded-xl border border-line bg-canvas/50 text-xs space-y-2">
                     <div className="flex justify-between py-1 border-b border-line/60">
-                      <span className="text-muted-ink">Scheduled Time:</span>
-                      <span className="font-semibold text-ink">
-                        {scheduledResult.date} at {scheduledResult.time} ({scheduledResult.timeZone})
-                      </span>
-                    </div>
-                    <div className="flex justify-between py-1 border-b border-line/60">
-                      <span className="text-muted-ink">Founder Email:</span>
-                      <span className="font-semibold text-ink">{scheduledResult.founderEmail}</span>
-                    </div>
-                    <div className="flex justify-between py-1 border-b border-line/60">
-                      <span className="text-muted-ink">Your Email:</span>
-                      <span className="font-semibold text-ink">{scheduledResult.investorEmail}</span>
+                      <span className="text-muted-ink">Startup:</span>
+                      <span className="font-semibold text-ink">{scheduledResult.startupName}</span>
                     </div>
                     <div className="flex justify-between py-1">
-                      <span className="text-muted-ink">Secure Room URL:</span>
-                      <a
-                        href={scheduledResult.meetingLink}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="font-semibold text-brand hover:underline flex items-center gap-1"
-                      >
-                        {scheduledResult.meetingLink}
-                        <ExternalLink className="size-3" />
-                      </a>
+                      <span className="text-muted-ink">Preferred time:</span>
+                      <span className="font-semibold text-ink">
+                        {scheduledResult.date ? `${scheduledResult.date}${scheduledResult.time ? ` at ${scheduledResult.time}` : ""} (${scheduledResult.timeZone})` : "No preference given"}
+                      </span>
                     </div>
                   </div>
 

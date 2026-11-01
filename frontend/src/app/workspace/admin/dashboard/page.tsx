@@ -3,6 +3,11 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import PageContainer from "@/components/shared/PageContainer";
+import AdminPipeline from "@/components/agentic/AdminPipeline";
+import ApprovalsPanel from "@/components/agentic/ApprovalsPanel";
+import AgentActivityFeed from "@/components/agentic/AgentActivityFeed";
+import AttentionPanel from "@/components/agentic/AttentionPanel";
+import { Card } from "@/components/shared/Surface";
 import {
   Users,
   UserCheck,
@@ -45,13 +50,18 @@ const INITIAL_STATS: StatsData = {
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<StatsData>(INITIAL_STATS);
   const [loading, setLoading] = useState(true);
+  const mentorCount = stats.roleBreakdown.mentor || 0;
+  const studentCount = stats.roleBreakdown.student || 0;
+  const facultyCount = stats.roleBreakdown.faculty || 0;
+  const investorCount = stats.roleBreakdown.investor || 0;
+
 
   useEffect(() => {
     async function fetchStats() {
       try {
         setLoading(true);
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/admin/stats`,
+          `/api/backend/admin/stats`,
           { credentials: "include" }
         );
         if (res.ok) {
@@ -81,15 +91,156 @@ export default function AdminDashboardPage() {
 
   return (
     <PageContainer
-      title="Incubation Operations & Governance"
-      description="Central command desk for cohort user provisioning, partner vetting queues, and institutional compliance."
+      title="Incubation Operations"
+      description="What the agents have prepared for your decision, what they have done on their own, and what they could not resolve."
     >
-      <div className="space-y-6">
-        {/* Urgent Vetting Alert (Single Bold Operational Element) */}
-        {!loading && stats.pendingApprovalsCount > 0 && (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-start gap-3">
-              <div className="flex size-9 shrink-0 items-center justify-center rounded bg-amber-100 text-amber-800 mt-0.5">
+      <div className="space-y-8">
+        <AdminPipeline />
+        <ApprovalsPanel title="Approvals needed" types={["admission", "investor_intro"]} emptyMessage="Complete applications and investor introductions arrive here with the agent's assessment and evidence. You decide; the agents then carry the decision out." />
+        <div className="grid gap-8 xl:grid-cols-2">
+          <AgentActivityFeed title="Agent activity" limit={15} />
+          <AttentionPanel title="Needs attention across the centre" />
+        </div>
+
+        <details className="group rounded-xl border border-line bg-white shadow-sm">
+          <summary className="cursor-pointer list-none px-5 py-4 text-[15px] font-semibold text-ink marker:hidden">
+            People and account management <span className="ml-2 text-[12.5px] font-normal text-muted-ink">user accounts, vetting queue, CSV import (secondary)</span>
+          </summary>
+          <div className="space-y-6 border-t border-line p-5">
+        {/* Metric Cards Banner */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="p-4 border border-slate-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-slate-500 font-medium">Total Managed Accounts</p>
+                <p className="text-2xl font-bold text-slate-900 mt-1">
+                  {loading ? "—" : stats.totalUsers}
+                </p>
+                <p className="text-[11px] text-emerald-600 font-semibold mt-0.5">
+                  {loading
+                    ? "Loading metrics..."
+                    : stats.totalUsers === 0
+                    ? "No registered accounts yet"
+                    : `${stats.activeUsers} Active • ${stats.inactiveUsers} Inactive`}
+                </p>
+              </div>
+              <div className="flex size-10 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+                <Users className="size-5" />
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-4 border border-slate-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-slate-500 font-medium">Pending Registration Queue</p>
+                <p
+                  className={`text-2xl font-bold mt-1 ${
+                    stats.pendingApprovalsCount > 0 ? "text-amber-600" : "text-slate-900"
+                  }`}
+                >
+                  {loading ? "—" : stats.pendingApprovalsCount}
+                </p>
+                <p
+                  className={`text-[11px] font-medium mt-0.5 ${
+                    stats.pendingApprovalsCount > 0 ? "text-amber-600" : "text-emerald-600"
+                  }`}
+                >
+                  {loading
+                    ? "Checking queue..."
+                    : stats.pendingApprovalsCount > 0
+                    ? "Vetting Review Required"
+                    : "Queue Clear (0 Pending)"}
+                </p>
+              </div>
+              <div className="flex size-10 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
+                <UserCheck className="size-5" />
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-4 border border-slate-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-slate-500 font-medium">Mentor-to-Researcher Ratio</p>
+                <p className="text-2xl font-bold text-slate-900 mt-1">
+                  {loading ? "—" : stats.mentorStudentRatio || "0:0"}
+                </p>
+                <p className="text-[11px] text-blue-600 font-semibold mt-0.5">
+                  {loading
+                    ? "Calculating..."
+                    : `${mentorCount} Mentors • ${studentCount} Researchers`}
+                </p>
+              </div>
+              <div className="flex size-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                <BarChart3 className="size-5" />
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-4 border border-slate-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-slate-500 font-medium">Flagged Moderation Items</p>
+                <p className="text-2xl font-bold text-slate-900 mt-1">
+                  {loading ? "—" : stats.moderationItemsCount}
+                </p>
+                <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                  {loading
+                    ? "Checking flags..."
+                    : stats.moderationItemsCount === 0
+                    ? "No Flagged Content"
+                    : "Action Required"}
+                </p>
+              </div>
+              <div className="flex size-10 items-center justify-center rounded-lg bg-purple-50 text-purple-600">
+                <ShieldAlert className="size-5" />
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* Quick Action Hub */}
+        <div className="rounded-xl border border-indigo-100 bg-gradient-to-r from-indigo-900 to-slate-900 text-white p-6 shadow-md">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-500/30 text-indigo-200 text-xs font-semibold uppercase tracking-wider mb-2 border border-indigo-400/30">
+                Operational Actions
+              </span>
+              <h2 className="text-xl font-bold tracking-tight">Onboard & Manage Incubation Cohorts</h2>
+              <p className="text-xs text-slate-300 mt-1 max-w-xl leading-relaxed">
+                Create user accounts individually or in bulk via CSV upload, manage vetting queues, publish announcements, or launch workspace oversight mode.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              <Link
+                href="/workspace/admin/users?action=create"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-semibold shadow transition-colors"
+              >
+                <UserPlus className="size-4" /> Add New User
+              </Link>
+              <Link
+                href="/workspace/admin/users?action=bulk"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-semibold transition-colors"
+              >
+                <FileSpreadsheet className="size-4 text-emerald-400" /> Bulk CSV Import
+              </Link>
+              <Link
+                href="/workspace/admin/announcements"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-semibold transition-colors"
+              >
+                <Megaphone className="size-4 text-amber-400" /> Post Announcement
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* Pending Approvals Alert Banner */}
+        {loading ? null : stats.pendingApprovalsCount > 0 ? (
+          <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-4 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex size-9 items-center justify-center rounded-lg bg-amber-100 text-amber-800">
                 <UserCheck className="size-5" />
               </div>
               <div>
@@ -108,7 +259,7 @@ export default function AdminDashboardPage() {
               Open vetting queue
             </Link>
           </div>
-        )}
+        ) : null}
 
         {/* Operational Metric Strip */}
         <div className="grid grid-cols-2 divide-y divide-line rounded-lg border border-line bg-white sm:grid-cols-4 sm:divide-x sm:divide-y-0">
@@ -229,6 +380,8 @@ export default function AdminDashboardPage() {
             </div>
           </div>
         </div>
+          </div>
+        </details>
       </div>
     </PageContainer>
   );

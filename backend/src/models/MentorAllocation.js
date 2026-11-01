@@ -5,11 +5,11 @@ const mentorAllocationSchema = new mongoose.Schema(
     id: { type: String, required: true, unique: true },
     projectId: { type: String, required: true },
     projectTitle: { type: String, required: true },
-    studentName: { type: String, required: true },
+    studentName: { type: String, default: '' },
     studentRollNo: { type: String, default: '' },
     domain: { type: String, default: '' },
     requestedExpertise: { type: [String], default: [] },
-    justification: { type: String, required: true },
+    justification: { type: String, default: '' },
     recommendedMentorName: { type: String, default: null },
     recommendedMentorOrg: { type: String, default: null },
     recommendedByVolunteerName: { type: String, default: null },
@@ -20,6 +20,7 @@ const mentorAllocationSchema = new mongoose.Schema(
     },
     coordinatorComment: { type: String, default: '' },
     allocatedMentorName: { type: String, default: null },
+    allocatedMentorUserId: { type: String, default: null, index: true },
   },
   { timestamps: true }
 );

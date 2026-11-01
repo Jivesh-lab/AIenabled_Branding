@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { createBackendToken } from "@/lib/backendToken";
 import type { AgentResult } from "@/lib/agentProxy";
-import { authorize, classifyStatus, classifyThrown, errorBody, failureMessage, type Role } from "@/lib/apiPolicy";
+import { authorize, classifyStatus, classifyThrown, errorBody, friendlyLoadMessage, type Role } from "@/lib/apiPolicy";
 
 /**
  * The student portal's door to the Express backend (meetings, tasks, mentoring). Authenticates the NextAuth
@@ -68,13 +68,13 @@ export async function fetchBackend<T>(call: Omit<BackendCall, "method" | "body">
     const result = await callBackend(call);
     if ("denied" in result && result.denied) {
       const kind = classifyStatus(result.denied.status);
-      return { ok: false, kind, status: result.denied.status, message: failureMessage(kind, null) };
+      return { ok: false, kind, status: result.denied.status, message: friendlyLoadMessage(kind) };
     }
     const { response, data, role } = result as { response: Response; data: unknown; role: string };
     if (role !== "student") return { ok: true, data: emptyValue };
     if (!response.ok) {
       const kind = classifyStatus(response.status);
-      return { ok: false, kind, status: response.status, message: failureMessage(kind, data) };
+      return { ok: false, kind, status: response.status, message: friendlyLoadMessage(kind) };
     }
     const body = data as { success?: boolean; data?: T } | null;
     if (!body || body.success !== true || body.data === undefined) {

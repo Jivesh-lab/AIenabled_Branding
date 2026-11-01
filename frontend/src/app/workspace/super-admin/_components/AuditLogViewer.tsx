@@ -44,7 +44,7 @@ export default function AuditLogViewer() {
       if (statusFilter !== "ALL") queryParams.set("status", statusFilter);
 
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/audit?${queryParams.toString()}`,
+        `/api/backend/audit?${queryParams.toString()}`,
         {
           headers: { "Content-Type": "application/json" },
           credentials: "include",
@@ -71,7 +71,7 @@ export default function AuditLogViewer() {
         const queryParams = new URLSearchParams();
         if (statusFilter !== "ALL") queryParams.set("status", statusFilter);
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/audit?${queryParams.toString()}`,
+          `/api/backend/audit?${queryParams.toString()}`,
           { headers: { "Content-Type": "application/json" }, credentials: "include" }
         );
         if (!ignore && res.ok) {

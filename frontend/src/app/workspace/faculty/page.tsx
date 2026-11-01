@@ -1,8 +1,13 @@
 "use client";
 
+import { useSession } from "next-auth/react";
 import { useState, useMemo, useEffect } from "react";
 import PageContainer from "@/components/shared/PageContainer";
+import { FacultyOverviewSkeleton } from "@/components/shared/loading/facultySkeletons";
 import { Card, StatusBadge, ProgressBar } from "@/components/shared/Surface";
+import MetricCard from "@/components/shared/MetricCard";
+import ActivityTimeline from "@/components/shared/ActivityTimeline";
+import { ClockIcon } from "@heroicons/react/24/outline";
 import { toast } from "sonner";
 import {
   FacultySubRole,
@@ -64,6 +69,8 @@ import {
 } from "lucide-react";
 
 export default function FacultyManagementPage() {
+  const { data: session } = useSession();
+  const me = (session?.user?.name || "Faculty").replace(/\s*\([^)]*\)\s*$/, "");
   // Current active faculty persona
   const [activeRole, setActiveRole] = useState<FacultySubRole>("coordinator");
   const [activeTab, setActiveTab] = useState<
@@ -137,7 +144,7 @@ export default function FacultyManagementPage() {
     toast.info(`Switched to Faculty ${role === "coordinator" ? "Coordinator" : "Volunteer"} perspective`, {
       description: role === "coordinator" 
         ? "Authorized to approve mentor allocations, assign volunteers, and schedule official reviews."
-        : "Focused on direct student project guidance, recommending mentors, and milestone check-ins.",
+        : "Focused on direct researcher project guidance, recommending mentors, and milestone check-ins.",
     });
   };
 
@@ -240,7 +247,7 @@ export default function FacultyManagementPage() {
     // Log to audit history
     const newAudit: AuditHistoryItem = {
       id: `aud-${Date.now()}`,
-      actor: activeRole === "coordinator" ? "Dr. K. R. Raman" : "Faculty User",
+      actor: me,
       role: activeRole,
       action: isApproval ? "APPROVE_MENTOR_ALLOCATION" : "REJECT_MENTOR_ALLOCATION",
       target: `Project #${showMentorDecisionModal.projectId}`,
@@ -276,7 +283,7 @@ export default function FacultyManagementPage() {
               status: "recommended",
               recommendedMentorName: mentorName,
               recommendedMentorOrg: org,
-              recommendedByVolunteerName: "Prof. Ananya Sen (Volunteer)",
+              recommendedByVolunteerName: `${me} (Volunteer)`,
               updatedAt: "Just now",
             }
           : req
@@ -290,13 +297,13 @@ export default function FacultyManagementPage() {
         justification: targetReq.justification,
         recommendedMentorName: mentorName,
         recommendedMentorOrg: org,
-        recommendedByVolunteerName: "Prof. Ananya Sen",
+        recommendedByVolunteerName: me,
       });
     }
 
     const newAudit: AuditHistoryItem = {
       id: `aud-${Date.now()}`,
-      actor: "Prof. Ananya Sen",
+      actor: me,
       role: "volunteer",
       action: "RECOMMEND_MENTOR",
       target: `Request #${requestId}`,
@@ -330,7 +337,7 @@ export default function FacultyManagementPage() {
       requestedExpertise,
       justification,
       recommendedMentorName: suggestedMentor,
-      recommendedByVolunteerName: activeRole === "volunteer" ? "Prof. Ananya Sen" : undefined,
+      recommendedByVolunteerName: activeRole === "volunteer" ? me : undefined,
       status: suggestedMentor ? "recommended" : "requested",
       createdAt: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
       updatedAt: "Just now",
@@ -344,7 +351,7 @@ export default function FacultyManagementPage() {
       justification,
       requestedExpertise,
       recommendedMentorName: suggestedMentor,
-      recommendedByVolunteerName: activeRole === "volunteer" ? "Prof. Ananya Sen" : undefined,
+      recommendedByVolunteerName: activeRole === "volunteer" ? me : undefined,
     });
 
     toast.success("Mentor Request Created", {
@@ -376,7 +383,7 @@ export default function FacultyManagementPage() {
     await respondSupportRequest(showGuidanceModal.id, guidanceResponseText.trim());
 
     toast.success("Guidance Logged Successfully", {
-      description: `Saved to MongoDB database and dispatched to student ${showGuidanceModal.studentName}.`,
+      description: `Saved to MongoDB database and dispatched to researcher ${showGuidanceModal.studentName}.`,
     });
 
     setShowGuidanceModal(null);
@@ -439,8 +446,8 @@ export default function FacultyManagementPage() {
       projectId,
       projectTitle: proj?.title || "Incubation Project",
       participants: [
-        activeRole === "coordinator" ? "Dr. K. R. Raman" : "Prof. Ananya Sen",
-        proj?.leadStudent || "Student Lead",
+        me,
+        proj?.leadStudent || "Researcher Lead",
       ],
       date,
       startTime,
@@ -635,10 +642,9 @@ export default function FacultyManagementPage() {
   return (
     <PageContainer
       title="Faculty Management Module"
-      description="Role-aware academic oversight, incubation project governance, mentor allocation workflows, and student supervision for DBIT Incubation Centre."
+      description="Role-aware academic oversight, incubation project governance, mentor allocation workflows, and researcher supervision for DBIT Incubation Centre."
     >
       <div className="space-y-6">
-        {loading && <div className="rounded-xl border border-line bg-canvas p-4 text-center text-sm text-muted-ink">Loading live faculty data from the database…</div>}
         {loadError && <div className="rounded-xl border border-red-100 bg-red-50 p-4 text-center"><AlertCircle className="size-6 text-danger mx-auto mb-1" /><p className="text-sm font-semibold text-danger">Unable to load faculty data</p><p className="text-xs text-muted-ink mt-1">{loadError}</p></div>}
         {!loading && !loadError && !hasData && <div className="rounded-xl border border-line bg-canvas p-6 text-center text-sm text-muted-ink">No faculty data is available in the database yet.</div>}
         {/* ========================================================================= */}
@@ -669,14 +675,13 @@ export default function FacultyManagementPage() {
                 </span>
               </div>
               <h1 className="text-lg font-bold text-white mt-0.5">
-                {activeRole === "coordinator"
-                  ? "Dr. K. R. Raman (Incubation Faculty Coordinator)"
-                  : "Prof. Ananya Sen (Faculty Volunteer Advisor)"}
+                {me}
+                {activeRole === "coordinator" ? " (Incubation Faculty Coordinator)" : " (Faculty Volunteer Advisor)"}
               </h1>
               <p className="text-xs text-blue-100/80">
                 {activeRole === "coordinator"
                   ? "Authoritative Governance: Overseeing cohort allocations, mentor approvals, and institutional sign-offs."
-                  : "Direct Advisory: Mentoring assigned student teams, submitting mentor requests, and monitoring daily deliverables."}
+                  : "Direct Advisory: Mentoring assigned researcher teams, submitting mentor requests, and monitoring daily deliverables."}
               </p>
             </div>
           </div>
@@ -757,30 +762,21 @@ export default function FacultyManagementPage() {
         {/* ========================================================================= */}
         {/* TAB 1: FACULTY OVERVIEW                                                  */}
         {/* ========================================================================= */}
-        {activeTab === "overview" && (
+        {loading && <FacultyOverviewSkeleton />}
+
+        {!loading && activeTab === "overview" && (
           <div className="space-y-6 animate-in fade-in duration-200">
             {/* KPI Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 lg:gap-4">
               {[
                 { label: "Assigned Projects", val: metrics.activeProjects, sub: "Supervised R&D", icon: FolderGit2, color: "bg-brand/10 text-brand" },
-                { label: "Students Supported", val: metrics.totalStudents, sub: "Across 4 teams", icon: Users2, color: "bg-emerald-50 text-emerald-700" },
+                { label: "Researchers Supported", val: metrics.totalStudents, sub: "Across 4 teams", icon: Users2, color: "bg-emerald-50 text-emerald-700" },
                 { label: "Pending Mentors", val: metrics.pendingMentorReqs, sub: "Awaiting decision", icon: Sparkles, color: "bg-amber-50 text-amber-700" },
                 { label: "Upcoming Meetings", val: metrics.upcomingMeets, sub: "Milestone reviews", icon: CalendarDays, color: "bg-indigo-50 text-indigo-700" },
                 { label: "Overdue Milestones", val: metrics.overdueMilestones, sub: "Requires attention", icon: AlertTriangle, color: "bg-red-50 text-danger" },
                 { label: "Tasks In Action", val: metrics.pendingTasks, sub: "Active items", icon: CheckSquare, color: "bg-slate-50 text-slate-700" },
               ].map((kpi) => (
-                <Card key={kpi.label} className="p-3.5 border border-line bg-white shadow-2xs hover:border-brand/30 transition-all">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-[11px] font-semibold text-muted-ink leading-tight">{kpi.label}</p>
-                      <p className="text-2xl font-black text-ink mt-1 tracking-tight">{kpi.val}</p>
-                      <p className="text-[10px] text-muted-ink mt-0.5">{kpi.sub}</p>
-                    </div>
-                    <div className={`p-2 rounded-lg ${kpi.color}`}>
-                      <kpi.icon className="size-4" />
-                    </div>
-                  </div>
-                </Card>
+                <MetricCard key={kpi.label} label={kpi.label} value={kpi.val} sub={kpi.sub} icon={kpi.icon} tone={kpi.color.includes("danger") ? "danger" : kpi.color.includes("amber") ? "attention" : "default"} loading={loading} />
               ))}
             </div>
 
@@ -820,7 +816,7 @@ export default function FacultyManagementPage() {
                               onClick={() => setActiveTab("volunteer")}
                               className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-700 hover:bg-amber-800 text-white transition-colors"
                             >
-                              View Student Support Requests (1 Open)
+                              View Researcher Support Requests (1 Open)
                             </button>
                             <button
                               onClick={() => setShowNewMentorRequestModal(true)}
@@ -840,7 +836,7 @@ export default function FacultyManagementPage() {
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <h3 className="text-sm font-bold text-ink">Supervised Incubation Portfolio</h3>
-                      <p className="text-xs text-muted-ink">Current status of active student startup cohorts</p>
+                      <p className="text-xs text-muted-ink">Current status of active researcher startup cohorts</p>
                     </div>
                     <button
                       onClick={() => setActiveTab("projects")}
@@ -928,21 +924,19 @@ export default function FacultyManagementPage() {
                   </div>
                 </Card>
 
-                {/* Audit History Snippet */}
+                {/* Audit history - the shared Recent Activity timeline */}
                 <Card className="p-4">
-                  <h3 className="text-xs font-bold text-ink mb-3 flex items-center gap-1.5">
-                    <Clock className="size-4 text-muted-ink" /> Recent Activity & Audit Log
-                  </h3>
-                  <div className="space-y-3">
-                    {auditLogs.slice(0, 4).map((log) => (
-                      <div key={log.id} className="text-xs border-l-2 border-brand pl-2.5 py-0.5">
-                        <p className="font-semibold text-ink leading-snug">{log.details}</p>
-                        <p className="text-[10px] text-muted-ink mt-0.5">
-                          {log.actor} ({log.role}) · {log.timestamp}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
+                  <h3 className="mb-2 text-[13px] font-semibold text-ink">Recent Activity &amp; Audit Log</h3>
+                  <ActivityTimeline
+                    entries={auditLogs.slice(0, 4).map((log) => ({
+                      id: log.id,
+                      icon: ClockIcon,
+                      tone: "info" as const,
+                      title: <span className="font-medium">{log.details}</span>,
+                      meta: `${log.actor} (${log.role}) · ${log.timestamp}`,
+                    }))}
+                    emptyMessage="No audit activity recorded yet."
+                  />
                 </Card>
               </div>
             </div>
@@ -952,7 +946,7 @@ export default function FacultyManagementPage() {
         {/* ========================================================================= */}
         {/* TAB 2: FACULTY COORDINATOR SECTION                                       */}
         {/* ========================================================================= */}
-        {activeTab === "coordinator" && (
+        {!loading && activeTab === "coordinator" && (
           <div className="space-y-6 animate-in fade-in duration-200">
             {/* Permission banner if viewing in volunteer mode */}
             {activeRole !== "coordinator" && (
@@ -1008,7 +1002,7 @@ export default function FacultyManagementPage() {
                 <div>
                   <h3 className="text-sm font-bold text-ink">Mentor Allocation Decision Queue</h3>
                   <p className="text-xs text-muted-ink">
-                    Review mentor requests submitted by students and recommended by faculty volunteers.
+                    Review mentor requests submitted by researchers and recommended by faculty volunteers.
                   </p>
                 </div>
                 <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-800">
@@ -1105,7 +1099,7 @@ export default function FacultyManagementPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[
                   {
-                    name: "Prof. Ananya Sen",
+                    name: me,
                     role: "Faculty Volunteer",
                     dept: "Computer Science & AI",
                     activeProjects: 3,
@@ -1158,7 +1152,7 @@ export default function FacultyManagementPage() {
         {/* ========================================================================= */}
         {/* TAB 3: FACULTY VOLUNTEER SECTION                                         */}
         {/* ========================================================================= */}
-        {activeTab === "volunteer" && (
+        {!loading && activeTab === "volunteer" && (
           <div className="space-y-6 animate-in fade-in duration-200">
             {activeRole === "coordinator" && (
               <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -1184,7 +1178,7 @@ export default function FacultyManagementPage() {
               <div>
                 <h2 className="text-base font-bold text-ink">Faculty Volunteer Advisory Desk</h2>
                 <p className="text-xs text-muted-ink">
-                  Support assigned student innovators, record guidance notes, and recommend industry mentors.
+                  Support assigned researcher innovators, record guidance notes, and recommend industry mentors.
                 </p>
               </div>
               <button
@@ -1199,7 +1193,7 @@ export default function FacultyManagementPage() {
             <Card className="p-5">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-sm font-bold text-ink">Student Support & Inquiry Queue</h3>
+                  <h3 className="text-sm font-bold text-ink">Researcher Support & Inquiry Queue</h3>
                   <p className="text-xs text-muted-ink">Questions and advisory requests submitted by your project teams</p>
                 </div>
                 <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-brand/10 text-brand">
@@ -1261,7 +1255,7 @@ export default function FacultyManagementPage() {
             <Card className="p-5">
               <h3 className="text-sm font-bold text-ink mb-1">Mentor Nominations (Volunteer Scope)</h3>
               <p className="text-xs text-muted-ink mb-4">
-                Nominate mentors based on student requirements. Nominations will be routed to the Coordinator for official approval.
+                Nominate mentors based on researcher requirements. Nominations will be routed to the Coordinator for official approval.
               </p>
 
               <div className="space-y-3">
@@ -1298,7 +1292,7 @@ export default function FacultyManagementPage() {
         {/* ========================================================================= */}
         {/* TAB 4: PROJECTS & TEAMS                                                   */}
         {/* ========================================================================= */}
-        {activeTab === "projects" && (
+        {!loading && activeTab === "projects" && (
           <div className="space-y-6 animate-in fade-in duration-200">
             {/* Filter toolbar */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-white border border-line">
@@ -1307,7 +1301,7 @@ export default function FacultyManagementPage() {
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-ink" />
                   <input
                     type="text"
-                    placeholder="Search title, student, roll no..."
+                    placeholder="Search title, researcher, roll no..."
                     value={projectSearch}
                     onChange={(e) => setProjectSearch(e.target.value)}
                     className="pl-8 pr-3 py-1.5 text-xs border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/30 w-56 bg-canvas/30"
@@ -1432,7 +1426,7 @@ export default function FacultyManagementPage() {
         {/* ========================================================================= */}
         {/* TAB 5: MENTOR ALLOCATION WORKFLOW                                        */}
         {/* ========================================================================= */}
-        {activeTab === "mentors" && (
+        {!loading && activeTab === "mentors" && (
           <div className="space-y-6 animate-in fade-in duration-200">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
@@ -1573,7 +1567,7 @@ export default function FacultyManagementPage() {
         {/* ========================================================================= */}
         {/* TAB 6: MEETINGS & CALENDAR                                               */}
         {/* ========================================================================= */}
-        {activeTab === "meetings" && (
+        {!loading && activeTab === "meetings" && (
           <div className="space-y-6 animate-in fade-in duration-200">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
@@ -1653,7 +1647,7 @@ export default function FacultyManagementPage() {
         {/* ========================================================================= */}
         {/* TAB 7: TASKS & PROGRESS REPORTS                                          */}
         {/* ========================================================================= */}
-        {activeTab === "tasks" && (
+        {!loading && activeTab === "tasks" && (
           <div className="space-y-6 animate-in fade-in duration-200">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
@@ -1742,7 +1736,7 @@ export default function FacultyManagementPage() {
         {/* ========================================================================= */}
         {/* TAB 8: NOTIFICATIONS                                                     */}
         {/* ========================================================================= */}
-        {activeTab === "notifications" && (
+        {!loading && activeTab === "notifications" && (
           <div className="space-y-6 animate-in fade-in duration-200">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
@@ -1868,7 +1862,7 @@ export default function FacultyManagementPage() {
 
                 <div className="grid grid-cols-2 gap-3 p-3.5 rounded-xl bg-canvas border border-line">
                   <div>
-                    <span className="text-muted-ink block text-[11px]">Lead Student</span>
+                    <span className="text-muted-ink block text-[11px]">Lead Researcher</span>
                     <strong className="text-ink">{selectedProject.leadStudent} ({selectedProject.rollNumber})</strong>
                   </div>
                   <div>
@@ -1894,7 +1888,7 @@ export default function FacultyManagementPage() {
                 </div>
 
                 <div>
-                  <p className="font-bold text-ink mb-2">Student Team Members</p>
+                  <p className="font-bold text-ink mb-2">Researcher Team Members</p>
                   <div className="space-y-1.5">
                     {selectedProject.teamMembers.map((m) => (
                       <div key={m.rollNumber} className="flex items-center justify-between p-2.5 rounded-lg border border-line bg-white">
@@ -2173,7 +2167,7 @@ export default function FacultyManagementPage() {
                     type="submit"
                     className="px-4 py-2 font-bold bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors shadow-xs"
                   >
-                    Save & Dispatch to Student
+                    Save & Dispatch to Researcher
                   </button>
                 </div>
               </form>
@@ -2356,7 +2350,7 @@ export default function FacultyManagementPage() {
                     required
                     value={announcementContent}
                     onChange={(e) => setAnnouncementContent(e.target.value)}
-                    placeholder="Provide guidelines, deadlines, and submission instructions for student innovators..."
+                    placeholder="Provide guidelines, deadlines, and submission instructions for researcher innovators..."
                     className="w-full px-3 py-2 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/30 resize-none bg-white"
                   />
                 </div>
@@ -2433,7 +2427,7 @@ export default function FacultyManagementPage() {
                     <input
                       id="tOwner"
                       type="text"
-                      defaultValue="Prof. Ananya Sen"
+                      defaultValue={me}
                       className="w-full px-3 py-2 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/30 bg-white"
                     />
                   </div>

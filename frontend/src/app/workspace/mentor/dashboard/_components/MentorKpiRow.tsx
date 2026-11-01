@@ -1,112 +1,53 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Users, CalendarDays, CheckSquare, AlertCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { useCallback, useEffect, useState } from "react";
+import { CalendarDaysIcon, CheckCircleIcon, ExclamationCircleIcon, UsersIcon } from "@heroicons/react/24/outline";
+import MetricCard from "@/components/shared/MetricCard";
 
 interface Metrics {
   activeProjects: number;
-  totalStudents: number;
-  pendingMentorRequests: number;
   upcomingMeetings: number;
   pendingTasks: number;
   overdueMilestones: number;
 }
 
+/**
+ * The four headline numbers, in the portal's standard KPI card. While loading each card is a placeholder of the same
+ * size; if the numbers cannot be loaded the cards say so instead of showing a misleading 0.
+ */
 export default function MentorKpiRow() {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
 
-  useEffect(() => {
-    async function fetchKPIs() {
-      try {
-        setLoading(true);
-        const res = await fetch("/api/faculty/overview");
-        if (res.ok) {
-          const json = await res.json();
-          if (json.success && json.data?.metrics) {
-            setMetrics(json.data.metrics);
-          }
-        }
-      } catch {
-        // Silently catch
-      } finally {
-        setLoading(false);
-      }
+  const load = useCallback(async () => {
+    setLoading(true);
+    setFailed(false);
+    try {
+      const res = await fetch("/api/faculty/overview");
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success || !json.data?.metrics) throw new Error("unavailable");
+      setMetrics(json.data.metrics);
+    } catch {
+      setFailed(true);
+    } finally {
+      setLoading(false);
     }
-    fetchKPIs();
   }, []);
 
-  const kpis = [
-    {
-      label: "Active Startups Advised",
-      value: loading ? "—" : (metrics?.activeProjects ?? 8).toString(),
-      icon: Users,
-      note: "Across assigned cohorts",
-    },
-    {
-      label: "Clinics Scheduled",
-      value: loading ? "—" : (metrics?.upcomingMeetings ?? 3).toString(),
-      icon: CalendarDays,
-      note: "Advisory sessions booked",
-    },
-    {
-      label: "Pending Milestone Reviews",
-      value: loading ? "—" : (metrics?.pendingTasks ?? 2).toString(),
-      icon: CheckSquare,
-      alert: (metrics?.pendingTasks ?? 2) > 0,
-      note: "Action required",
-    },
-    {
-      label: "Startups Needing Attention",
-      value: loading ? "—" : (metrics?.overdueMilestones ?? 1).toString(),
-      icon: AlertCircle,
-      alert: (metrics?.overdueMilestones ?? 1) > 0,
-      note: (metrics?.overdueMilestones ?? 1) > 0 ? "Requires review" : "On schedule",
-    },
-  ];
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const value = (n?: number) => (failed ? "—" : (n ?? 0));
+  const caption = (text: string) => (failed ? "Couldn't load" : text);
 
   return (
-    <section aria-label="Advisor metrics ledger">
-      <div className="grid grid-cols-2 divide-y divide-line rounded-lg border border-line bg-white sm:grid-cols-4 sm:divide-x sm:divide-y-0">
-        {kpis.map((kpi) => (
-          <div
-            key={kpi.label}
-            className={cn(
-              "flex flex-col justify-between p-4 sm:p-5 transition-colors",
-              kpi.alert ? "bg-amber-50/40" : "bg-white"
-            )}
-          >
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[13px] font-medium text-muted-ink">
-                {kpi.label}
-              </span>
-              <div
-                className={cn(
-                  "flex size-6 items-center justify-center rounded",
-                  kpi.alert ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-500"
-                )}
-              >
-                <kpi.icon className="size-3.5" strokeWidth={2} />
-              </div>
-            </div>
-
-            <div className="mt-3">
-              <span className="tabular-nums text-[26px] font-semibold tracking-tight text-ink">
-                {kpi.value}
-              </span>
-              <p
-                className={cn(
-                  "mt-0.5 text-[12px]",
-                  kpi.alert ? "font-medium text-amber-800" : "text-slate-500"
-                )}
-              >
-                {kpi.note}
-              </p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+      <MetricCard loading={loading} label="Active Mentees" value={value(metrics?.activeProjects)} sub={caption("Supervised startups")} icon={UsersIcon} />
+      <MetricCard loading={loading} label="Upcoming Sessions" value={value(metrics?.upcomingMeetings)} sub={caption("Scheduled meetings")} icon={CalendarDaysIcon} />
+      <MetricCard loading={loading} label="Pending Tasks" value={value(metrics?.pendingTasks)} sub={caption("Action items")} icon={CheckCircleIcon} tone="attention" />
+      <MetricCard loading={loading} label="Overdue Milestones" value={value(metrics?.overdueMilestones)} sub={caption("Needs attention")} icon={ExclamationCircleIcon} tone="danger" />
+    </div>
   );
 }

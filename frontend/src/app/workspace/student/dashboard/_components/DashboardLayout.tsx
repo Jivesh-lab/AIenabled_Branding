@@ -24,12 +24,13 @@ export default function DashboardLayout({
 }) {
   return (
     <PageContainer className="space-y-0">
-      <div className="flex flex-col gap-7">
+      {/* pb-20 keeps the last section clear of the fixed assistant button. */}
+      <div className="flex flex-col gap-5 pb-20">
         {heading}
         {kpis}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="flex min-w-0 flex-col gap-6 lg:col-span-2">{main}</div>
-          <div className="flex min-w-0 flex-col gap-6">{side}</div>
+          <div className="flex min-w-0 flex-col gap-5 lg:col-span-2">{main}</div>
+          <div className="flex min-w-0 flex-col gap-5">{side}</div>
         </div>
         {lower}
       </div>

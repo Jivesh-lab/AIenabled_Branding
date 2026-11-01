@@ -9,6 +9,7 @@ import {
   classifyThrown,
   errorBody,
   failureMessage,
+  friendlyLoadMessage,
   initialsOf,
 } from "./apiPolicy.ts";
 
@@ -68,4 +69,13 @@ test("initialsOf", () => {
   assert.equal(initialsOf("  priya  "), "P");
   assert.equal(initialsOf(""), "");
   assert.equal(initialsOf(null), "");
+});
+
+test("friendlyLoadMessage never leaks service text and is calm for every kind", () => {
+  for (const kind of ["unauthenticated", "forbidden", "not-found", "unavailable"] as const) {
+    const message = friendlyLoadMessage(kind);
+    assert.ok(message.length > 10);
+    assert.doesNotMatch(message, /internal server error|stack|exception|undefined/i);
+  }
+  assert.match(friendlyLoadMessage("unavailable"), /try again/i);
 });

@@ -1,8 +1,11 @@
 "use client";
 
+import { useSession } from "next-auth/react";
 import { useState, useMemo, useEffect } from "react";
 import PageContainer from "@/components/shared/PageContainer";
+import { FacultyTabContentSkeleton } from "@/components/shared/loading/facultySkeletons";
 import { Card, StatusBadge, ProgressBar } from "@/components/shared/Surface";
+import MetricCard from "@/components/shared/MetricCard";
 import { toast } from "sonner";
 import {
   IncubationProject,
@@ -38,6 +41,8 @@ import {
 } from "lucide-react";
 
 export default function FacultyVolunteerPage() {
+  const { data: session } = useSession();
+  const me = (session?.user?.name || "Faculty").replace(/\s*\([^)]*\)\s*$/, "");
   const [projects, setProjects] = useState<IncubationProject[]>([]);
   const [mentorRequests, setMentorRequests] = useState<MentorAllocationRequest[]>([]);
   const [meetings, setMeetings] = useState<FacultyMeeting[]>([]);
@@ -93,7 +98,7 @@ export default function FacultyVolunteerPage() {
 
   // Metrics
   const metrics = useMemo(() => {
-    const assignedTeams = projects.filter((p) => p.assignedVolunteerName?.includes("Ananya Sen")).length;
+    const assignedTeams = projects.filter((p) => p.assignedVolunteerName?.includes(me)).length;
     const openInquiries = supportRequests.filter((s) => s.status === "Open").length;
     const pendingMentorReviews = mentorRequests.filter((r) => r.status === "recommended" || r.status === "under_review").length;
     const pendingTasks = tasks.filter((t) => t.status !== "Completed").length;
@@ -122,10 +127,10 @@ export default function FacultyVolunteerPage() {
       studentRollNo: proj.rollNumber,
       domain: proj.domain,
       requestedExpertise: expertiseList,
-      justification: newReqJustification.trim() || "Technical scaling support requested by student founder.",
+      justification: newReqJustification.trim() || "Technical scaling support requested by researcher founder.",
       recommendedMentorName: newReqNominatedMentor.trim() || undefined,
       recommendedMentorOrg: newReqNominatedMentor.trim() ? "Industry Partner Network" : undefined,
-      recommendedByVolunteerName: "Prof. Ananya Sen (Volunteer)",
+      recommendedByVolunteerName: `${me} (Volunteer)`,
       status: newReqNominatedMentor.trim() ? "recommended" : "requested",
       createdAt: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
       updatedAt: "Just now",
@@ -136,11 +141,11 @@ export default function FacultyVolunteerPage() {
     // Persist to MongoDB backend
     await submitMentorAllocationRequest({
       projectId: proj.id,
-      justification: newReqJustification.trim() || "Technical scaling support requested by student founder.",
+      justification: newReqJustification.trim() || "Technical scaling support requested by researcher founder.",
       requestedExpertise: expertiseList,
       recommendedMentorName: newReqNominatedMentor.trim() || undefined,
       recommendedMentorOrg: newReqNominatedMentor.trim() ? "Industry Partner Network" : undefined,
-      recommendedByVolunteerName: "Prof. Ananya Sen",
+      recommendedByVolunteerName: me,
     });
 
     toast.success("Mentor Request & Nomination Submitted", {
@@ -169,7 +174,7 @@ export default function FacultyVolunteerPage() {
     await respondSupportRequest(showGuidanceModal.id, guidanceResponse.trim());
 
     toast.success("Advisory Guidance Recorded", {
-      description: `Saved to MongoDB database and dispatched to student founder ${showGuidanceModal.studentName}.`,
+      description: `Saved to MongoDB database and dispatched to researcher founder ${showGuidanceModal.studentName}.`,
     });
 
     setShowGuidanceModal(null);
@@ -193,10 +198,9 @@ export default function FacultyVolunteerPage() {
   return (
     <PageContainer
       title="Faculty Volunteer Advisory Desk"
-      description="Direct hands-on mentoring of assigned student founders, guidance logging, milestone reviews, and mentor recommendations."
+      description="Direct hands-on mentoring of assigned researcher founders, guidance logging, milestone reviews, and mentor recommendations."
     >
       <div className="space-y-6">
-        {loading && <div className="rounded-xl border border-line bg-canvas p-4 text-center text-sm text-muted-ink">Loading live volunteer data from the database…</div>}
         {loadError && <div className="rounded-xl border border-red-100 bg-red-50 p-4 text-center"><AlertCircle className="size-6 text-danger mx-auto mb-1" /><p className="text-sm font-semibold text-danger">Unable to load volunteer data</p><p className="text-xs text-muted-ink mt-1">{loadError}</p></div>}
         {!loading && !loadError && projects.length === 0 && mentorRequests.length === 0 && meetings.length === 0 && tasks.length === 0 && supportRequests.length === 0 && <div className="rounded-xl border border-line bg-canvas p-6 text-center text-sm text-muted-ink">No volunteer data is available in the database yet.</div>}
         {/* Volunteer Identity Header */}
@@ -214,7 +218,7 @@ export default function FacultyVolunteerPage() {
                   Faculty Volunteer
                 </span>
               </div>
-              <h1 className="text-xl font-bold text-white mt-0.5">Prof. Ananya Sen</h1>
+              <h1 className="text-xl font-bold text-white mt-0.5">{me}</h1>
               <p className="text-xs text-blue-100/80">
                 Department of Computer Science & Artificial Intelligence · DBIT Incubation Centre
               </p>
@@ -232,26 +236,15 @@ export default function FacultyVolunteerPage() {
         </div>
 
         {/* Volunteer KPI Bar */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 lg:gap-4">
           {[
-            { label: "Assigned Teams", val: metrics.assignedTeams, sub: "Student Projects", icon: FolderGit2, color: "bg-brand/10 text-brand" },
-            { label: "Open Inquiries", val: metrics.openInquiries, sub: "Student Questions", icon: MessageSquare, color: "bg-amber-50 text-amber-700" },
+            { label: "Assigned Teams", val: metrics.assignedTeams, sub: "Researcher Projects", icon: FolderGit2, color: "bg-brand/10 text-brand" },
+            { label: "Open Inquiries", val: metrics.openInquiries, sub: "Researcher Questions", icon: MessageSquare, color: "bg-amber-50 text-amber-700" },
             { label: "Mentor Nominations", val: metrics.pendingMentorReviews, sub: "Under Review", icon: Sparkles, color: "bg-emerald-50 text-emerald-700" },
             { label: "Pending Tasks", val: metrics.pendingTasks, sub: "Checklist Items", icon: CheckSquare, color: "bg-indigo-50 text-indigo-700" },
-            { label: "Upcoming Reviews", val: metrics.upcomingMeets, sub: "With Students", icon: CalendarDays, color: "bg-slate-50 text-slate-700" },
+            { label: "Upcoming Reviews", val: metrics.upcomingMeets, sub: "With Researchers", icon: CalendarDays, color: "bg-slate-50 text-slate-700" },
           ].map((kpi) => (
-            <Card key={kpi.label} className="p-3.5 border border-line bg-white shadow-2xs">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-[11px] font-semibold text-muted-ink">{kpi.label}</p>
-                  <p className="text-2xl font-black text-ink mt-1 tracking-tight">{kpi.val}</p>
-                  <p className="text-[10px] text-muted-ink mt-0.5">{kpi.sub}</p>
-                </div>
-                <div className={`p-2 rounded-lg ${kpi.color}`}>
-                  <kpi.icon className="size-4" />
-                </div>
-              </div>
-            </Card>
+            <MetricCard key={kpi.label} label={kpi.label} value={kpi.val} sub={kpi.sub} icon={kpi.icon} tone={kpi.color.includes("danger") ? "danger" : kpi.color.includes("amber") ? "attention" : "default"} loading={loading} />
           ))}
         </div>
 
@@ -259,7 +252,7 @@ export default function FacultyVolunteerPage() {
         <div className="flex items-center gap-1.5 border-b border-line overflow-x-auto pb-1 scrollbar-none">
           {[
             { id: "teams", label: "My Supervised Teams", icon: FolderGit2, count: metrics.assignedTeams },
-            { id: "guidance", label: "Student Inquiries & Guidance", icon: MessageSquare, count: metrics.openInquiries },
+            { id: "guidance", label: "Researcher Inquiries & Guidance", icon: MessageSquare, count: metrics.openInquiries },
             { id: "mentors", label: "Mentor Recommendations", icon: Sparkles, count: mentorRequests.length },
             { id: "tasks", label: "Tasks Checklist", icon: CheckSquare, count: metrics.pendingTasks },
             { id: "meetings", label: "Review Meetings", icon: CalendarDays, count: meetings.length },
@@ -293,14 +286,16 @@ export default function FacultyVolunteerPage() {
         </div>
 
         {/* TAB 1: ASSIGNED STUDENT TEAMS */}
-        {activeTab === "teams" && (
+        {loading && <FacultyTabContentSkeleton withFilters={false} />}
+
+        {!loading && activeTab === "teams" && (
           <div className="space-y-4 animate-in fade-in duration-200">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-white border border-line">
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-ink" />
                 <input
                   type="text"
-                  placeholder="Filter team, lead student, or domain..."
+                  placeholder="Filter team, lead researcher, or domain..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-8 pr-3 py-1.5 text-xs border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/30 w-64 bg-canvas/30"
@@ -350,7 +345,7 @@ export default function FacultyVolunteerPage() {
 
                       <div className="mt-3.5 p-3 rounded-lg bg-canvas/40 border border-line text-xs space-y-1.5">
                         <div className="flex justify-between text-muted-ink">
-                          <span>Student Lead:</span>
+                          <span>Researcher Lead:</span>
                           <strong className="text-ink">{proj.leadStudent} ({proj.rollNumber})</strong>
                         </div>
                         <div className="flex justify-between text-muted-ink">
@@ -383,12 +378,12 @@ export default function FacultyVolunteerPage() {
         )}
 
         {/* TAB 2: STUDENT INQUIRIES & GUIDANCE */}
-        {activeTab === "guidance" && (
+        {!loading && activeTab === "guidance" && (
           <div className="space-y-4 animate-in fade-in duration-200">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-bold text-ink">Student Support & Inquiry Desk</h3>
-                <p className="text-xs text-muted-ink">Questions submitted by assigned student innovators requiring faculty advisory</p>
+                <h3 className="text-sm font-bold text-ink">Researcher Support & Inquiry Desk</h3>
+                <p className="text-xs text-muted-ink">Questions submitted by assigned researcher innovators requiring faculty advisory</p>
               </div>
             </div>
 
@@ -439,13 +434,13 @@ export default function FacultyVolunteerPage() {
         )}
 
         {/* TAB 3: MENTOR NOMINATIONS (VOLUNTEER SCOPE) */}
-        {activeTab === "mentors" && (
+        {!loading && activeTab === "mentors" && (
           <div className="space-y-4 animate-in fade-in duration-200">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h3 className="text-sm font-bold text-ink">Mentor Nominations & Status Tracking</h3>
                 <p className="text-xs text-muted-ink">
-                  Nominate mentors for student teams. Official approval rests with the Faculty Coordinator.
+                  Nominate mentors for researcher teams. Official approval rests with the Faculty Coordinator.
                 </p>
               </div>
               <button
@@ -523,7 +518,7 @@ export default function FacultyVolunteerPage() {
         )}
 
         {/* TAB 4: TASKS CHECKLIST */}
-        {activeTab === "tasks" && (
+        {!loading && activeTab === "tasks" && (
           <div className="space-y-4 animate-in fade-in duration-200">
             <h3 className="text-sm font-bold text-ink">Volunteer Action Checklist</h3>
             <div className="space-y-2.5">
@@ -555,7 +550,7 @@ export default function FacultyVolunteerPage() {
         )}
 
         {/* TAB 5: MEETINGS */}
-        {activeTab === "meetings" && (
+        {!loading && activeTab === "meetings" && (
           <div className="space-y-4 animate-in fade-in duration-200">
             <h3 className="text-sm font-bold text-ink">Review Sessions & Agendas</h3>
             <div className="space-y-3">
@@ -594,7 +589,7 @@ export default function FacultyVolunteerPage() {
 
               <form onSubmit={handleCreateMentorNomination} className="p-6 space-y-3.5 text-xs">
                 <div>
-                  <label className="block font-bold text-ink mb-1">Select Student Project *</label>
+                  <label className="block font-bold text-ink mb-1">Select Researcher Project *</label>
                   <select value={newReqProjectId} onChange={(e) => setNewReqProjectId(e.target.value)} className="w-full px-3 py-2 border border-line rounded-lg bg-white">
                     {projects.map((p) => (
                       <option key={p.id} value={p.id}>{p.title} ({p.leadStudent})</option>
@@ -671,7 +666,7 @@ export default function FacultyVolunteerPage() {
               <div className="p-6 overflow-y-auto space-y-4 text-xs text-ink">
                 <p className="text-muted-ink bg-canvas/40 p-3 rounded-xl border border-line leading-relaxed">{selectedProject.description}</p>
                 <div className="grid grid-cols-2 gap-3 p-3.5 rounded-xl bg-canvas border border-line">
-                  <div><span className="text-muted-ink block text-[11px]">Lead Student</span><strong className="text-ink">{selectedProject.leadStudent} ({selectedProject.rollNumber})</strong></div>
+                  <div><span className="text-muted-ink block text-[11px]">Lead Researcher</span><strong className="text-ink">{selectedProject.leadStudent} ({selectedProject.rollNumber})</strong></div>
                   <div><span className="text-muted-ink block text-[11px]">Assigned Volunteer</span><strong className="text-brand">{selectedProject.assignedVolunteerName || "Unassigned"}</strong></div>
                   <div><span className="text-muted-ink block text-[11px]">Allocated Mentor</span><strong className="text-emerald-700">{selectedProject.allocatedMentorName || "Pending Allocation"}</strong></div>
                   <div><span className="text-muted-ink block text-[11px]">Next Milestone</span><strong className="text-ink">{selectedProject.nextMilestone} ({selectedProject.nextMilestoneDate})</strong></div>

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MapPin, Video } from "lucide-react";
+import { MapPinIcon, VideoCameraIcon } from "@heroicons/react/24/outline";
 import { cn } from "@/lib/utils";
 import { formatClock, weekdayShort } from "@/lib/dates";
 import { StatusBadge } from "@/components/shared/Surface";
@@ -45,80 +45,84 @@ export default function MeetingListItem({ meeting, now }: { meeting: StudentMeet
   const reminder = reminderLabel(meeting.reminder);
 
   return (
+    // A compact row: the parent supplies the surface and the hairline separators.
     <article
       aria-labelledby={`meeting-${meeting.id}`}
-      className="flex gap-4 rounded-xl border border-line bg-white p-4 shadow-sm transition-colors duration-150 hover:border-brand-cyan/40"
+      className="flex flex-col gap-3 px-4 py-3.5 transition-colors duration-150 hover:bg-nav-hover sm:flex-row sm:items-center sm:gap-4"
     >
-      {/* Date tile */}
-      <div
-        className={cn(
-          "flex w-12 shrink-0 flex-col items-center justify-center self-start rounded-lg border py-1.5",
-          status === "TODAY" ? "border-brand/30 bg-brand-cyan-soft/60" : "border-line bg-canvas"
-        )}
-      >
-        {isIsoDate(meeting.date) ? (
-          <>
-            <span className="text-[11px] font-medium uppercase text-muted-ink">{weekdayShort(meeting.date)}</span>
-            <span className={cn("text-[18px] font-bold leading-tight tabular-nums", status === "TODAY" ? "text-brand" : "text-ink")}>
-              {new Date(meeting.date).getUTCDate()}
-            </span>
-          </>
-        ) : (
-          <span className="px-1 text-center text-[11px] font-medium leading-tight text-muted-ink">TBC</span>
-        )}
-      </div>
-
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <h3
-            id={`meeting-${meeting.id}`}
-            className={cn("text-[15px] font-semibold leading-snug", cancelled ? "text-muted-ink line-through" : "text-ink")}
-          >
-            {meeting.title}
-          </h3>
-          <StatusBadge label={MEETING_STATUS_LABEL[status]} tone={MEETING_STATUS_TONE[status]} />
-        </div>
-
-        <p className="mt-0.5 text-[13px] font-medium text-brand-cyan-ink">{meeting.projectTitle}</p>
-
-        <p className="mt-1.5 text-[13px] text-ink">
-          <span className="tabular-nums">{timeRange(meeting)}</span>
-          <span className="text-muted-ink">
-            {" / "}
-            {meeting.meetingType}
-            {!isIsoDate(meeting.date) && ` / ${meeting.date}`}
-          </span>
-        </p>
-
-        {meeting.location && (
-          <p className="mt-1 flex items-center gap-1.5 text-[12px] text-muted-ink">
-            {online ? <Video className="size-3.5 shrink-0" aria-hidden="true" /> : <MapPin className="size-3.5 shrink-0" aria-hidden="true" />}
-            <span className="truncate">{online ? "Online meeting" : meeting.location}</span>
-          </p>
-        )}
-
-        {meeting.agenda && (
-          <p className="mt-2 line-clamp-1 text-[13px] text-muted-ink">
-            <span className="font-medium text-ink">Agenda:</span> {meeting.agenda}
-          </p>
-        )}
-
-        {reminder && (
-          <p className={cn("mt-1.5 text-[12px]", reminder.tone === "bad" ? "text-danger" : "text-muted-ink")}>{reminder.text}</p>
-        )}
-
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Link href={`/workspace/student/meetings/${encodeURIComponent(meeting.id)}`} className={detailsLinkClass}>
-            View Details
-            <span className="sr-only">: {meeting.title}</span>
-          </Link>
-          {join && (
-            <a href={join} target="_blank" rel="noopener noreferrer" className={joinLinkClass}>
-              <Video className="size-3.5" aria-hidden="true" />
-              Join Meeting
-            </a>
+      <div className="flex min-w-0 flex-1 items-start gap-3.5">
+        {/* Date tile */}
+        <div
+          className={cn(
+            "flex w-11 shrink-0 flex-col items-center justify-center rounded-lg border py-1",
+            status === "TODAY" ? "border-brand/30 bg-brand-cyan-soft/60" : "border-line bg-canvas"
+          )}
+        >
+          {isIsoDate(meeting.date) ? (
+            <>
+              <span className="text-[10px] font-medium uppercase leading-tight text-muted-ink">{weekdayShort(meeting.date)}</span>
+              <span className={cn("text-[16px] font-bold leading-tight tabular-nums", status === "TODAY" ? "text-brand" : "text-ink")}>
+                {new Date(meeting.date).getUTCDate()}
+              </span>
+            </>
+          ) : (
+            <span className="px-1 text-center text-[11px] font-medium leading-tight text-muted-ink">TBC</span>
           )}
         </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <h3
+              id={`meeting-${meeting.id}`}
+              className={cn("text-[14px] font-semibold leading-snug", cancelled ? "text-muted-ink line-through" : "text-ink")}
+            >
+              {meeting.title}
+            </h3>
+            <StatusBadge label={MEETING_STATUS_LABEL[status]} tone={MEETING_STATUS_TONE[status]} />
+          </div>
+
+          <p className="mt-0.5 text-[12px] text-muted-ink">
+            <span className="font-medium text-brand-cyan-ink">{meeting.projectTitle}</span>
+            {" · "}
+            <span className="tabular-nums text-ink">{timeRange(meeting)}</span>
+            {" · "}
+            {meeting.meetingType}
+            {!isIsoDate(meeting.date) && ` · ${meeting.date}`}
+          </p>
+
+          {meeting.participants.length > 0 && (
+            <p className="mt-0.5 truncate text-[12px] text-muted-ink">
+              With <span className="font-medium text-ink">{meeting.participants.join(", ")}</span>
+            </p>
+          )}
+
+          {(meeting.location || meeting.agenda || reminder) && (
+            <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[12px] text-muted-ink">
+              {meeting.location && (
+                <span className="inline-flex items-center gap-1">
+                  {online ? <VideoCameraIcon className="size-3.5 shrink-0" aria-hidden="true" /> : <MapPinIcon className="size-3.5 shrink-0" aria-hidden="true" />}
+                  <span className="truncate">{online ? "Online" : meeting.location}</span>
+                </span>
+              )}
+              {meeting.agenda && <span className="line-clamp-1">{meeting.agenda}</span>}
+              {reminder && <span className={cn(reminder.tone === "bad" && "text-danger")}>{reminder.text}</span>}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Actions stay aligned at the end of the row. */}
+      <div className="flex shrink-0 gap-2 sm:justify-end">
+        <Link href={`/workspace/student/meetings/${encodeURIComponent(meeting.id)}`} className={detailsLinkClass}>
+          View Details
+          <span className="sr-only">: {meeting.title}</span>
+        </Link>
+        {join && (
+          <a href={join} target="_blank" rel="noopener noreferrer" className={joinLinkClass}>
+            <VideoCameraIcon className="size-3.5" aria-hidden="true" />
+            Join
+          </a>
+        )}
       </div>
     </article>
   );

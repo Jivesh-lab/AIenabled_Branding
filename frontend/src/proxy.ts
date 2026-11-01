@@ -10,6 +10,7 @@ const ROLE_WORKSPACE: Record<string, string> = {
   faculty: "/workspace/faculty/dashboard",
   mentor: "/workspace/mentor/dashboard",
   investor: "/workspace/investor/dashboard",
+  industry: "/workspace/industry/dashboard",
   admin: "/workspace/admin/dashboard",
   "super_admin": "/workspace/super-admin/dashboard",
 };
@@ -20,6 +21,7 @@ const WORKSPACE_ROLE_SEGMENT: Record<string, string> = {
   faculty: "faculty",
   mentor: "mentor",
   investor: "investor",
+  industry: "industry",
   admin: "admin",
   "super-admin": "super_admin",
 };

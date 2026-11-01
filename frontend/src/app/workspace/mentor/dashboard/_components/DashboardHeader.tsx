@@ -1,21 +1,29 @@
+"use client";
+
+import { useSession } from "next-auth/react";
+import { firstNameOf } from "@/lib/displayName";
+
+/**
+ * Page heading, the same size and weight as every other portal page. The greeting uses the signed-in mentor's real
+ * first name and is simply left out until the session is known - never a placeholder name.
+ */
 export default function DashboardHeader() {
-  const today = new Intl.DateTimeFormat("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  }).format(new Date());
+  const { data: session } = useSession();
+  const firstName = firstNameOf(session?.user?.name);
+  const today = new Intl.DateTimeFormat("en-IN", { weekday: "long", day: "numeric", month: "long" }).format(new Date());
 
   return (
-    <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
-      <div>
-        <p className="text-[13px] font-medium text-brand">{today}</p>
-        <h1 className="mt-1 text-[28px] font-semibold tracking-tight text-ink">
-          Welcome back, Dr. Mentor
-        </h1>
-        <p className="mt-1 text-[14px] text-muted-ink">
+    <header className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+      <div className="min-w-0">
+        <h1 className="text-[18px] font-semibold leading-tight tracking-tight text-ink sm:text-[20px]">Mentor Dashboard</h1>
+        <p className="mt-0.5 text-[13px] text-muted-ink">
+          {firstName ? `Welcome back, ${firstName}. ` : "Welcome back. "}
           Here is what is happening with your mentees today.
         </p>
       </div>
-    </div>
+      <p className="shrink-0 text-[13px] text-muted-ink" suppressHydrationWarning>
+        {today}
+      </p>
+    </header>
   );
 }

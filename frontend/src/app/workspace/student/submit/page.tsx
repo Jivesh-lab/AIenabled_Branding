@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { Card } from "@/components/shared/Surface";
 import PageContainer from "@/components/shared/PageContainer";
+import PageHeader from "@/components/shared/PageHeader";
 import IdeaSubmissionWizard from "./_components/IdeaSubmissionWizard";
 
 export const metadata: Metadata = {
@@ -57,12 +58,10 @@ export default function SubmitIdeaPage() {
   return (
     <PageContainer>
       <div className="flex flex-col gap-6">
-        <header>
-          <h1 className="text-[28px] font-bold leading-tight tracking-tight text-ink">Submit a New Idea</h1>
-          <p className="mt-1.5 text-[14px] text-muted-ink">
-            Tell us about the idea you want to develop through DBIT Incubation Centre.
-          </p>
-        </header>
+        <PageHeader
+          title="Submit a New Idea"
+          description="Tell us about the idea you want to develop through DBIT Incubation Centre."
+        />
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_280px] xl:items-start">
           <div className="min-w-0 max-w-3xl xl:max-w-none">
