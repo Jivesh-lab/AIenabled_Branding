@@ -29,8 +29,8 @@ const REQUEST_TIMEOUT_MS = 30_000;
 function SectionError({ title, message, onRetry }: { title: string; message: string; onRetry: () => void }) {
   return (
     <section aria-label={title}>
-      <SectionHeading title={title} />
-      <Card>
+      <SectionHeading title={title} kicker="Section" />
+      <Card className="p-6">
         <ErrorState title="Could not load this section" message={message} onRetry={onRetry} />
       </Card>
     </section>
@@ -41,7 +41,6 @@ export default function DashboardPage() {
   const [overview, setOverview] = useState<StudentOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [requestError, setRequestError] = useState<string | null>(null);
-  // A newer request always wins: an older response arriving late must not overwrite newer data.
   const latest = useRef(0);
   const inFlight = useRef<AbortController | null>(null);
 
@@ -60,7 +59,7 @@ export default function DashboardPage() {
       if (id !== latest.current) return;
       setOverview(body as StudentOverview);
     } catch (err) {
-      if (id !== latest.current) return; // superseded by a newer request
+      if (id !== latest.current) return;
       const timedOut = controller.signal.aborted;
       const message = timedOut
         ? "This is taking longer than expected. Please try again."
@@ -83,11 +82,9 @@ export default function DashboardPage() {
   }, [load]);
 
   const retry = () => void load();
-  // Skeleton only after a short threshold (no flicker for fast responses); content replaces it the instant data is ready.
   const showSkeleton = useDelayedFlag(loading && !overview, 150);
   const slow = useLongWait(loading && !overview, 5000);
 
-  // Nothing has ever loaded.
   if (!overview) {
     if (requestError) {
       return (
@@ -95,7 +92,7 @@ export default function DashboardPage() {
           heading={<DashboardHeader />}
           kpis={null}
           main={
-            <Card>
+            <Card variant="elevated" className="p-8">
               <ErrorState title="We couldn't load your dashboard" message={requestError} onRetry={retry} />
             </Card>
           }
@@ -124,11 +121,11 @@ export default function DashboardPage() {
   return (
     <DashboardLayout
       heading={
-        <div className="flex flex-col gap-3">
+        <div className="space-y-4">
           <DashboardHeader />
           <AgentStrip />
           {requestError && (
-            <div role="alert" className="rounded-xl border border-red-100 bg-red-50">
+            <div role="alert" className="rounded-xl border border-brand-gold/40 bg-brand-gold/10 p-5">
               <ErrorState title="Showing the last data we loaded" message={`Refreshing failed. ${requestError}`} onRetry={retry} />
             </div>
           )}

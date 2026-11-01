@@ -54,7 +54,14 @@ async function authenticate(req, res, next) {
         }
       }
 
-      req.user = { id: payload.sub, role: payload.role };
+      req.user = {
+        id: payload.sub,
+        role: payload.role,
+        name: payload.name,
+        email: payload.email,
+        status: payload.status || 'active',
+        isInvestorVerified: Boolean(payload.isInvestorVerified),
+      };
       return next();
     } catch {
       // Invalid token, fall through to dev fallback / 401

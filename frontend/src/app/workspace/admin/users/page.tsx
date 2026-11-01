@@ -481,13 +481,13 @@ export default function UserManagementPage() {
           <div className="flex items-center gap-2 w-full md:w-auto">
             <button
               onClick={() => setShowCreateModal(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-sm transition-colors"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-brand hover:bg-brand-hover text-white text-xs font-semibold shadow-sm transition-colors"
             >
               <UserPlus className="size-4" /> Add Single User
             </button>
             <button
               onClick={() => setShowBulkCsvModal(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 text-xs font-semibold transition-colors"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-brand-cyan-soft text-brand-cyan-ink border border-brand-cyan/20 hover:bg-brand-cyan-soft text-xs font-semibold transition-colors"
             >
               <FileSpreadsheet className="size-4" /> Bulk CSV Onboarding
             </button>
@@ -495,17 +495,17 @@ export default function UserManagementPage() {
 
           {/* Bulk Select Actions */}
           {selectedUserIds.length > 0 && (
-            <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-900 w-full md:w-auto">
+            <div className="flex items-center gap-2 bg-brand-soft border border-brand/30 px-3 py-1.5 rounded-lg text-xs font-medium text-brand-deep w-full md:w-auto">
               <span>{selectedUserIds.length} users selected</span>
               <button
                 onClick={() => handleBulkAction("deactivate")}
-                className="px-2 py-1 rounded bg-amber-100 text-amber-800 hover:bg-amber-200 font-semibold text-[11px]"
+                className="px-2 py-1 rounded bg-brand-gold-soft text-brand-gold-ink hover:bg-brand-gold-soft font-semibold text-[11px]"
               >
                 Deactivate All
               </button>
               <button
                 onClick={() => handleBulkAction("delete")}
-                className="px-2 py-1 rounded bg-red-100 text-red-800 hover:bg-red-200 font-semibold text-[11px]"
+                className="px-2 py-1 rounded bg-red-100 text-red-700 hover:bg-red-200 font-semibold text-[11px]"
               >
                 Delete Selected
               </button>
@@ -516,7 +516,7 @@ export default function UserManagementPage() {
         {/* Filter Controls */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <div className="relative md:col-span-2">
-            <Search className="absolute left-3 top-2.5 size-4 text-slate-400" />
+            <Search className="absolute left-3 top-2.5 size-4 text-muted-ink" />
             <Input
               placeholder="Search users by name or email..."
               value={search}
@@ -610,14 +610,14 @@ export default function UserManagementPage() {
                         <div className="text-[11px] text-slate-500">{user.email}</div>
                       </td>
                       <td className="p-3.5">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 uppercase">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-brand-cyan-soft text-brand-cyan-ink border border-brand-cyan/20 uppercase">
                           {user.role}
                         </span>
                       </td>
                       <td className="p-3.5">
                         <div className="flex flex-col gap-1 items-start">
                           {user.status === "active" && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold text-[10px]">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-cyan-soft text-brand-cyan-ink border border-brand-cyan/20 font-semibold text-[10px]">
                               ACTIVE
                             </span>
                           )}
@@ -627,7 +627,7 @@ export default function UserManagementPage() {
                             </span>
                           )}
                           {user.status === "pending" && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-semibold text-[10px]">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-gold-soft text-brand-gold-ink border border-brand-gold/20 font-semibold text-[10px]">
                               PENDING APPROVAL
                             </span>
                           )}
@@ -638,8 +638,8 @@ export default function UserManagementPage() {
                           )}
                           {user.role === "investor" && (
                             user.isInvestorVerified ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 font-semibold text-[9px]">
-                                <ShieldCheck className="size-3 text-indigo-600" /> VERIFIED
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-soft text-brand border border-brand/30 font-semibold text-[9px]">
+                                <ShieldCheck className="size-3 text-brand" /> VERIFIED
                               </span>
                             ) : (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-50 text-slate-600 border border-slate-200 font-semibold text-[9px]">
@@ -658,7 +658,7 @@ export default function UserManagementPage() {
                             <>
                               <button
                                 onClick={() => handleApproveUser(user)}
-                                className="p-1.5 rounded hover:bg-emerald-50 text-emerald-600 transition-colors"
+                                className="p-1.5 rounded hover:bg-brand/10 text-brand transition-colors"
                                 title="Approve Registration"
                               >
                                 <Check className="size-3.5" />
@@ -678,7 +678,7 @@ export default function UserManagementPage() {
                           {user.role === "investor" && user.status === "active" && !user.isInvestorVerified && (
                             <button
                               onClick={() => handleVerifyInvestor(user)}
-                              className="p-1.5 rounded hover:bg-indigo-50 text-indigo-600 transition-colors"
+                              className="p-1.5 rounded hover:bg-brand/10 text-brand transition-colors"
                               title="Verify Accredited Investor"
                             >
                               <ShieldCheck className="size-3.5" />
@@ -817,7 +817,7 @@ export default function UserManagementPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm"
+                  className="px-4 py-2 rounded-lg bg-brand hover:bg-brand-hover text-white font-semibold shadow-sm"
                 >
                   Create Account
                 </button>
@@ -833,7 +833,7 @@ export default function UserManagementPage() {
           <div className="w-full max-w-2xl bg-white rounded-xl shadow-xl border border-slate-200 p-6 space-y-4 animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b pb-3">
               <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                <FileSpreadsheet className="size-5 text-emerald-600" /> Bulk CSV User Onboarding
+                <FileSpreadsheet className="size-5 text-brand-cyan-ink" /> Bulk CSV User Onboarding
               </h3>
               <button onClick={() => setShowBulkCsvModal(false)} className="text-slate-400 hover:text-slate-600">
                 <X className="size-5" />
@@ -850,7 +850,7 @@ export default function UserManagementPage() {
                 placeholder={`name, email, role, institution\nJohn Doe, john@student.edu, student, DBIT Incubation Centre\nJane Smith, jane@mentor.com, mentor, TechCorp`}
                 value={csvText}
                 onChange={(e) => setCsvText(e.target.value)}
-                className="w-full p-3 border border-slate-200 rounded-lg text-xs font-mono focus:ring-1 focus:ring-emerald-500"
+                className="w-full p-3 border border-slate-200 rounded-lg text-xs font-mono focus:ring-1 focus:ring-brand-cyan-ink"
               />
 
               <div className="flex justify-between items-center">
@@ -934,7 +934,7 @@ export default function UserManagementPage() {
                 <p className="text-base font-bold text-slate-900">{selectedUser.name}</p>
                 <p className="text-slate-500">{selectedUser.email}</p>
                 <div className="pt-2 flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded bg-indigo-100 text-indigo-800 font-semibold uppercase">
+                  <span className="px-2 py-0.5 rounded bg-brand-soft text-brand border border-brand/30 font-semibold uppercase">
                     {selectedUser.role}
                   </span>
                   <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-semibold uppercase">
@@ -944,7 +944,7 @@ export default function UserManagementPage() {
               </div>
 
               {/* Approval & Accreditation Controls */}
-              <div className="space-y-2 p-3 bg-indigo-50/50 rounded-xl border border-indigo-100">
+              <div className="space-y-2 p-3 bg-brand-soft rounded-xl border border-brand/30">
                 <label className="block text-indigo-950 font-bold text-xs">Vetting & Accreditation Controls</label>
                 
                 {selectedUser.status !== "active" && (

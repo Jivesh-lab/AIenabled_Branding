@@ -4,8 +4,7 @@ import { useSession } from "next-auth/react";
 import { useState, useMemo, useEffect } from "react";
 import PageContainer from "@/components/shared/PageContainer";
 import { FacultyTabContentSkeleton } from "@/components/shared/loading/facultySkeletons";
-import { Card, StatusBadge, ProgressBar } from "@/components/shared/Surface";
-import MetricCard from "@/components/shared/MetricCard";
+import { Card, KpiCard, SectionDivider, StatusBadge, ProgressBar } from "@/components/shared/Surface";
 import { toast } from "sonner";
 import {
   IncubationProject,
@@ -242,10 +241,11 @@ export default function FacultyCoordinatorPage() {
       description="Executive governance, mentor allocation authorizations, volunteer assignments, and cohort milestone compliance for DBIT Incubation Centre."
     >
       <div className="space-y-6">
-        {loadError && <div className="rounded-xl border border-red-100 bg-red-50 p-4 text-center"><AlertTriangle className="size-6 text-danger mx-auto mb-1" /><p className="text-sm font-semibold text-danger">Unable to load coordinator data</p><p className="text-xs text-muted-ink mt-1">{loadError}</p></div>}
+        {loadError && <div className="rounded-xl border border-line bg-canvas p-4 text-center"><AlertTriangle className="size-6 text-brand mx-auto mb-1" /><p className="text-sm font-semibold text-ink">Unable to load coordinator data</p><p className="text-xs text-muted-ink mt-1">{loadError}</p></div>}
         {!loading && !loadError && projects.length === 0 && mentorRequests.length === 0 && meetings.length === 0 && tasks.length === 0 && <div className="rounded-xl border border-line bg-canvas p-6 text-center text-sm text-muted-ink">No coordinator data is available in the database yet.</div>}
         {/* Coordinator Identity Banner */}
-        <div className="p-5 rounded-2xl bg-gradient-to-r from-brand-deep via-brand to-brand/90 text-white shadow-sm border border-brand/20 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <SectionDivider label="Faculty Coordinator" />
+        <div className="p-5 rounded-2xl border border-brand/30 bg-brand-deep text-white shadow-[0_8px_24px_rgba(16,27,53,0.12)] flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
             <div className="size-12 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center shrink-0">
               <ShieldCheck className="size-7 text-brand-cyan" />
@@ -283,19 +283,21 @@ export default function FacultyCoordinatorPage() {
         </div>
 
         {/* Governance KPI Bar */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 lg:gap-4">
+        <SectionDivider label="Governance at a glance" />
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 lg:gap-5">
           {[
-            { label: "Supervised Projects", val: metrics.governedProjects, sub: "Active Cohort", icon: FolderGit2, color: "bg-brand/10 text-brand" },
-            { label: "Pending Decisions", val: metrics.pendingDecisions, sub: "Mentor Requests", icon: Sparkles, color: "bg-amber-50 text-amber-700" },
-            { label: "At Risk Cohort", val: metrics.atRiskProjects, sub: "Overdue Milestones", icon: AlertTriangle, color: "bg-red-50 text-danger" },
-            { label: "Scheduled Reviews", val: metrics.upcomingReviews, sub: "Next 30 Days", icon: CalendarDays, color: "bg-indigo-50 text-indigo-700" },
-            { label: "Active Volunteers", val: metrics.activeVolunteers, sub: "Supervising Faculty", icon: Users2, color: "bg-emerald-50 text-emerald-700" },
+            { label: "Supervised Projects", val: metrics.governedProjects, sub: "Active Cohort", icon: FolderGit2, accent: "brand" as const },
+            { label: "Pending Decisions", val: metrics.pendingDecisions, sub: "Mentor Requests", icon: Sparkles, accent: "brand-cyan" as const },
+            { label: "At Risk Cohort", val: metrics.atRiskProjects, sub: "Overdue Milestones", icon: AlertTriangle, accent: "brand-gold" as const },
+            { label: "Scheduled Reviews", val: metrics.upcomingReviews, sub: "Next 30 Days", icon: CalendarDays, accent: "brand" as const },
+            { label: "Active Volunteers", val: metrics.activeVolunteers, sub: "Supervising Faculty", icon: Users2, accent: "brand" as const },
           ].map((kpi) => (
-            <MetricCard key={kpi.label} label={kpi.label} value={kpi.val} sub={kpi.sub} icon={kpi.icon} tone={kpi.color.includes("danger") ? "danger" : kpi.color.includes("amber") ? "attention" : "default"} loading={loading} />
+            <KpiCard key={kpi.label} label={kpi.label} value={String(kpi.val)} sub={kpi.sub} icon={kpi.icon} accent={kpi.accent} />
           ))}
         </div>
 
         {/* Section Navigation Tabs */}
+        <SectionDivider label="Workspace navigation" />
         <div className="flex items-center gap-1.5 border-b border-line overflow-x-auto pb-1 scrollbar-none">
           {[
             { id: "governance", label: "Cohort Portfolio", icon: FolderGit2, count: projects.length },
@@ -387,17 +389,11 @@ export default function FacultyCoordinatorPage() {
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-canvas border border-line text-ink uppercase">
                             {proj.domain}
                           </span>
-                          <span
-                            className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                              proj.health === "On Track"
-                                ? "bg-emerald-50 text-emerald-700"
-                                : proj.health === "Needs Attention"
-                                ? "bg-amber-50 text-amber-700"
-                                : "bg-red-50 text-danger"
-                            }`}
-                          >
-                            {proj.health}
-                          </span>
+                            <span
+                              className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${proj.health === "On Track" ? "bg-brand-soft text-brand border-brand/30" : proj.health === "Needs Attention" ? "bg-brand-gold-soft text-brand-gold-ink border-brand-gold/30" : "bg-red-50 text-red-700 border-red-200"}`}
+                            >
+                              {proj.health}
+                            </span>
                         </div>
                         <span className="text-xs font-bold text-muted-ink">{proj.stage}</span>
                       </div>
@@ -416,7 +412,7 @@ export default function FacultyCoordinatorPage() {
                         </div>
                         <div className="flex justify-between text-muted-ink">
                           <span>Allocated Mentor:</span>
-                          <strong className="text-emerald-700">{proj.allocatedMentorName || "Pending Allocation"}</strong>
+                          <strong className="text-brand">{proj.allocatedMentorName || "Unassigned"}</strong>
                         </div>
                       </div>
                     </div>
@@ -438,11 +434,11 @@ export default function FacultyCoordinatorPage() {
         {/* TAB 2: MENTOR DECISION QUEUE */}
         {!loading && activeTab === "mentors" && (
           <div className="space-y-4 animate-in fade-in duration-200">
-            <div className="p-4 rounded-xl bg-amber-50/60 border border-amber-200 text-xs text-amber-950 flex items-start gap-2.5">
-              <ShieldCheck className="size-4.5 text-amber-700 shrink-0 mt-0.5" />
+            <div className="p-4 rounded-xl bg-brand-gold-soft border border-brand-gold/30 text-xs text-brand-gold-ink flex items-start gap-2.5">
+              <ShieldCheck className="size-4.5 text-brand-gold-ink shrink-0 mt-0.5" />
               <div>
-                <p className="font-bold">Official Governance Authorization Gate</p>
-                <p className="text-amber-900/80 mt-0.5">
+                <p className="font-bold text-brand-gold-ink">Official Governance Authorization Gate</p>
+                <p className="text-brand-gold-ink/80 mt-0.5">
                   Only the Faculty Coordinator possesses legal and institutional authority to issue appointment letters
                   and finalize mentor allocations for researcher startups.
                 </p>
@@ -485,12 +481,12 @@ export default function FacultyCoordinatorPage() {
                       </div>
 
                       {req.recommendedMentorName && (
-                        <div className="p-2.5 rounded-lg bg-emerald-50/60 border border-emerald-100 text-xs text-emerald-950 mt-2">
+                        <div className="p-2.5 rounded-lg bg-brand-soft border border-brand/30 text-xs text-brand-deep mt-2">
                           <p className="font-bold flex items-center gap-1.5">
-                            <Sparkles className="size-3.5 text-emerald-600" />
+                            <Sparkles className="size-3.5 text-brand" />
                             Nominated Mentor: {req.recommendedMentorName} ({req.recommendedMentorOrg || "Industry Lead"})
                           </p>
-                          <p className="text-[11px] text-emerald-800 mt-0.5">
+                          <p className="text-[11px] text-brand-deep/80 mt-0.5">
                             Nominated by Volunteer: <strong>{req.recommendedByVolunteerName}</strong>
                           </p>
                         </div>
@@ -506,28 +502,28 @@ export default function FacultyCoordinatorPage() {
                     <div className="flex items-center gap-2 shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-line">
                       {req.status !== "approved" && req.status !== "allocated" && req.status !== "rejected" ? (
                         <>
-                          <button
-                            onClick={() => {
-                              setDecisionModalItem(req);
-                              setDecisionType("approve");
-                              setAssignedMentorName(req.recommendedMentorName || "");
-                            }}
-                            className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-2xs"
-                          >
-                            Authorize Mentor
-                          </button>
-                          <button
-                            onClick={() => {
-                              setDecisionModalItem(req);
-                              setDecisionType("reject");
-                            }}
-                            className="px-3.5 py-1.5 rounded-lg border border-red-200 text-danger hover:bg-red-50 text-xs font-bold transition-colors"
-                          >
-                            Reject
-                          </button>
+                            <button
+                              onClick={() => {
+                                setDecisionModalItem(req);
+                                setDecisionType("approve");
+                                setAssignedMentorName(req.recommendedMentorName || "");
+                              }}
+                              className="px-3.5 py-1.5 rounded-lg bg-brand hover:bg-brand-hover text-white text-xs font-bold transition-colors shadow-xs"
+                            >
+                              Authorize Mentor
+                            </button>
+                            <button
+                              onClick={() => {
+                                setDecisionModalItem(req);
+                                setDecisionType("reject");
+                              }}
+                              className="px-3.5 py-1.5 rounded-lg border border-line bg-white text-ink hover:bg-red-50 hover:border-red-300 hover:text-red-700 text-xs font-bold transition-colors"
+                            >
+                              Reject
+                            </button>
                         </>
                       ) : (
-                        <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-lg">
+                        <span className="text-xs font-semibold text-brand bg-brand-soft px-3 py-1 rounded-lg border border-brand/30">
                           Decision Finalized
                         </span>
                       )}
@@ -567,7 +563,7 @@ export default function FacultyCoordinatorPage() {
                   </p>
 
                   <div className="flex items-center justify-between pt-2 border-t border-line text-[11px] text-muted-ink">
-                    <span>Workload: <strong className="text-emerald-700">{v.workloadStatus}</strong></span>
+                    <span>Workload: <strong className="text-brand">{v.workloadStatus}</strong></span>
                     <button
                       onClick={() => toast.info(`Reassignment dialog ready for ${v.name}.`)}
                       className="text-brand font-bold hover:underline"
@@ -700,21 +696,21 @@ export default function FacultyCoordinatorPage() {
                     </div>
 
                     {aiMentorRecommendations.length > 0 && (
-                      <div className="p-3 rounded-lg bg-indigo-50/60 border border-indigo-100 space-y-2">
-                        <span className="text-[11px] font-bold text-indigo-900 block">AI Recommended Candidates:</span>
+                      <div className="p-3 rounded-lg bg-brand-soft border border-brand/30 space-y-2">
+                        <span className="text-[11px] font-bold text-brand-deep block">AI Recommended Candidates:</span>
                         <div className="space-y-1.5">
                           {aiMentorRecommendations.map((m: any) => (
                             <div
                               key={m.id}
                               onClick={() => setAssignedMentorName(`${m.name} (${m.role})`)}
-                              className="p-2 bg-white rounded border border-indigo-100/70 hover:border-brand cursor-pointer flex items-center justify-between transition-all"
+                              className="p-2 bg-white rounded border border-brand/30 hover:border-brand cursor-pointer flex items-center justify-between transition-all"
                             >
                               <div>
                                 <strong className="text-slate-900 block text-[11px]">{m.name} <span className="text-slate-500 font-normal">· {m.affiliation}</span></strong>
                                 <span className="text-[10px] text-slate-500">{m.match_reasons?.[0]}</span>
                               </div>
                               <div className="text-right">
-                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-brand-gold-soft text-brand-gold-ink">
                                   {m.match_score}% Match
                                 </span>
                               </div>
@@ -749,7 +745,7 @@ export default function FacultyCoordinatorPage() {
 
                 <div className="flex justify-end gap-2 pt-2 border-t border-line">
                   <button type="button" onClick={() => setDecisionModalItem(null)} className="px-4 py-2 font-semibold text-muted-ink border border-line rounded-lg hover:bg-canvas">Cancel</button>
-                  <button type="submit" className={`px-4 py-2 font-bold text-white rounded-lg transition-colors ${decisionType === "approve" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-danger hover:bg-red-700"}`}>
+                  <button type="submit" className={`px-4 py-2 font-bold text-white rounded-lg transition-colors ${decisionType === "approve" ? "bg-brand hover:bg-brand-hover" : "bg-red-600 hover:bg-red-700"}`}>
                     {decisionType === "approve" ? "Authorize Allocation" : "Confirm Rejection"}
                   </button>
                 </div>

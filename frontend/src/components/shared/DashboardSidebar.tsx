@@ -2,24 +2,20 @@
 
 /**
  * DashboardSidebar
- * Shared left navigation for all authenticated role shells.
+ * Premium left navigation for all authenticated role shells.
  *
- * Visual direction: LIGHT sidebar. Navigation stays quiet so page content and
- * primary actions carry the attention. Ocean Royale appears only through the
- * active state and small accents - never as a full-height navy panel.
+ * Visual direction: light, quiet surface so page content and primary actions
+ * carry the attention. Ocean Royale appears only through the active-state left
+ * accent, small icon accents, and the brand mark - never as a heavy full-width
+ * colour block.
  *
- *   surface   bg-white          border  border-line (#D8EAF0)
- *   text      text-ink          muted   text-muted-ink
- *   icons     text-icon         hover   bg-nav-hover (#F1FAFC)
- *   active    bg-brand-soft + text/icon/left indicator in brand
- *   AI accent text-brand-cyan (#00B4D8)
- *   logo mark bg-brand-deep (#03045E) with a cyan glyph
+ * Tokens: bg-white surface, border-r border-line, text-ink / muted-ink,
+ * brand active accent, brand-cyan AI highlights, icon muted resting.
  *
  * Layout contract:
- *   - desktop: sticky, full viewport height, 248px expanded / 68px collapsed
- *   - the nav list is the ONLY scroll container here, and only scrolls when the
- *     item list genuinely exceeds the viewport (thin, subtle scrollbar)
- *   - the 64px brand row matches the header height so both baselines align
+ *   - desktop: sticky full-height rail, 248px expanded / 68px collapsed
+ *   - nav list is the only internal scroll container
+ *   - brand row height aligns with the header baseline
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -42,7 +38,6 @@ export interface NavSubItem {
 
 export interface NavItem {
   label: string;
-  /** Any icon component that takes a className (Heroicons or Lucide while roles migrate). */
   icon: React.ElementType;
   href?: string;
   isAI?: boolean;
@@ -68,27 +63,39 @@ export interface DashboardSidebarProps {
 }
 
 // ---------------------------------------------------------------------------
-// Brand row - height matches the 60px header
+// Brand row
 // ---------------------------------------------------------------------------
 function SidebarBrand({ isExpanded }: { isExpanded: boolean }) {
   return (
-    // The logo keeps a fixed left position in both states; only the wordmark fades, so nothing jumps.
-    <div className="flex h-16 shrink-0 items-center overflow-hidden px-5">
+    <div className="flex h-16 shrink-0 items-center overflow-hidden px-5 border-b border-line">
       <div className="flex items-center gap-2.5">
-        {/* The mark keeps the Ocean Royale identity without darkening the rail. */}
-        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-deep shadow-sm shadow-brand-deep/20">
+        <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-brand-deep shadow-sm shadow-brand-deep/20">
           <svg viewBox="0 0 20 20" className="size-4 text-brand-cyan" fill="none" aria-hidden="true">
             <path d="M10 2L17 6V14L10 18L3 14V6L10 2Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
             <path d="M10 7L13 9V13L10 15L7 13V9L10 7Z" fill="currentColor" opacity="0.5" />
           </svg>
         </div>
         <div className={cn("flex flex-col transition-opacity duration-150", isExpanded ? "opacity-100" : "opacity-0")}>
-          <span className="whitespace-nowrap text-[14px] font-semibold leading-none text-ink">DBIT</span>
-          <span className="mt-1 whitespace-nowrap text-[11px] font-medium leading-none text-muted-ink">
+          <span className="whitespace-nowrap text-[14px] font-bold leading-none text-ink tracking-tight">DBIT</span>
+          <span className="mt-1 whitespace-nowrap text-[10px] font-medium leading-none text-muted-ink tracking-normal">
             Incubation Centre
           </span>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Section header (small uppercase label between groups)
+// ---------------------------------------------------------------------------
+function SectionHeader({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-2 px-5 py-2">
+      <span className="h-0.5 w-3 rounded-full bg-brand/40 shrink-0" aria-hidden="true" />
+      <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-ink whitespace-nowrap">
+        {label}
+      </span>
     </div>
   );
 }
@@ -111,30 +118,28 @@ function SidebarItem({
   const Icon = item.icon;
   const hasSubItems = Boolean(item.subItems?.length);
 
+  const iconClass = cn(
+    "size-5 shrink-0 transition-colors duration-200",
+    isActive
+      ? "text-brand"
+      : item.isAI
+        ? "text-brand-cyan"
+        : "text-icon group-hover:text-brand-deep"
+  );
+
   const content = (
     <>
-      <Icon
-        className={cn(
-          "size-[18px] shrink-0 transition-colors duration-150",
-          isActive
-            ? "text-white"
-            : item.isAI
-              ? "text-brand-cyan"
-              : "text-icon group-hover:text-ink"
-        )}
-        aria-hidden="true"
-      />
-      {/* Label is always mounted; it fades and the narrowing rail clips it, so the icon never jumps. */}
+      <Icon className={iconClass} aria-hidden="true" />
       <div
         className={cn(
-          "ml-3 flex flex-1 items-center justify-between overflow-hidden transition-opacity duration-150",
+          "ml-3 flex flex-1 items-center justify-between overflow-hidden transition-opacity duration-200",
           isExpanded ? "opacity-100" : "opacity-0"
         )}
       >
         <span
           className={cn(
-            "truncate whitespace-nowrap text-[14px] transition-colors duration-150",
-            isActive ? "font-semibold text-white" : "font-medium text-ink"
+            "truncate whitespace-nowrap text-[14px] transition-colors duration-200",
+            isActive ? "font-semibold text-brand-deep" : "font-medium text-ink"
           )}
         >
           {item.label}
@@ -142,8 +147,8 @@ function SidebarItem({
         {hasSubItems && (
           <ChevronDownIcon
             className={cn(
-              "size-[14px] shrink-0 transition-transform duration-150",
-              isActive ? "text-white" : "text-muted-ink",
+              "size-4 shrink-0 transition-transform duration-200",
+              isActive ? "text-brand" : "text-muted-ink",
               isOpen && "rotate-180"
             )}
             aria-hidden="true"
@@ -151,20 +156,18 @@ function SidebarItem({
         )}
       </div>
 
-      {/* Collapsed-state label, revealed on hover */}
       {!isExpanded && (
-        <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md bg-brand-deep px-2.5 py-1.5 text-[12px] font-medium text-white opacity-0 shadow-sm transition-opacity duration-150 group-hover:opacity-100 md:block">
+        <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-xl bg-brand-deep px-2.5 py-1.5 text-[12px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-200 md:block">
           {item.label}
         </span>
       )}
     </>
   );
 
-  // Icons stay at a fixed left position (px-3) in both states; collapsing only narrows the rail and fades labels.
   const wrapperClass = cn(
-    "group relative flex h-11 w-full items-center rounded-lg px-3 outline-none transition-colors duration-150",
+    "group relative flex h-10 w-full items-center rounded-xl px-3 outline-none transition-colors duration-200",
     "focus-visible:ring-2 focus-visible:ring-brand/40",
-    isActive ? "bg-brand text-white shadow-sm shadow-brand/25 font-semibold" : "hover:bg-nav-hover text-ink"
+    isActive ? "bg-brand-soft border border-brand/30" : "hover:bg-canvas/60 border border-transparent"
   );
 
   return (
@@ -180,13 +183,13 @@ function SidebarItem({
       )}
 
       {hasSubItems && isExpanded && isOpen && (
-        <div className="mt-1 flex flex-col gap-0.5 pl-[30px] pr-1">
+        <div className="mt-1.5 flex flex-col gap-0 pl-[30px] pr-1">
           {item.subItems!.map((subItem) => (
             <Link
               key={subItem.label}
               href={subItem.href}
               onClick={onNavigate}
-              className="flex h-8 items-center rounded-md px-3 text-[13px] font-medium text-muted-ink transition-colors hover:bg-nav-hover hover:text-ink"
+              className="flex h-9 items-center rounded-lg px-3 py-1 text-[12px] font-medium text-muted-ink transition-colors hover:bg-canvas hover:text-ink"
             >
               <span className="truncate">{subItem.label}</span>
             </Link>
@@ -209,13 +212,10 @@ export default function DashboardSidebar({
   const pathname = usePathname();
   const [isExpanded, setIsExpanded] = useState(true);
 
-  // Close the mobile drawer whenever the route changes.
   useEffect(() => {
     onMobileClose();
   }, [pathname, onMobileClose]);
 
-  // A nav item stays active on its nested routes (My Projects on /student/projects/2), but only the MOST SPECIFIC
-  // match is active, so a parent route such as /workspace/faculty never lights up beside /workspace/faculty/oversight.
   const activeHref = useMemo(() => {
     let best = "";
     for (const section of sections) {
@@ -240,11 +240,11 @@ export default function DashboardSidebar({
     <div className="flex h-full w-full flex-col bg-white">
       <SidebarBrand isExpanded={expanded} />
 
-      {/* Nav list - the only scroll container in the shell, and only when needed. */}
-      <nav className="scrollbar-thin min-h-0 flex-1 overflow-y-auto overflow-x-hidden py-4">
-        <div className="flex flex-col gap-4 px-4">
+      <nav className="scrollbar-thin min-h-0 flex-1 overflow-y-auto overflow-x-hidden py-3">
+        <div className="flex flex-col gap-2 px-4">
           {sections.map((section) => (
-            <div key={section.label} className="flex flex-col gap-1.5">
+            <div key={section.label} className="flex flex-col gap-1">
+              <SectionHeader label={section.label} />
               {section.items.map((item) => (
                 <SidebarItem
                   key={item.label}
@@ -259,14 +259,13 @@ export default function DashboardSidebar({
         </div>
       </nav>
 
-      {/* Collapse/expand toggle — desktop only, pinned at the bottom so it is always visible in both states. */}
       {opts.onToggle && (
-        <div className="shrink-0 border-t border-line p-2">
+        <div className="shrink-0 border-t border-line p-3">
           <button
             type="button"
             onClick={opts.onToggle}
             aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
-            className="group flex h-9 w-full items-center rounded-lg px-3 text-muted-ink outline-none transition-colors duration-150 hover:bg-nav-hover hover:text-ink focus-visible:ring-2 focus-visible:ring-brand/40"
+            className="group flex h-9 w-full items-center rounded-xl px-3 text-muted-ink outline-none transition-colors duration-200 hover:bg-canvas hover:text-ink focus-visible:ring-2 focus-visible:ring-brand/40"
           >
             <ChevronLeftIcon
               className={cn("size-5 shrink-0 transition-transform duration-200", !expanded && "rotate-180")}
@@ -274,7 +273,7 @@ export default function DashboardSidebar({
             />
             <span
               className={cn(
-                "ml-3 truncate whitespace-nowrap text-[13px] font-medium transition-opacity duration-150",
+                "ml-3 truncate whitespace-nowrap text-[13px] font-medium transition-opacity duration-200",
                 expanded ? "opacity-100" : "opacity-0"
               )}
             >
@@ -284,49 +283,46 @@ export default function DashboardSidebar({
         </div>
       )}
 
-      {/* Profile: the desktop header already carries the user menu, so only the mobile drawer repeats it. */}
       {opts.showProfile && (
-      <div className="shrink-0 border-t border-line p-3">
-        <button
-          type="button"
-          className={cn(
-            "flex w-full items-center gap-3 rounded-[8px] p-2 outline-none transition-colors hover:bg-nav-hover",
-            !expanded && "justify-center"
-          )}
-        >
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand text-[12px] font-semibold text-white">
-            {user.initials}
-          </div>
-          {expanded && (
-            <>
-              <div className="flex min-w-0 flex-1 flex-col items-start">
-                <span className="w-full truncate text-left text-[13px] font-semibold text-ink">
-                  {user.name}
-                </span>
-                <span className="w-full truncate text-left text-[11px] text-muted-ink">
-                  {user.role}
-                </span>
-              </div>
-              <ChevronDownIcon className="size-[14px] shrink-0 text-muted-ink" aria-hidden="true" />
-            </>
-          )}
-        </button>
-      </div>
+        <div className="shrink-0 border-t border-line p-3">
+          <button
+            type="button"
+            className={cn(
+              "flex w-full items-center gap-3 rounded-xl p-2 outline-none transition-colors hover:bg-canvas",
+              !expanded && "justify-center"
+            )}
+          >
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand text-[12px] font-bold text-white">
+              {user.initials}
+            </div>
+            {expanded && (
+              <>
+                <div className="flex min-w-0 flex-1 flex-col items-start">
+                  <span className="w-full truncate text-left text-[13px] font-semibold text-ink">
+                    {user.name}
+                  </span>
+                  <span className="w-full truncate text-left text-[11px] text-muted-ink">
+                    {user.role}
+                  </span>
+                </div>
+                <ChevronDownIcon className="size-[14px] shrink-0 text-muted-ink" aria-hidden="true" />
+              </>
+            )}
+          </button>
+        </div>
       )}
     </div>
   );
 
   return (
     <>
-      {/* Desktop - sticky full-height rail, contributes no page-level scrollbar */}
       <aside
         style={{ width: isExpanded ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED }}
-        className="sticky top-0 z-30 hidden h-screen shrink-0 border-r border-line transition-[width] duration-200 ease-in-out md:block"
+        className="sticky top-0 z-30 hidden h-screen shrink-0 border-r border-line transition-[width] duration-300 ease-in-out md:block"
       >
         {renderContent(isExpanded, { onToggle: () => setIsExpanded((v) => !v) })}
       </aside>
 
-      {/* Mobile drawer */}
       <AnimatePresence>
         {isMobileOpen && (
           <>
