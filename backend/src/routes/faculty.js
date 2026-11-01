@@ -557,7 +557,7 @@ router.get('/mentor-matching/startups', async (req, res) => {
   }
 });
 
-router.post('/mentor-matching/run', async (req, res) => {
+router.post('/mentor-matching/run', superAdminOnly, async (req, res) => {
   try {
     const { projectId } = req.body;
     if (!projectId) {

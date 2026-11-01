@@ -1,5 +1,12 @@
 const path = require('path');
 const dotenv = require('dotenv');
+const dns = require('dns');
+
+// Configure Node.js to use public DNS servers (Google & Cloudflare) to prevent
+// Windows/router DNS querySrv ECONNREFUSED on MongoDB Atlas SRV connection strings.
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
+} catch {}
 
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
 

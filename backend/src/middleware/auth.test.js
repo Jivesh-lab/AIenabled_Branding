@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 // Mock User model to prevent mongoose connection errors in unit test
 const mockUser = {
   findOne: async () => null,
+  findById: async () => null,
 };
 require.cache[require.resolve('../models/User')] = {
   exports: mockUser

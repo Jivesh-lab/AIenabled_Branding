@@ -57,10 +57,10 @@ async function authenticate(req, res, next) {
       req.user = {
         id: payload.sub,
         role: payload.role,
-        name: payload.name,
-        email: payload.email,
-        status: payload.status || 'active',
-        isInvestorVerified: Boolean(payload.isInvestorVerified),
+        ...(payload.name ? { name: payload.name } : {}),
+        ...(payload.email ? { email: payload.email } : {}),
+        ...(payload.status ? { status: payload.status } : {}),
+        ...(payload.isInvestorVerified !== undefined ? { isInvestorVerified: Boolean(payload.isInvestorVerified) } : {}),
       };
       return next();
     } catch {
