@@ -22,7 +22,7 @@
  *   - the 64px brand row matches the header height so both baselines align
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
@@ -214,13 +214,23 @@ export default function DashboardSidebar({
     onMobileClose();
   }, [pathname, onMobileClose]);
 
-  // A nav item stays active on its nested routes, e.g. My Projects on /student/projects/2.
+  // A nav item stays active on its nested routes (My Projects on /student/projects/2), but only the MOST SPECIFIC
+  // match is active, so a parent route such as /workspace/faculty never lights up beside /workspace/faculty/oversight.
+  const activeHref = useMemo(() => {
+    let best = "";
+    for (const section of sections) {
+      for (const item of section.items) {
+        for (const href of [item.href, ...(item.subItems?.map((sub) => sub.href) ?? [])]) {
+          if (href && (pathname === href || pathname.startsWith(`${href}/`)) && href.length > best.length) best = href;
+        }
+      }
+    }
+    return best;
+  }, [sections, pathname]);
+
   const isItemActive = useCallback(
-    (item: NavItem) => {
-      const matches = (href?: string) => !!href && (pathname === href || pathname.startsWith(`${href}/`));
-      return matches(item.href) || (item.subItems?.some((sub) => matches(sub.href)) ?? false);
-    },
-    [pathname]
+    (item: NavItem) => !!activeHref && (item.href === activeHref || (item.subItems?.some((sub) => sub.href === activeHref) ?? false)),
+    [activeHref]
   );
 
   const renderContent = (

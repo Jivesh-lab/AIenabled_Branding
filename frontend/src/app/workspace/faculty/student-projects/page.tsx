@@ -2,11 +2,14 @@
 
 import { useState, useEffect } from "react";
 import PageContainer from "@/components/shared/PageContainer";
+import { friendlyThrown } from "@/lib/friendlyError";
+import { FacultyListSkeleton } from "@/components/shared/loading/facultySkeletons";
 import { Card, SectionHeading, StatusBadge, ProgressBar } from "@/components/shared/Surface";
+import MetricCard from "@/components/shared/MetricCard";
 import {
   GraduationCap, Search, Eye, MessageSquare, Calendar,
   CheckCircle2, Clock, AlertTriangle, TrendingUp, Users,
-  BookOpen, ChevronDown, ExternalLink, Loader2, AlertCircle,
+  BookOpen, ChevronDown, ExternalLink, AlertCircle,
 } from "lucide-react";
 
 interface Project {
@@ -52,7 +55,7 @@ export default function FacultyStudentProjectsPage() {
           throw new Error(json.message || "Failed to load projects");
         }
       } catch (err: any) {
-        setError(err.message);
+        setError(friendlyThrown(err, "We couldn't load this right now. Please try again in a moment."));
       } finally {
         setLoading(false);
       }
@@ -78,24 +81,14 @@ export default function FacultyStudentProjectsPage() {
     >
       <div className="space-y-6">
         {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           {[
             { label: "Total Projects", value: projects.length, icon: GraduationCap, color: "bg-brand/10 text-brand" },
             { label: "On Track", value: projects.filter((p) => p.health === "On Track").length, icon: TrendingUp, color: "bg-brand-cyan/10 text-brand-cyan-ink" },
             { label: "Needs Attention", value: projects.filter((p) => p.health === "Needs Attention").length, icon: AlertTriangle, color: "bg-amber-50 text-amber-700" },
             { label: "At Risk", value: projects.filter((p) => p.health === "At Risk").length, icon: AlertCircle, color: "bg-emerald-50 text-emerald-700" },
           ].map((s) => (
-            <Card key={s.label} className="p-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-xs font-medium text-muted-ink">{s.label}</p>
-                  <p className="text-2xl font-bold text-ink mt-1">{s.value}</p>
-                </div>
-                <div className={`flex size-9 items-center justify-center rounded-lg ${s.color}`}>
-                  <s.icon className="size-4" />
-                </div>
-              </div>
-            </Card>
+            <MetricCard key={s.label} label={s.label} value={s.value} icon={s.icon} tone={s.color.includes("danger") ? "danger" : s.color.includes("amber") ? "attention" : "default"} loading={loading} />
           ))}
         </div>
 
@@ -126,10 +119,7 @@ export default function FacultyStudentProjectsPage() {
 
         {/* Project List */}
         {loading ? (
-          <div className="flex items-center justify-center py-16 text-muted-ink gap-2">
-            <Loader2 className="size-5 animate-spin" />
-            <span className="text-sm">Loading projects from database…</span>
-          </div>
+          <FacultyListSkeleton />
         ) : error ? (
           <div className="rounded-xl border border-red-100 bg-red-50 p-6 text-center">
             <AlertCircle className="size-8 text-danger mx-auto mb-2" />

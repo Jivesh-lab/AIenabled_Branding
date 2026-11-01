@@ -48,22 +48,43 @@ export function SectionHeadingSkeleton({ withAction = true }: { withAction?: boo
   );
 }
 
+/** Same boxes as the real page heading (18/20px title, 13px description), so the page does not shift on load. */
 export function PageHeadingSkeleton() {
   return (
-    <div className="space-y-2">
-      <Skeleton className="h-6 w-48 sm:w-60" />
-      <Skeleton className="h-3.5 w-full max-w-md" />
+    <div className="space-y-0.5">
+      <div className="flex h-[22.5px] items-center sm:h-[25px]">
+        <Skeleton className="h-4 w-48 sm:h-[18px] sm:w-60" />
+      </div>
+      <div className="flex h-[19.5px] items-center">
+        <Skeleton className="h-3 w-full max-w-md" />
+      </div>
     </div>
   );
 }
 
-/** Matches the live KPI card: label and icon on one row, number below. */
-export function KpiCardSkeleton() {
+/**
+ * Same boxes as MetricCard (13px label row, 24px number row, optional 12px caption row), so a card keeps its height
+ * when the number arrives.
+ */
+export function KpiCardSkeleton({ withCaption = false, className, label }: { withCaption?: boolean; className?: string; label?: string }) {
   return (
-    <div className="flex items-start justify-between gap-3 rounded-xl border border-line bg-white p-4 shadow-sm">
-      <div className="min-w-0 flex-1 space-y-2.5">
-        <Skeleton className="h-3 w-24" />
-        <Skeleton className="h-6 w-12" />
+    <div
+      role="status"
+      aria-label={label ? `Loading ${label}` : "Loading"}
+      className={cn("flex items-start justify-between gap-3 rounded-xl border border-line bg-white p-4 shadow-sm", className)}
+    >
+      <div className="min-w-0 flex-1">
+        <div className="flex h-[19.5px] items-center">
+          <Skeleton className="h-3 w-24" />
+        </div>
+        <div className="mt-1 flex h-6 items-center">
+          <Skeleton className="h-5 w-12" />
+        </div>
+        {withCaption && (
+          <div className="mt-1.5 flex h-[18px] items-center">
+            <Skeleton className="h-3 w-28" />
+          </div>
+        )}
       </div>
       <Skeleton className="size-[18px] shrink-0 rounded" />
     </div>

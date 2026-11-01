@@ -20,6 +20,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   ArrowRightOnRectangleIcon,
   Bars3Icon,
@@ -54,6 +55,8 @@ interface DashboardNavbarProps {
   searchPlaceholder?: string;
   /** A role-specific search (e.g. the student portal's global search). Replaces the default box when given. */
   searchSlot?: React.ReactNode;
+  /** True while the signed-in user is still being resolved, so no placeholder name or initials flash. */
+  userLoading?: boolean;
 }
 
 /** Compact label for the navbar: drops a trailing "(Student Founder)" style suffix. The dropdown keeps the full name. */
@@ -294,6 +297,21 @@ function ProfileDropdown({ user }: { user: NavbarUser }) {
 }
 
 // ---------------------------------------------------------------------------
+// Profile placeholder - same footprint as the profile button
+// ---------------------------------------------------------------------------
+function ProfileSkeleton() {
+  return (
+    <div role="status" aria-label="Loading account" className="flex h-9 items-center gap-2 px-1.5">
+      <Skeleton className="size-8 shrink-0 rounded-full" />
+      <div className="hidden flex-col gap-1.5 lg:flex">
+        <Skeleton className="h-3 w-24" />
+        <Skeleton className="h-2.5 w-14" />
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // DashboardNavbar
 // ---------------------------------------------------------------------------
 export default function DashboardNavbar({
@@ -305,6 +323,7 @@ export default function DashboardNavbar({
   onSearch,
   searchPlaceholder = "Search",
   searchSlot,
+  userLoading = false,
 }: DashboardNavbarProps) {
   const pathname = usePathname();
 
@@ -379,7 +398,7 @@ export default function DashboardNavbar({
 
         <NotificationButton count={notificationCount} />
 
-        <ProfileDropdown user={user} />
+        {userLoading ? <ProfileSkeleton /> : <ProfileDropdown user={user} />}
       </div>
     </header>
   );

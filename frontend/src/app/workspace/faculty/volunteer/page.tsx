@@ -2,7 +2,9 @@
 
 import { useState, useMemo, useEffect } from "react";
 import PageContainer from "@/components/shared/PageContainer";
+import { FacultyTabContentSkeleton } from "@/components/shared/loading/facultySkeletons";
 import { Card, StatusBadge, ProgressBar } from "@/components/shared/Surface";
+import MetricCard from "@/components/shared/MetricCard";
 import { toast } from "sonner";
 import {
   IncubationProject,
@@ -196,7 +198,6 @@ export default function FacultyVolunteerPage() {
       description="Direct hands-on mentoring of assigned researcher founders, guidance logging, milestone reviews, and mentor recommendations."
     >
       <div className="space-y-6">
-        {loading && <div className="rounded-xl border border-line bg-canvas p-4 text-center text-sm text-muted-ink">Loading live volunteer data from the database…</div>}
         {loadError && <div className="rounded-xl border border-red-100 bg-red-50 p-4 text-center"><AlertCircle className="size-6 text-danger mx-auto mb-1" /><p className="text-sm font-semibold text-danger">Unable to load volunteer data</p><p className="text-xs text-muted-ink mt-1">{loadError}</p></div>}
         {!loading && !loadError && projects.length === 0 && mentorRequests.length === 0 && meetings.length === 0 && tasks.length === 0 && supportRequests.length === 0 && <div className="rounded-xl border border-line bg-canvas p-6 text-center text-sm text-muted-ink">No volunteer data is available in the database yet.</div>}
         {/* Volunteer Identity Header */}
@@ -232,7 +233,7 @@ export default function FacultyVolunteerPage() {
         </div>
 
         {/* Volunteer KPI Bar */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 lg:gap-4">
           {[
             { label: "Assigned Teams", val: metrics.assignedTeams, sub: "Researcher Projects", icon: FolderGit2, color: "bg-brand/10 text-brand" },
             { label: "Open Inquiries", val: metrics.openInquiries, sub: "Researcher Questions", icon: MessageSquare, color: "bg-amber-50 text-amber-700" },
@@ -240,18 +241,7 @@ export default function FacultyVolunteerPage() {
             { label: "Pending Tasks", val: metrics.pendingTasks, sub: "Checklist Items", icon: CheckSquare, color: "bg-indigo-50 text-indigo-700" },
             { label: "Upcoming Reviews", val: metrics.upcomingMeets, sub: "With Researchers", icon: CalendarDays, color: "bg-slate-50 text-slate-700" },
           ].map((kpi) => (
-            <Card key={kpi.label} className="p-3.5 border border-line bg-white shadow-2xs">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-[11px] font-semibold text-muted-ink">{kpi.label}</p>
-                  <p className="text-2xl font-black text-ink mt-1 tracking-tight">{kpi.val}</p>
-                  <p className="text-[10px] text-muted-ink mt-0.5">{kpi.sub}</p>
-                </div>
-                <div className={`p-2 rounded-lg ${kpi.color}`}>
-                  <kpi.icon className="size-4" />
-                </div>
-              </div>
-            </Card>
+            <MetricCard key={kpi.label} label={kpi.label} value={kpi.val} sub={kpi.sub} icon={kpi.icon} tone={kpi.color.includes("danger") ? "danger" : kpi.color.includes("amber") ? "attention" : "default"} loading={loading} />
           ))}
         </div>
 
@@ -293,7 +283,9 @@ export default function FacultyVolunteerPage() {
         </div>
 
         {/* TAB 1: ASSIGNED STUDENT TEAMS */}
-        {activeTab === "teams" && (
+        {loading && <FacultyTabContentSkeleton withFilters={false} />}
+
+        {!loading && activeTab === "teams" && (
           <div className="space-y-4 animate-in fade-in duration-200">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-white border border-line">
               <div className="relative">
@@ -379,7 +371,7 @@ export default function FacultyVolunteerPage() {
         )}
 
         {/* TAB 2: STUDENT INQUIRIES & GUIDANCE */}
-        {activeTab === "guidance" && (
+        {!loading && activeTab === "guidance" && (
           <div className="space-y-4 animate-in fade-in duration-200">
             <div className="flex items-center justify-between">
               <div>
@@ -435,7 +427,7 @@ export default function FacultyVolunteerPage() {
         )}
 
         {/* TAB 3: MENTOR NOMINATIONS (VOLUNTEER SCOPE) */}
-        {activeTab === "mentors" && (
+        {!loading && activeTab === "mentors" && (
           <div className="space-y-4 animate-in fade-in duration-200">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
@@ -519,7 +511,7 @@ export default function FacultyVolunteerPage() {
         )}
 
         {/* TAB 4: TASKS CHECKLIST */}
-        {activeTab === "tasks" && (
+        {!loading && activeTab === "tasks" && (
           <div className="space-y-4 animate-in fade-in duration-200">
             <h3 className="text-sm font-bold text-ink">Volunteer Action Checklist</h3>
             <div className="space-y-2.5">
@@ -551,7 +543,7 @@ export default function FacultyVolunteerPage() {
         )}
 
         {/* TAB 5: MEETINGS */}
-        {activeTab === "meetings" && (
+        {!loading && activeTab === "meetings" && (
           <div className="space-y-4 animate-in fade-in duration-200">
             <h3 className="text-sm font-bold text-ink">Review Sessions & Agendas</h3>
             <div className="space-y-3">

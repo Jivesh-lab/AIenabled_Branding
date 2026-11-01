@@ -144,7 +144,7 @@ function RequestForm({ projects, today, onClose }: { projects: StudentProject[];
         return;
       }
       setSent(true);
-      toast.success("Meeting request sent. You'll see it once the host confirms a time.");
+      toast.success("Meeting request sent", { description: "You'll see it as scheduled once the host confirms a time." });
       router.refresh(); // the new request appears in the list
     } catch (error) {
       const message = friendlyThrown(error, "We couldn't send your request. Please try again.");

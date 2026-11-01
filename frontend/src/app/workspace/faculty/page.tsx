@@ -2,7 +2,9 @@
 
 import { useState, useMemo, useEffect } from "react";
 import PageContainer from "@/components/shared/PageContainer";
+import { FacultyOverviewSkeleton } from "@/components/shared/loading/facultySkeletons";
 import { Card, StatusBadge, ProgressBar } from "@/components/shared/Surface";
+import MetricCard from "@/components/shared/MetricCard";
 import { toast } from "sonner";
 import {
   FacultySubRole,
@@ -441,7 +443,6 @@ export default function FacultyManagementPage() {
       description="Role-aware academic oversight, incubation project governance, mentor allocation workflows, and researcher supervision for DBIT Incubation Centre."
     >
       <div className="space-y-6">
-        {loading && <div className="rounded-xl border border-line bg-canvas p-4 text-center text-sm text-muted-ink">Loading live faculty data from the database…</div>}
         {loadError && <div className="rounded-xl border border-red-100 bg-red-50 p-4 text-center"><AlertCircle className="size-6 text-danger mx-auto mb-1" /><p className="text-sm font-semibold text-danger">Unable to load faculty data</p><p className="text-xs text-muted-ink mt-1">{loadError}</p></div>}
         {!loading && !loadError && !hasData && <div className="rounded-xl border border-line bg-canvas p-6 text-center text-sm text-muted-ink">No faculty data is available in the database yet.</div>}
         {/* ========================================================================= */}
@@ -560,10 +561,12 @@ export default function FacultyManagementPage() {
         {/* ========================================================================= */}
         {/* TAB 1: FACULTY OVERVIEW                                                  */}
         {/* ========================================================================= */}
-        {activeTab === "overview" && (
+        {loading && <FacultyOverviewSkeleton />}
+
+        {!loading && activeTab === "overview" && (
           <div className="space-y-6 animate-in fade-in duration-200">
             {/* KPI Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 lg:gap-4">
               {[
                 { label: "Assigned Projects", val: metrics.activeProjects, sub: "Supervised R&D", icon: FolderGit2, color: "bg-brand/10 text-brand" },
                 { label: "Researchers Supported", val: metrics.totalStudents, sub: "Across 4 teams", icon: Users2, color: "bg-emerald-50 text-emerald-700" },
@@ -572,18 +575,7 @@ export default function FacultyManagementPage() {
                 { label: "Overdue Milestones", val: metrics.overdueMilestones, sub: "Requires attention", icon: AlertTriangle, color: "bg-red-50 text-danger" },
                 { label: "Tasks In Action", val: metrics.pendingTasks, sub: "Active items", icon: CheckSquare, color: "bg-slate-50 text-slate-700" },
               ].map((kpi) => (
-                <Card key={kpi.label} className="p-3.5 border border-line bg-white shadow-2xs hover:border-brand/30 transition-all">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-[11px] font-semibold text-muted-ink leading-tight">{kpi.label}</p>
-                      <p className="text-2xl font-black text-ink mt-1 tracking-tight">{kpi.val}</p>
-                      <p className="text-[10px] text-muted-ink mt-0.5">{kpi.sub}</p>
-                    </div>
-                    <div className={`p-2 rounded-lg ${kpi.color}`}>
-                      <kpi.icon className="size-4" />
-                    </div>
-                  </div>
-                </Card>
+                <MetricCard key={kpi.label} label={kpi.label} value={kpi.val} sub={kpi.sub} icon={kpi.icon} tone={kpi.color.includes("danger") ? "danger" : kpi.color.includes("amber") ? "attention" : "default"} loading={loading} />
               ))}
             </div>
 
@@ -755,7 +747,7 @@ export default function FacultyManagementPage() {
         {/* ========================================================================= */}
         {/* TAB 2: FACULTY COORDINATOR SECTION                                       */}
         {/* ========================================================================= */}
-        {activeTab === "coordinator" && (
+        {!loading && activeTab === "coordinator" && (
           <div className="space-y-6 animate-in fade-in duration-200">
             {/* Permission banner if viewing in volunteer mode */}
             {activeRole !== "coordinator" && (
@@ -949,7 +941,7 @@ export default function FacultyManagementPage() {
         {/* ========================================================================= */}
         {/* TAB 3: FACULTY VOLUNTEER SECTION                                         */}
         {/* ========================================================================= */}
-        {activeTab === "volunteer" && (
+        {!loading && activeTab === "volunteer" && (
           <div className="space-y-6 animate-in fade-in duration-200">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
@@ -1070,7 +1062,7 @@ export default function FacultyManagementPage() {
         {/* ========================================================================= */}
         {/* TAB 4: PROJECTS & TEAMS                                                   */}
         {/* ========================================================================= */}
-        {activeTab === "projects" && (
+        {!loading && activeTab === "projects" && (
           <div className="space-y-6 animate-in fade-in duration-200">
             {/* Filter toolbar */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-white border border-line">
@@ -1200,7 +1192,7 @@ export default function FacultyManagementPage() {
         {/* ========================================================================= */}
         {/* TAB 5: MENTOR ALLOCATION WORKFLOW                                        */}
         {/* ========================================================================= */}
-        {activeTab === "mentors" && (
+        {!loading && activeTab === "mentors" && (
           <div className="space-y-6 animate-in fade-in duration-200">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
@@ -1340,7 +1332,7 @@ export default function FacultyManagementPage() {
         {/* ========================================================================= */}
         {/* TAB 6: MEETINGS & CALENDAR                                               */}
         {/* ========================================================================= */}
-        {activeTab === "meetings" && (
+        {!loading && activeTab === "meetings" && (
           <div className="space-y-6 animate-in fade-in duration-200">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
@@ -1424,7 +1416,7 @@ export default function FacultyManagementPage() {
         {/* ========================================================================= */}
         {/* TAB 7: TASKS & PROGRESS REPORTS                                          */}
         {/* ========================================================================= */}
-        {activeTab === "tasks" && (
+        {!loading && activeTab === "tasks" && (
           <div className="space-y-6 animate-in fade-in duration-200">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
@@ -1499,7 +1491,7 @@ export default function FacultyManagementPage() {
         {/* ========================================================================= */}
         {/* TAB 8: NOTIFICATIONS                                                     */}
         {/* ========================================================================= */}
-        {activeTab === "notifications" && (
+        {!loading && activeTab === "notifications" && (
           <div className="space-y-6 animate-in fade-in duration-200">
             <div className="flex items-center justify-between">
               <div>

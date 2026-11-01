@@ -2,7 +2,9 @@
 
 import { useState, useMemo, useEffect } from "react";
 import PageContainer from "@/components/shared/PageContainer";
+import { FacultyTabContentSkeleton } from "@/components/shared/loading/facultySkeletons";
 import { Card, StatusBadge, ProgressBar } from "@/components/shared/Surface";
+import MetricCard from "@/components/shared/MetricCard";
 import { toast } from "sonner";
 import {
   IncubationProject,
@@ -256,7 +258,6 @@ export default function FacultyCoordinatorPage() {
       description="Executive governance, mentor allocation authorizations, volunteer assignments, and cohort milestone compliance for DBIT Incubation Centre."
     >
       <div className="space-y-6">
-        {loading && <div className="rounded-xl border border-line bg-canvas p-4 text-center text-sm text-muted-ink">Loading live coordinator data from the database…</div>}
         {loadError && <div className="rounded-xl border border-red-100 bg-red-50 p-4 text-center"><AlertTriangle className="size-6 text-danger mx-auto mb-1" /><p className="text-sm font-semibold text-danger">Unable to load coordinator data</p><p className="text-xs text-muted-ink mt-1">{loadError}</p></div>}
         {!loading && !loadError && projects.length === 0 && mentorRequests.length === 0 && meetings.length === 0 && tasks.length === 0 && <div className="rounded-xl border border-line bg-canvas p-6 text-center text-sm text-muted-ink">No coordinator data is available in the database yet.</div>}
         {/* Coordinator Identity Banner */}
@@ -298,7 +299,7 @@ export default function FacultyCoordinatorPage() {
         </div>
 
         {/* Governance KPI Bar */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 lg:gap-4">
           {[
             { label: "Supervised Projects", val: metrics.governedProjects, sub: "Active Cohort", icon: FolderGit2, color: "bg-brand/10 text-brand" },
             { label: "Pending Decisions", val: metrics.pendingDecisions, sub: "Mentor Requests", icon: Sparkles, color: "bg-amber-50 text-amber-700" },
@@ -306,18 +307,7 @@ export default function FacultyCoordinatorPage() {
             { label: "Scheduled Reviews", val: metrics.upcomingReviews, sub: "Next 30 Days", icon: CalendarDays, color: "bg-indigo-50 text-indigo-700" },
             { label: "Active Volunteers", val: metrics.activeVolunteers, sub: "Supervising Faculty", icon: Users2, color: "bg-emerald-50 text-emerald-700" },
           ].map((kpi) => (
-            <Card key={kpi.label} className="p-3.5 border border-line bg-white shadow-2xs">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-[11px] font-semibold text-muted-ink">{kpi.label}</p>
-                  <p className="text-2xl font-black text-ink mt-1 tracking-tight">{kpi.val}</p>
-                  <p className="text-[10px] text-muted-ink mt-0.5">{kpi.sub}</p>
-                </div>
-                <div className={`p-2 rounded-lg ${kpi.color}`}>
-                  <kpi.icon className="size-4" />
-                </div>
-              </div>
-            </Card>
+            <MetricCard key={kpi.label} label={kpi.label} value={kpi.val} sub={kpi.sub} icon={kpi.icon} tone={kpi.color.includes("danger") ? "danger" : kpi.color.includes("amber") ? "attention" : "default"} loading={loading} />
           ))}
         </div>
 
@@ -359,7 +349,9 @@ export default function FacultyCoordinatorPage() {
         </div>
 
         {/* TAB 1: COHORT PORTFOLIO & RISK OVERSIGHT */}
-        {activeTab === "governance" && (
+        {loading && <FacultyTabContentSkeleton />}
+
+        {!loading && activeTab === "governance" && (
           <div className="space-y-4 animate-in fade-in duration-200">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-white border border-line">
               <div className="relative">
@@ -460,7 +452,7 @@ export default function FacultyCoordinatorPage() {
         )}
 
         {/* TAB 2: MENTOR DECISION QUEUE */}
-        {activeTab === "mentors" && (
+        {!loading && activeTab === "mentors" && (
           <div className="space-y-4 animate-in fade-in duration-200">
             <div className="p-4 rounded-xl bg-amber-50/60 border border-amber-200 text-xs text-amber-950 flex items-start gap-2.5">
               <ShieldCheck className="size-4.5 text-amber-700 shrink-0 mt-0.5" />
@@ -564,7 +556,7 @@ export default function FacultyCoordinatorPage() {
         )}
 
         {/* TAB 3: VOLUNTEER WORKLOAD & ASSIGNMENTS */}
-        {activeTab === "volunteers" && (
+        {!loading && activeTab === "volunteers" && (
           <div className="space-y-4 animate-in fade-in duration-200">
             <div className="flex items-center justify-between">
               <div>
@@ -606,7 +598,7 @@ export default function FacultyCoordinatorPage() {
         )}
 
         {/* TAB 4: SCHEDULED REVIEWS */}
-        {activeTab === "reviews" && (
+        {!loading && activeTab === "reviews" && (
           <div className="space-y-4 animate-in fade-in duration-200">
             <div className="flex items-center justify-between">
               <div>
@@ -649,7 +641,7 @@ export default function FacultyCoordinatorPage() {
         )}
 
         {/* TAB 5: AUDIT LOGS */}
-        {activeTab === "audit" && (
+        {!loading && activeTab === "audit" && (
           <div className="space-y-4 animate-in fade-in duration-200">
             <Card className="p-5">
               <h3 className="text-sm font-bold text-ink mb-1">Incubation Governance Audit Trail</h3>

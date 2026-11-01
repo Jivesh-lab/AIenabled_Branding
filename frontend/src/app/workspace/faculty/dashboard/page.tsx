@@ -3,7 +3,10 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import PageContainer from "@/components/shared/PageContainer";
+import { friendlyThrown } from "@/lib/friendlyError";
+import { FacultyListSkeleton } from "@/components/shared/loading/facultySkeletons";
 import { Card, SectionHeading, StatusBadge, ProgressBar } from "@/components/shared/Surface";
+import MetricCard from "@/components/shared/MetricCard";
 import {
   BookOpen,
   Lightbulb,
@@ -18,8 +21,7 @@ import {
   Microscope,
   GraduationCap,
   Briefcase,
-  Loader2,
-} from "lucide-react";
+  } from "lucide-react";
 
 interface Project {
   id: string;
@@ -74,7 +76,7 @@ export default function FacultyDashboardPage() {
           throw new Error(json.message || "Failed to load data");
         }
       } catch (err: any) {
-        setError(err.message);
+        setError(friendlyThrown(err, "We couldn't load this right now. Please try again in a moment."));
       } finally {
         setLoading(false);
       }
@@ -96,25 +98,14 @@ export default function FacultyDashboardPage() {
     >
       <div className="space-y-6">
         {/* KPI Row */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           {[
             { label: "Supervised Projects", value: metrics?.activeProjects ?? "—", sub: "Active this semester", icon: GraduationCap, color: "bg-brand/10 text-brand" },
             { label: "Pending Mentor Requests", value: metrics?.pendingMentorRequests ?? "—", sub: "Awaiting coordinator action", icon: FileText, color: "bg-amber-50 text-amber-700" },
             { label: "Upcoming Meetings", value: metrics?.upcomingMeetings ?? "—", sub: "Scheduled sessions", icon: Award, color: "bg-emerald-50 text-emerald-700" },
             { label: "Overdue Milestones", value: metrics?.overdueMilestones ?? "—", sub: "Across all projects", icon: TrendingUp, color: "bg-brand-cyan/10 text-brand-cyan-ink" },
           ].map((kpi) => (
-            <Card key={kpi.label} className="p-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-xs font-medium text-muted-ink">{kpi.label}</p>
-                  <p className="text-2xl font-bold text-ink mt-1">{kpi.value}</p>
-                  <p className="text-[11px] text-muted-ink mt-0.5">{kpi.sub}</p>
-                </div>
-                <div className={`flex size-9 items-center justify-center rounded-lg ${kpi.color}`}>
-                  <kpi.icon className="size-4" />
-                </div>
-              </div>
-            </Card>
+            <MetricCard key={kpi.label} label={kpi.label} value={kpi.value} sub={kpi.sub} icon={kpi.icon} tone={kpi.color.includes("danger") ? "danger" : kpi.color.includes("amber") ? "attention" : "default"} loading={loading} />
           ))}
         </div>
 
@@ -154,10 +145,7 @@ export default function FacultyDashboardPage() {
           </div>
 
           {loading ? (
-            <div className="flex items-center justify-center py-16 text-muted-ink gap-2">
-              <Loader2 className="size-5 animate-spin" />
-              <span className="text-sm">Loading projects from database…</span>
-            </div>
+            <FacultyListSkeleton />
           ) : error ? (
             <div className="rounded-xl border border-red-100 bg-red-50 p-6 text-center">
               <AlertCircle className="size-8 text-danger mx-auto mb-2" />

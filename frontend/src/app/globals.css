@@ -530,14 +530,6 @@
    Loading motion. Indeterminate on purpose: we never show a made-up percentage.
    Reduced-motion users get a static bar instead of movement.
    ------------------------------------------------------------------------- */
-@keyframes route-progress-slide {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(260%); }
-}
-@keyframes startup-progress-slide {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(300%); }
-}
 
 /* Student portal: no visible scrollbars anywhere (page, sidebar, drawers, tabs, lists). Scrolling still works. */
 html:has(.student-portal),

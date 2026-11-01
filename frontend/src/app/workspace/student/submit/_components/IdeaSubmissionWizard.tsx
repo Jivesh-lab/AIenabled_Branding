@@ -53,6 +53,7 @@ import StepProblemSolution from "./StepProblemSolution";
 import StepTeamTechnology from "./StepTeamTechnology";
 import StepReview from "./StepReview";
 import SubmissionSuccess from "./SubmissionSuccess";
+import SubmissionSuccessDialog from "./SubmissionSuccessDialog";
 import AgentExecutionPipeline from "./AgentExecutionPipeline";
 
 const btn = {
@@ -135,6 +136,8 @@ export default function IdeaSubmissionWizard() {
   const [evaluatingValues, setEvaluatingValues] = useState<IdeaFormValues | null>(null);
   const [isPipelineComplete, setIsPipelineComplete] = useState(false);
   const [pipelineResult, setPipelineResult] = useState<AgentEvaluationData | null>(null);
+  // The pop-up is opened only by the submit handler's success path, so it never shows for a revisit or a failure.
+  const [celebrate, setCelebrate] = useState(false);
   const [submitted, setSubmitted] = useState<{
     name: string;
     referenceId: string;
@@ -392,6 +395,7 @@ export default function IdeaSubmissionWizard() {
         documentsCount: values.attachments?.length || 0,
         submittedValues: values,
       });
+      setCelebrate(true);
       // Intentionally keeps the lock: this application is submitted, so a second request must not go out.
     } catch (error) {
       console.error("Submission error:", error);
@@ -425,6 +429,7 @@ export default function IdeaSubmissionWizard() {
     setFurthest(0);
     setSaveState({ kind: "idle" });
     setSubmitted(null);
+    setCelebrate(false);
     setSubmitError(null);
     setIsSubmitting(false);
     setEvaluatingValues(null);
@@ -529,6 +534,12 @@ export default function IdeaSubmissionWizard() {
           documentsCount={submitted.documentsCount}
           submittedValues={submitted.submittedValues}
           onSubmitAnother={startOver}
+        />
+        <SubmissionSuccessDialog
+          open={celebrate}
+          ideaName={submitted.name}
+          referenceId={submitted.referenceId}
+          onClose={() => setCelebrate(false)}
         />
       </div>
     );
