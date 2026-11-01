@@ -8,8 +8,8 @@ import { cn } from "@/lib/utils";
 export interface DbitLogoProps {
   /**
    * Display variant:
-   * - "full": Full horizontal lockup (Rocket-wing Mark + DBIT + Incubation Centre)
-   * - "mark": Standalone rocket-wing "D" mark (for collapsed rail, mobile icons, buttons)
+   * - "full": Full horizontal lockup (Hex Prism Mark + DBIT + Incubation Centre)
+   * - "mark": Standalone Hex Prism "D+I" mark (for collapsed rail, mobile icons, buttons)
    * - "stacked": Stacked logo
    */
   variant?: "full" | "mark" | "stacked";
@@ -29,9 +29,12 @@ export interface DbitLogoProps {
   collapseSubtitleOnMobile?: boolean;
 }
 
+// Version stamp to guarantee instant cache busting across browser and Turbopack proxy
+const BRAND_VERSION = "hex_v3_2026";
+
 /**
- * High-resolution Standalone Mark component for DBIT Incubation Centre.
- * The official Dynamic Venture Wing & Rocket Liftoff "D" symbol.
+ * High-resolution Standalone Hex Prism Mark for DBIT Incubation Centre.
+ * The official Minimalist Isometric "D" and "I" geometric emblem.
  */
 export function DbitLogoMark({
   size = 36,
@@ -50,10 +53,11 @@ export function DbitLogoMark({
       style={{ width: `${size}px`, height: `${size}px` }}
     >
       <Image
-        src="/logo-mark.png"
+        src={`/brand/dbit-hex-mark.png?v=${BRAND_VERSION}`}
         alt="DBIT Incubation Centre Mark"
         width={size}
         height={size}
+        unoptimized
         priority
         className="h-full w-full object-contain"
       />
@@ -63,7 +67,7 @@ export function DbitLogoMark({
 
 /**
  * Universal Brand Component for DBIT Incubation Centre.
- * Uses the official Option 3: Dynamic Venture Wing & Rocket Launch identity.
+ * Uses the official Minimalist Hex Prism (D + I) identity.
  */
 export default function DbitLogo({
   variant = "full",
@@ -104,7 +108,10 @@ export default function DbitLogo({
   }
 
   // Full horizontal lockup
-  const logoSrc = theme === "dark" ? "/logo-horizontal-white.png" : "/logo-horizontal.png";
+  const logoSrc = theme === "dark"
+    ? `/brand/dbit-hex-logo-white.png?v=${BRAND_VERSION}`
+    : `/brand/dbit-hex-logo.png?v=${BRAND_VERSION}`;
+
   // Aspect ratio is 806 x 240 (~3.36:1)
   const calculatedWidth = Math.round(markHeight * 3.36);
 
@@ -120,6 +127,7 @@ export default function DbitLogo({
         alt={`DBIT ${subtitle}`}
         width={calculatedWidth}
         height={markHeight}
+        unoptimized
         priority
         className="h-auto w-auto object-contain"
         style={{ height: `${markHeight}px` }}
