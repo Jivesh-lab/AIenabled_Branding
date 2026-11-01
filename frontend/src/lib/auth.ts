@@ -53,7 +53,7 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Unexpected response from authentication service.");
         }
 
-        console.log(`[Auth] authorize() — backend status: ${res.status}, success: ${data.success}`);
+        console.log(`[Auth] authorize() — backend status: ${res.status}, success: ${data.success}, message: ${data.message || "none"}`);
 
         if (data.require2FA) {
           throw new Error("REQUIRE_2FA");

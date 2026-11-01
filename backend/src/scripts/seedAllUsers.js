@@ -87,6 +87,21 @@ const USERS_TO_SEED = [
   },
   {
     name: 'Dr. Neha Sharma (Faculty Coordinator)',
+    email: 'coordinator@aai-dbit.edu',
+    password: process.env.COORDINATOR_PASSWORD || 'Coordinator#2026!Pass',
+    role: 'faculty',
+    facultyRole: 'coordinator',
+    emailVerified: true,
+    status: 'active',
+    twoFactorEnabled: false,
+    profile: {
+      department: 'Computer Science & AI',
+      designation: 'Associate Professor & Incubation Coordinator',
+      researchAreas: ['Artificial Intelligence', 'Embedded Systems', 'Startup Mentoring'],
+    },
+  },
+  {
+    name: 'Dr. Neha Sharma (Faculty Coordinator)',
     email: 'coordinator@aai-dbitic.edu',
     password: process.env.COORDINATOR_PASSWORD || 'Coordinator#2026!Pass',
     role: 'faculty',
@@ -98,6 +113,21 @@ const USERS_TO_SEED = [
       department: 'Computer Science & AI',
       designation: 'Associate Professor & Incubation Coordinator',
       researchAreas: ['Artificial Intelligence', 'Embedded Systems', 'Startup Mentoring'],
+    },
+  },
+  {
+    name: 'Prof. Rajesh Kulkarni (Faculty Volunteer)',
+    email: 'volunteer@aai-dbit.edu',
+    password: process.env.VOLUNTEER_PASSWORD || 'Volunteer#2026!Pass',
+    role: 'faculty',
+    facultyRole: 'volunteer',
+    emailVerified: true,
+    status: 'active',
+    twoFactorEnabled: false,
+    profile: {
+      department: 'Electronics & Telecommunication',
+      designation: 'Assistant Professor & Faculty Volunteer',
+      researchAreas: ['IoT', 'Hardware Prototyping', 'Student Project Guidance'],
     },
   },
   {
@@ -117,6 +147,21 @@ const USERS_TO_SEED = [
   },
   {
     name: 'Dr. Neha Sharma (Legacy Faculty Login)',
+    email: 'faculty@aai-dbit.edu',
+    password: process.env.FACULTY_PASSWORD || 'Faculty#2026!Pass',
+    role: 'faculty',
+    facultyRole: 'coordinator',
+    emailVerified: true,
+    status: 'active',
+    twoFactorEnabled: false,
+    profile: {
+      department: 'Computer Science & AI',
+      designation: 'Associate Professor & Incubation Coordinator',
+      researchAreas: ['Artificial Intelligence', 'Embedded Systems', 'Startup Mentoring'],
+    },
+  },
+  {
+    name: 'Dr. Neha Sharma (Legacy Faculty Login)',
     email: 'faculty@aai-dbitic.edu',
     password: process.env.FACULTY_PASSWORD || 'Faculty#2026!Pass',
     role: 'faculty',
@@ -132,6 +177,21 @@ const USERS_TO_SEED = [
   },
   {
     name: 'Vikramaditya Rao (Industry Mentor)',
+    email: 'mentor@aai-dbit.edu',
+    password: process.env.MENTOR_PASSWORD || 'Mentor#2026!Pass',
+    role: 'mentor',
+    emailVerified: true,
+    status: 'active',
+    twoFactorEnabled: false,
+    profile: {
+      organization: 'DeepTech Venture Studio',
+      designation: 'Managing Partner & EIR',
+      expertise: ['DeepTech', 'B2B SaaS', 'Product-Market Fit', 'Go-To-Market'],
+      totalMentees: 14,
+    },
+  },
+  {
+    name: 'Vikramaditya Rao (Industry Mentor)',
     email: 'mentor@aai-dbitic.edu',
     password: process.env.MENTOR_PASSWORD || 'Mentor#2026!Pass',
     role: 'mentor',
@@ -143,6 +203,23 @@ const USERS_TO_SEED = [
       designation: 'Managing Partner & EIR',
       expertise: ['DeepTech', 'B2B SaaS', 'Product-Market Fit', 'Go-To-Market'],
       totalMentees: 14,
+    },
+  },
+  {
+    name: 'Rohit Singhania (Angel Investor)',
+    email: 'investor@aai-dbit.edu',
+    password: process.env.INVESTOR_PASSWORD || 'Investor#2026!Pass',
+    role: 'investor',
+    emailVerified: true,
+    status: 'active',
+    isInvestorVerified: true,
+    twoFactorEnabled: false,
+    profile: {
+      fundName: 'Horizon Catalyst Ventures',
+      ticketSize: '$25k - $150k',
+      sectors: ['AI/ML', 'HealthTech', 'AgriTech', 'ClimateTech'],
+      stages: ['Ideation', 'Prototype', 'MVP'],
+      accreditationType: 'Angel Syndicate Partner',
     },
   },
   {
@@ -164,6 +241,19 @@ const USERS_TO_SEED = [
   },
   {
     name: 'Kavita Deshmukh (Incubation Ops Admin)',
+    email: 'admin@aai-dbit.edu',
+    password: process.env.ADMIN_PASSWORD || 'Admin#2026!Ops',
+    role: 'admin',
+    emailVerified: true,
+    status: 'active',
+    twoFactorEnabled: false,
+    profile: {
+      department: 'DBIT Incubation Center',
+      title: 'Operations & Community Manager',
+    },
+  },
+  {
+    name: 'Kavita Deshmukh (Incubation Ops Admin)',
     email: 'admin@aai-dbitic.edu',
     password: process.env.ADMIN_PASSWORD || 'Admin#2026!Ops',
     role: 'admin',
@@ -173,6 +263,20 @@ const USERS_TO_SEED = [
     profile: {
       department: 'DBIT Incubation Center',
       title: 'Operations & Community Manager',
+    },
+  },
+  {
+    name: 'Omkar G (System Owner Super Admin)',
+    email: 'superadmin@aai-dbit.edu',
+    password: process.env.SUPER_ADMIN_PASSWORD || 'SuperAdmin#2026!Secure',
+    role: 'super_admin',
+    emailVerified: true,
+    status: 'active',
+    twoFactorEnabled: true,
+    twoFactorSecret: 'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP', // Valid 32-char Base32 secret (160 bits)
+    profile: {
+      department: 'Executive Governance & Platform Architecture',
+      title: 'Chief Technology Director',
     },
   },
   {

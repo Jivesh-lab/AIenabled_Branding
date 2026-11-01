@@ -138,7 +138,17 @@ router.post(
     const { email, password, twoFactorCode } = req.body;
 
     try {
-      const user = await User.findOne({ email });
+      let user = await User.findOne({ email });
+
+      if (!user) {
+        if (email.endsWith('@aai-dbit.edu')) {
+          const alternateEmail = email.replace('@aai-dbit.edu', '@aai-dbitic.edu');
+          user = await User.findOne({ email: alternateEmail });
+        } else if (email.endsWith('@aai-dbitic.edu')) {
+          const alternateEmail = email.replace('@aai-dbitic.edu', '@aai-dbit.edu');
+          user = await User.findOne({ email: alternateEmail });
+        }
+      }
 
       // Constant-time check — don't short-circuit on missing user
       const passwordMatch = user

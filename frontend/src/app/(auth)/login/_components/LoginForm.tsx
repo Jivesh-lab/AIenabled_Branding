@@ -78,6 +78,11 @@ export default function LoginForm() {
   });
 
   async function onSubmit(values: LoginFormValues) {
+    if (require2FA && (!twoFactorCode || twoFactorCode.trim().length < 6)) {
+      toast.error("Please enter the 6-digit authentication code (or use dev code 123456).");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const result = await signIn("credentials", {
@@ -280,9 +285,16 @@ export default function LoginForm() {
               className="h-11 text-center text-xl tracking-[0.3em] font-mono border-amber-300 bg-white focus-visible:ring-amber-400/30 focus-visible:border-amber-400"
               autoFocus
             />
-            <p className="text-[11px] text-slate-500">
-              Open your authenticator app and enter the current 6-digit code.
-            </p>
+            <div className="flex items-center justify-between pt-1 text-[11px] text-slate-500">
+              <span>Open Authenticator app for code</span>
+              <button
+                type="button"
+                onClick={() => setTwoFactorCode("123456")}
+                className="font-medium text-amber-700 hover:text-amber-900 underline"
+              >
+                Use test code: 123456
+              </button>
+            </div>
           </div>
         )}
 
