@@ -25,6 +25,9 @@ const assistant = require('../agentic/assistant');
 const { integrationStatus } = require('../agentic/config');
 const User = require('../models/User');
 const { validateWindows, windowsFor } = require('../agentic/tools/workingHours');
+const googleCalendar = require('../agentic/tools/google');
+const { notify } = require('../agentic/tools/notify');
+const { record } = require('../agentic/actionLog');
 
 const router = express.Router();
 router.use(authenticate);
@@ -170,6 +173,109 @@ router.get('/meetings', wrap(async (req, res) => {
   const filter = ['admin', 'super_admin'].includes(req.user.role) ? { source: 'agent' } : { attendeeUserIds: String(req.user.id) };
   const rows = await FacultyMeeting.find(filter).sort({ startUtc: -1 }).limit(50).lean();
   res.json({ success: true, data: rows.map((m) => ({ id: m.id, title: m.title, projectTitle: m.projectTitle, startUtc: m.startUtc, endUtc: m.endUtc, outcome: m.outcome, calendarMode: m.calendarMode, link: m.meetingLinkOrLocation, invitation: m.invitationStatus, response: m.responses?.[String(req.user.id)] || null })) });
+}));
+
+function canManageMeeting(user, meeting) {
+  return ['admin', 'super_admin', 'faculty'].includes(user.role) || String(meeting.googleOrganizerUserId || '') === String(user.id);
+}
+
+function meetingTimes(body) {
+  const start = new Date(String(body.startUtc || ''));
+  const end = new Date(String(body.endUtc || ''));
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) {
+    const error = new Error('Choose a valid start and end time.');
+    error.status = 400;
+    throw error;
+  }
+  const duration = (end - start) / 60000;
+  if (duration < 5 || duration > 480) {
+    const error = new Error('Meeting duration must be between 5 minutes and 8 hours.');
+    error.status = 400;
+    throw error;
+  }
+  return { start, end, duration };
+}
+
+router.post('/meetings/:id/cancel', wrap(async (req, res) => {
+  const meeting = await FacultyMeeting.findOne({ id: req.params.id }).lean();
+  if (!meeting) return res.status(404).json({ success: false, message: 'This meeting was not found.' });
+  if (!canManageMeeting(req.user, meeting)) return res.status(403).json({ success: false, message: 'You do not have permission to cancel this meeting.' });
+  if (meeting.outcome === 'cancelled') return res.json({ success: true, message: 'This meeting was already cancelled.', data: { id: meeting.id, outcome: 'cancelled', calendarSyncStatus: meeting.calendarSyncStatus } });
+
+  let syncStatus = meeting.googleEventId && meeting.googleOrganizerUserId ? 'pending' : 'not_applicable';
+  let syncError = null;
+  if (meeting.googleEventId && meeting.googleOrganizerUserId) {
+    try {
+      await googleCalendar.deleteEvent(meeting.googleOrganizerUserId, meeting.googleEventId);
+      syncStatus = 'synced';
+    } catch (error) {
+      syncStatus = 'failed';
+      syncError = String(error.message).slice(0, 200);
+    }
+  }
+  await FacultyMeeting.updateOne(
+    { id: meeting.id, outcome: { $ne: 'cancelled' } },
+    { $set: { outcome: 'cancelled', outcomeAt: new Date(), cancelledAt: new Date(), cancelledBy: String(req.user.id), invitationStatus: 'Cancelled', calendarSyncStatus: syncStatus, calendarSyncError: syncError } }
+  );
+  await record({ agent: 'Portal', action: 'meeting.cancel', tool: 'meeting', trigger: { type: 'user', ref: String(req.user.id) }, projectId: meeting.projectId, status: 'success', summary: `Meeting "${meeting.title}" was cancelled.`, result: { meetingId: meeting.id, calendarSyncStatus: syncStatus } });
+  await notify({ agent: 'Portal', trigger: { type: 'user', ref: String(req.user.id) }, projectId: meeting.projectId }, {
+    key: `meeting-cancel:${meeting.id}`,
+    userIds: meeting.attendeeUserIds || [],
+    title: 'Meeting cancelled',
+    message: `"${meeting.title}" was cancelled.${syncStatus === 'failed' ? ' Google Calendar still needs attention.' : ''}`,
+    kind: 'meeting',
+    email: false,
+  });
+  res.json({ success: true, message: syncStatus === 'failed' ? 'Meeting cancelled here, but Google Calendar could not be updated.' : 'Meeting cancelled.', data: { id: meeting.id, outcome: 'cancelled', calendarSyncStatus: syncStatus, calendarSyncError: syncError } });
+}));
+
+router.patch('/meetings/:id', wrap(async (req, res) => {
+  const meeting = await FacultyMeeting.findOne({ id: req.params.id }).lean();
+  if (!meeting) return res.status(404).json({ success: false, message: 'This meeting was not found.' });
+  if (!canManageMeeting(req.user, meeting)) return res.status(403).json({ success: false, message: 'You do not have permission to edit this meeting.' });
+  if (['cancelled', 'held', 'no_show'].includes(meeting.outcome)) return res.status(409).json({ success: false, message: 'Only upcoming meetings can be edited.' });
+
+  const title = typeof req.body?.title === 'string' ? req.body.title.trim() : meeting.title;
+  const agenda = typeof req.body?.agenda === 'string' ? req.body.agenda.trim() : meeting.agenda;
+  const location = typeof req.body?.location === 'string' ? req.body.location.trim() : meeting.meetingLinkOrLocation;
+  if (!title || title.length > 200 || agenda.length > 4000 || location.length > 500) return res.status(400).json({ success: false, message: 'Meeting details are too long or incomplete.' });
+  const times = meetingTimes({ startUtc: req.body?.startUtc || meeting.startUtc, endUtc: req.body?.endUtc || meeting.endUtc });
+  let syncStatus = meeting.googleEventId && meeting.googleOrganizerUserId ? 'pending' : 'not_applicable';
+  let syncError = null;
+  if (meeting.googleEventId && meeting.googleOrganizerUserId) {
+    try {
+      await googleCalendar.updateEvent(meeting.googleOrganizerUserId, meeting.googleEventId, {
+        summary: title,
+        description: agenda,
+        location,
+        start: { dateTime: times.start.toISOString() },
+        end: { dateTime: times.end.toISOString() },
+      });
+      syncStatus = 'synced';
+    } catch (error) {
+      syncStatus = 'failed';
+      syncError = String(error.message).slice(0, 200);
+    }
+  }
+  await FacultyMeeting.updateOne({ id: meeting.id }, {
+    $set: {
+      title, agenda, meetingLinkOrLocation: location, startUtc: times.start, endUtc: times.end,
+      date: times.start.toISOString().slice(0, 10), startTime: times.start.toISOString().slice(11, 16),
+      durationMinutes: times.duration, invitationStatus: syncStatus === 'failed' ? 'Update pending' : meeting.invitationStatus,
+      calendarSyncStatus: syncStatus, calendarSyncError: syncError,
+    },
+  });
+  const requestId = typeof req.body?.requestId === 'string' ? req.body.requestId : `${meeting.id}:${times.start.toISOString()}:${title}`;
+  await record({ agent: 'Portal', action: 'meeting.edit', tool: 'meeting', trigger: { type: 'user', ref: String(req.user.id) }, projectId: meeting.projectId, status: 'success', summary: `Meeting "${title}" was edited.`, result: { meetingId: meeting.id, calendarSyncStatus: syncStatus } });
+  await notify({ agent: 'Portal', trigger: { type: 'user', ref: String(req.user.id) }, projectId: meeting.projectId }, {
+    key: `meeting-edit:${meeting.id}:${requestId}`,
+    userIds: meeting.attendeeUserIds || [],
+    title: 'Meeting updated',
+    message: `"${title}" was updated.${syncStatus === 'failed' ? ' Google Calendar still needs attention.' : ''}`,
+    kind: 'meeting',
+    email: false,
+  });
+  res.json({ success: true, message: syncStatus === 'failed' ? 'Meeting updated here, but Google Calendar could not be updated.' : 'Meeting updated.', data: { id: meeting.id, calendarSyncStatus: syncStatus, calendarSyncError: syncError } });
 }));
 
 router.post('/meetings/:id/outcome', wrap(async (req, res) => {

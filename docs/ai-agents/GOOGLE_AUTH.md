@@ -90,6 +90,32 @@ The frontend needs no Google variables.
 * Set `FRONTEND_URL` to the production frontend origin (`https://app.your-domain.edu`), add it to the backend CORS allow-list, and serve both over **HTTPS** (cookies are `Secure` when `NODE_ENV=production`).
 * Keep `NODE_ENV=production`, `DEV_AUTH_FALLBACK` off, and a strong `JWT_SECRET` / `INTEGRATIONS_ENCRYPTION_KEY`.
 
+## Calendar synchronization and meeting management
+
+The portal also supports editing and cancelling upcoming agent meetings. Coordinators and administrators can use
+the existing meetings panel; cancellation is a soft status change and preserves the meeting history. If the meeting
+was created on Google Calendar, the external event is updated first. If Google is unavailable, the local meeting is
+still marked with a visible `failed` calendar sync status and the participants are notified.
+
+Google Calendar push synchronization is optional. Set `CALENDAR_SYNC_MODE=sandbox` (the default in
+`backend/.env.example`) for local development without a public callback. In live mode, set:
+
+```
+PUBLIC_API_URL=https://api.example.edu
+CALENDAR_SYNC_MODE=live
+```
+
+The backend registers an `events.watch` channel after a successful calendar connection and receives notifications at
+`POST /api/integrations/google/webhook`. Google sends only a change signal; the backend validates the stored channel
+and resource identifiers, then fetches changes with an incremental sync token. Events belonging to the portal are
+matched by their stored Google event ID; unrelated personal events are never imported. Deleted or cancelled Google
+events mark the linked portal meeting as cancelled rather than deleting its history. The agent scheduler renews
+watch channels before expiry and records synchronization failures on the connection.
+
+Real push delivery requires a publicly reachable HTTPS backend URL and Google Calendar API access. For local testing,
+use a temporary HTTPS tunnel only with non-sensitive development data, set `PUBLIC_API_URL` to the tunnel origin, and
+use `CALENDAR_SYNC_MODE=live`. Sandbox mode does not contact Google and is the normal automated-test mode.
+
 ## Security notes
 
 * Client secret and all tokens stay on the backend. Calendar access/refresh tokens are AES-256-GCM encrypted at rest and are never returned by any API or written to logs (only reason codes are logged).

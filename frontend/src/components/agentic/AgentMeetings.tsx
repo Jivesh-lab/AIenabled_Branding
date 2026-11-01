@@ -19,6 +19,7 @@ interface MeetingItem {
   link: string;
   invitation: string;
   response: "accepted" | "declined" | null;
+  calendarSyncStatus?: "synced" | "pending" | "failed" | "not_applicable";
 }
 
 const OUTCOME: Record<MeetingItem["outcome"], { label: string; tone: "info" | "success" | "attention" | "neutral" }> = {
@@ -35,17 +36,20 @@ const CALENDAR_NOTE: Record<string, string> = {
   none: "",
 };
 
-function Row({ item, canRecord, onDone }: { item: MeetingItem; canRecord: boolean; onDone: () => void }) {
+function Row({ item, canRecord, canManage, onDone }: { item: MeetingItem; canRecord: boolean; canManage: boolean; onDone: () => void }) {
   const [busy, setBusy] = useState(false);
   const [recording, setRecording] = useState(false);
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [edit, setEdit] = useState({ title: item.title, startUtc: item.startUtc.slice(0, 16), endUtc: item.endUtc.slice(0, 16), agenda: "" });
   const ended = new Date(item.endUtc).getTime() < Date.now();
 
-  async function post(path: string, json: unknown, success?: string) {
+  async function post(path: string, json: unknown, success?: string, method = "POST") {
     setBusy(true);
     try {
-      const res = await agenticRequest<{ message: string }>(`${AGENTIC}/meetings/${item.id}/${path}`, { method: "POST", json });
+      const target = path ? `${AGENTIC}/meetings/${item.id}/${path}` : `${AGENTIC}/meetings/${item.id}`;
+      const res = await agenticRequest<{ message: string }>(target, { method, json });
       toast.success(success || res.message);
       setRecording(false);
       onDone();
@@ -54,6 +58,17 @@ function Row({ item, canRecord, onDone }: { item: MeetingItem; canRecord: boolea
     } finally {
       setBusy(false);
     }
+  }
+
+  async function cancelMeeting() {
+    if (!window.confirm("Cancel this meeting? Participants will be notified.")) return;
+    await post("cancel", {}, "Meeting cancelled.");
+  }
+
+  async function saveEdit(e: React.FormEvent) {
+    e.preventDefault();
+    await post("", { title: edit.title, startUtc: new Date(edit.startUtc).toISOString(), endUtc: new Date(edit.endUtc).toISOString(), agenda: edit.agenda, requestId: crypto.randomUUID() }, "Meeting updated.", "PATCH");
+    setEditing(false);
   }
 
   return (
@@ -74,6 +89,26 @@ function Row({ item, canRecord, onDone }: { item: MeetingItem; canRecord: boolea
           <button type="button" disabled={busy} onClick={() => post("respond", { accept: false })} className="h-8 rounded-lg border border-line px-3 text-[12.5px] font-medium text-ink hover:border-danger/40 hover:text-danger disabled:opacity-60">Suggest another time</button>
           {item.response && <span className="self-center text-[12px] text-muted-ink">You said: {item.response}</span>}
         </div>
+      )}
+      {canManage && item.outcome === "pending" && !ended && !editing && (
+        <div className="mt-2 flex gap-2">
+          <button type="button" disabled={busy} onClick={() => setEditing(true)} className="h-8 rounded-lg border border-line px-3 text-[12.5px] font-medium text-ink hover:border-brand/40 disabled:opacity-60">Edit meeting</button>
+          <button type="button" disabled={busy} onClick={() => void cancelMeeting()} className="h-8 rounded-lg border border-danger/30 px-3 text-[12.5px] font-medium text-danger hover:bg-danger/5 disabled:opacity-60">Cancel meeting</button>
+        </div>
+      )}
+      {editing && (
+        <form onSubmit={saveEdit} className="mt-3 space-y-2 rounded-lg border border-line bg-canvas/60 p-3">
+          <input required maxLength={200} value={edit.title} onChange={(e) => setEdit((v) => ({ ...v, title: e.target.value }))} className="h-9 w-full rounded-lg border border-line bg-white px-2.5 text-[13px]" aria-label="Meeting title" />
+          <div className="grid gap-2 sm:grid-cols-2">
+            <label className="text-[11px] text-muted-ink">Start<input required type="datetime-local" value={edit.startUtc} onChange={(e) => setEdit((v) => ({ ...v, startUtc: e.target.value }))} className="mt-1 h-9 w-full rounded-lg border border-line bg-white px-2 text-[12px]" /></label>
+            <label className="text-[11px] text-muted-ink">End<input required type="datetime-local" value={edit.endUtc} onChange={(e) => setEdit((v) => ({ ...v, endUtc: e.target.value }))} className="mt-1 h-9 w-full rounded-lg border border-line bg-white px-2 text-[12px]" /></label>
+          </div>
+          <textarea maxLength={4000} value={edit.agenda} onChange={(e) => setEdit((v) => ({ ...v, agenda: e.target.value }))} rows={2} placeholder="Agenda or description" className="w-full rounded-lg border border-line bg-white p-2 text-[12px]" />
+          <div className="flex gap-2">
+            <button type="submit" disabled={busy} className="h-8 rounded-lg bg-brand px-3 text-[12px] font-semibold text-white disabled:opacity-60">Save changes</button>
+            <button type="button" disabled={busy} onClick={() => setEditing(false)} className="h-8 rounded-lg border border-line px-3 text-[12px] text-ink">Cancel</button>
+          </div>
+        </form>
       )}
       {canRecord && item.outcome === "pending" && ended && !recording && (
         <button type="button" onClick={() => setRecording(true)} className="mt-2 h-8 rounded-lg bg-brand px-3 text-[12.5px] font-semibold text-white hover:bg-brand-hover">Record what happened</button>
@@ -96,7 +131,7 @@ function Row({ item, canRecord, onDone }: { item: MeetingItem; canRecord: boolea
 }
 
 /** Meetings booked by the Workflow Agent for the signed-in person, with attendance and outcome. */
-export default function AgentMeetings({ title = "Meetings the agents arranged", canRecord = false, className }: { title?: string; canRecord?: boolean; className?: string }) {
+export default function AgentMeetings({ title = "Meetings the agents arranged", canRecord = false, canManage = false, className }: { title?: string; canRecord?: boolean; canManage?: boolean; className?: string }) {
   const { data, error, loading, reload } = useAgentic<MeetingItem[]>(`${AGENTIC}/meetings`, { refreshMs: 30000 });
   return (
     <section aria-label={title} className={className}>
@@ -107,7 +142,7 @@ export default function AgentMeetings({ title = "Meetings the agents arranged", 
         ) : error && !data ? (
           <ErrorState title="Could not load meetings" message={error} onRetry={reload} />
         ) : data && data.length > 0 ? (
-          <ul className="divide-y divide-line">{data.map((m) => <Row key={m.id} item={m} canRecord={canRecord} onDone={reload} />)}</ul>
+          <ul className="divide-y divide-line">{data.map((m) => <Row key={m.id} item={m} canRecord={canRecord} canManage={canManage} onDone={reload} />)}</ul>
         ) : (
           <EmptyState icon={CalendarClock} title="No meetings booked yet" description="Once a mentor is confirmed, the Workflow Agent finds a time that suits everyone and books the first meeting. It then follows up for notes and action items." />
         )}

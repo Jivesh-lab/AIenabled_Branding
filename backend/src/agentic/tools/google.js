@@ -17,6 +17,7 @@ const { createTicket, consumeTicket } = require('../../services/googleSignIn');
  * - Only the `calendar.events` scope is requested.
  */
 const SCOPE_EVENTS = 'https://www.googleapis.com/auth/calendar.events';
+const WATCH_LEAD_MS = 24 * 60 * 60 * 1000;
 let fetchImpl = (...args) => fetch(...args);
 function setFetch(fn) {
   fetchImpl = fn;
@@ -93,7 +94,7 @@ async function handleCallback({ code, state }) {
   const userId = String(payload.sub);
   const existing = await CalendarConnection.findOne({ userId, provider: 'google', accountSub: claims.sub }).lean();
   const others = await CalendarConnection.countDocuments({ userId, provider: 'google', status: 'connected', accountSub: { $ne: claims.sub } });
-  await CalendarConnection.findOneAndUpdate(
+  const saved = await CalendarConnection.findOneAndUpdate(
     { userId, provider: 'google', accountSub: claims.sub },
     {
       $set: {
@@ -105,11 +106,18 @@ async function handleCallback({ code, state }) {
         status: 'connected',
         lastError: null,
         connectedAt: new Date(),
+        syncStatus: 'pending',
+        syncError: null,
         isPrimary: existing ? existing.isPrimary : others === 0,
       },
     },
     { upsert: true, returnDocument: 'after' }
   );
+  try {
+    await registerWatch(userId, saved || await CalendarConnection.findOne({ userId, provider: 'google', accountSub: claims.sub }).lean());
+  } catch (error) {
+    await CalendarConnection.updateOne({ _id: saved?._id || (await CalendarConnection.findOne({ userId, provider: 'google', accountSub: claims.sub }).select('_id').lean())._id }, { $set: { syncStatus: 'failed', syncError: String(error.message).slice(0, 200) } });
+  }
   return { userId, accountEmail: claims.email };
 }
 
@@ -134,6 +142,7 @@ async function disconnect(userId, connectionId = null) {
   if (connectionId) filter._id = String(connectionId);
   const rows = await CalendarConnection.find(filter).lean();
   for (const row of rows) {
+    await stopWatch(userId, row).catch(() => null);
     try {
       const token = row.refreshTokenEnc ? decrypt(row.refreshTokenEnc) : decrypt(row.accessTokenEnc);
       await fetchImpl(`https://oauth2.googleapis.com/revoke?token=${encodeURIComponent(token)}`, { method: 'POST' });
@@ -190,6 +199,7 @@ async function api(userId, path, init = {}, connectionId = null) {
   } catch {
     throw new GoogleCalendarError('Google Calendar could not be reached. Please try again in a moment.', 'CALENDAR_UNAVAILABLE', 502);
   }
+
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     const status = response.status;
@@ -207,6 +217,76 @@ async function api(userId, path, init = {}, connectionId = null) {
     throw new GoogleCalendarError(data.error?.message || `Google Calendar rejected the request (${status}).`, 'CALENDAR_REJECTED', 400);
   }
   return data;
+}
+
+function publicApiUrl() {
+  return String(process.env.PUBLIC_API_URL || '').replace(/\/$/, '');
+}
+
+async function registerWatch(userId, connection) {
+  if (!connection || !publicApiUrl() || String(process.env.CALENDAR_SYNC_MODE || 'live').toLowerCase() === 'sandbox') return null;
+  const token = crypto.randomBytes(24).toString('base64url');
+  const channelId = crypto.randomUUID();
+  const accessToken = await accessTokenFor(userId, connection._id);
+  if (!accessToken) throw new GoogleCalendarError('Calendar access must be refreshed before synchronization can start.', 'CALENDAR_RECONNECT', 409);
+  const response = await fetchImpl(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(connection.calendarId || 'primary')}/events/watch`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: channelId, type: 'web_hook', address: `${publicApiUrl()}/api/integrations/google/webhook`, token, params: { ttl: String(7 * 24 * 60 * 60) } }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || !data.resourceId) throw new GoogleCalendarError(data.error?.message || 'Google Calendar watch registration failed.', 'WATCH_REGISTRATION_FAILED', 502);
+  await CalendarConnection.updateOne({ _id: connection._id }, {
+    $set: {
+      watchChannelId: channelId,
+      watchResourceId: data.resourceId,
+      watchExpiresAt: new Date(Number(data.expiration || Date.now() + 7 * 86400000)),
+      watchTokenEnc: encrypt(token),
+      syncStatus: 'active',
+      syncError: null,
+    },
+  });
+  return data;
+}
+
+async function stopWatch(userId, connection) {
+  if (!connection?.watchChannelId || !connection.watchResourceId) return;
+  const token = await accessTokenFor(userId, connection._id);
+  if (!token) return;
+  await fetchImpl('https://www.googleapis.com/calendar/v3/channels/stop', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: connection.watchChannelId, resourceId: connection.watchResourceId }),
+  });
+}
+
+async function renewWatch(userId, connection) {
+  if (!connection || !publicApiUrl() || String(process.env.CALENDAR_SYNC_MODE || 'live').toLowerCase() === 'sandbox') return null;
+  if (connection.watchExpiresAt && new Date(connection.watchExpiresAt).getTime() - Date.now() > WATCH_LEAD_MS) return connection;
+  await stopWatch(userId, connection).catch(() => null);
+  return registerWatch(userId, connection);
+}
+
+async function listChangedEvents(userId, connection, { full = false } = {}) {
+  const token = await accessTokenFor(userId, connection._id);
+  if (!token) throw new GoogleCalendarError('Calendar access needs to be renewed.', 'CALENDAR_RECONNECT', 409);
+  const query = new URLSearchParams({ singleEvents: 'true', showDeleted: 'true', maxResults: '250' });
+  if (full || !connection.syncToken) query.set('timeMin', new Date(Date.now() - 180 * 86400000).toISOString());
+  else query.set('syncToken', connection.syncToken);
+  const events = [];
+  let nextPageToken = null;
+  let nextSyncToken = null;
+  do {
+    if (nextPageToken) query.set('pageToken', nextPageToken);
+    const response = await fetchImpl(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(connection.calendarId || 'primary')}/events?${query}`, { headers: { Authorization: `Bearer ${token}` } });
+    const data = await response.json().catch(() => ({}));
+    if (response.status === 410) return listChangedEvents(userId, { ...connection, syncToken: null }, { full: true });
+    if (!response.ok) throw new GoogleCalendarError(data.error?.message || 'Calendar synchronization failed.', 'CALENDAR_SYNC_FAILED', 502);
+    events.push(...(data.items || []));
+    nextPageToken = data.nextPageToken || null;
+    nextSyncToken = data.nextSyncToken || nextSyncToken;
+  } while (nextPageToken);
+  return { events, syncToken: nextSyncToken };
 }
 
 function shapeEvent(event) {
@@ -270,6 +350,14 @@ async function updateEventTime(userId, eventId, { startUtc, endUtc }) {
   });
 }
 
+async function updateEvent(userId, eventId, patch, connectionId = null) {
+  return api(userId, `/calendars/primary/events/${encodeURIComponent(eventId)}?sendUpdates=all`, { method: 'PATCH', body: JSON.stringify(patch) }, connectionId);
+}
+
+async function deleteEvent(userId, eventId, connectionId = null) {
+  return api(userId, `/calendars/primary/events/${encodeURIComponent(eventId)}?sendUpdates=all`, { method: 'DELETE' }, connectionId);
+}
+
 /** Busy intervals for slot finding, from the events themselves (works with the single calendar.events scope). */
 async function busy(userId, fromUtc, toUtc) {
   const events = await listEvents(userId, { from: fromUtc, to: toUtc, max: 250 });
@@ -279,6 +367,7 @@ async function busy(userId, fromUtc, toUtc) {
 }
 
 module.exports = {
-  authUrl, handleCallback, getConnection, listConnections, accessTokenFor, disconnect, listEvents, createEvent, updateEventTime, busy,
+  authUrl, handleCallback, getConnection, listConnections, accessTokenFor, disconnect, listEvents, createEvent, updateEventTime, updateEvent, deleteEvent, busy,
+  registerWatch, renewWatch, stopWatch, listChangedEvents, WATCH_LEAD_MS,
   setFetch, NotConfiguredError, GoogleCalendarError, SCOPE_EVENTS,
 };

@@ -6,6 +6,7 @@ const { authenticate } = require('../middleware/auth');
 const { integrationStatus } = require('../agentic/config');
 const google = require('../agentic/tools/google');
 const googleSignIn = require('../services/googleSignIn');
+const calendarSync = require('../services/calendarSync');
 
 const router = express.Router();
 
@@ -40,6 +41,9 @@ router.get('/google/callback', async (req, res) => {
       if (req.query.error) return res.redirect(frontendUrl('/login?calendar=cancelled'));
       const result = await google.handleCallback({ code: req.query.code, state: req.query.state });
       const user = await User.findById(result.userId).select('role').lean();
+      const CalendarConnection = require('../models/CalendarConnection');
+      const connection = await CalendarConnection.findOne({ userId: result.userId, accountEmail: result.accountEmail, status: 'connected' }).sort({ updatedAt: -1 }).lean();
+      if (connection) void calendarSync.synchronizeConnection(connection._id).catch((error) => console.error('[integrations] initial calendar sync failed:', error.code || error.name));
       return res.redirect(frontendUrl(`/workspace/${WORKSPACE[user?.role] || 'student'}/dashboard?calendar=connected`));
     }
   } catch (error) {
@@ -52,6 +56,19 @@ router.get('/google/callback', async (req, res) => {
     return res.redirect(frontendUrl('/login?google=failed'));
   }
   return res.redirect(frontendUrl('/login?google=expired'));
+});
+
+// Google sends change signals here. It contains no event data; acknowledge quickly after
+// validating the stored channel, then fetch changes using the saved sync token.
+router.post('/google/webhook', express.text({ type: '*/*', limit: '8kb' }), (req, res) => {
+  const headers = {
+    channelId: req.get('x-goog-channel-id'),
+    resourceId: req.get('x-goog-resource-id'),
+    resourceState: req.get('x-goog-resource-state'),
+    token: req.get('x-goog-channel-token'),
+  };
+  void calendarSync.synchronizeForChannel(headers).catch((error) => console.error('[integrations] calendar webhook sync failed:', error.code || error.name));
+  return res.status(200).send('ok');
 });
 
 router.use(authenticate);
