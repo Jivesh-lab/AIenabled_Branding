@@ -204,5 +204,5 @@ test('Google connect: friendly 503 when not configured; the callback needs a val
   assert.match(res.body.message, /Ask an administrator/);
   const cb = await fetch(`${base}/api/integrations/google/callback?code=x&state=forged`, { redirect: 'manual' });
   assert.strictEqual(cb.status, 302);
-  assert.match(cb.headers.get('location'), /calendar=error/);
+  assert.match(cb.headers.get('location'), /google=expired/);
 });

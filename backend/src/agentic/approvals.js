@@ -110,7 +110,7 @@ async function decide({ approvalId, user, decision, comment = '' }) {
         decisionComment: String(comment || '').slice(0, 1000),
       },
     },
-    { new: true }
+    { returnDocument: 'after' }
   ).lean();
   if (!decided) throw new ApprovalError('This item was just decided by someone else.', 409);
 
@@ -138,13 +138,13 @@ async function execute(approval, user) {
   try {
     const hook = approval.status === 'approved' ? handler.approve : handler.reject;
     if (hook) await hook(approval, user);
-    const done = await Approval.findOneAndUpdate({ _id: approval._id }, { $set: { executionStatus: 'done', executionError: null } }, { new: true }).lean();
+    const done = await Approval.findOneAndUpdate({ _id: approval._id }, { $set: { executionStatus: 'done', executionError: null } }, { returnDocument: 'after' }).lean();
     return { approval: done };
   } catch (error) {
     const failed = await Approval.findOneAndUpdate(
       { _id: approval._id },
       { $set: { executionStatus: 'failed', executionError: String(error.message).slice(0, 400) } },
-      { new: true }
+      { returnDocument: 'after' }
     ).lean();
     return { approval: failed, executionError: error.message };
   }
@@ -188,7 +188,7 @@ async function resolveExternally({ type, subjectId, decision, decidedBy, decided
         executionStatus: 'done',
       },
     },
-    { new: true }
+    { returnDocument: 'after' }
   ).lean();
 }
 

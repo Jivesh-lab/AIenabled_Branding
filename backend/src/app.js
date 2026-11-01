@@ -3,6 +3,7 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const connectDB = require('./config/db');
 const authRouter = require('./routes/auth');
+const googleAuthRouter = require('./routes/googleAuth');
 const auditRouter = require('./routes/audit');
 const adminRouter = require('./routes/admin');
 const investorsRouter = require('./routes/investors');
@@ -53,6 +54,7 @@ app.use(cookieParser()); // Parse Cookie header → req.cookies
 // ---------------------------------------------------------------------------
 // Routes
 // ---------------------------------------------------------------------------
+app.use('/api/auth/google', googleAuthRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/audit', auditRouter);
 app.use('/api/admin', adminRouter);

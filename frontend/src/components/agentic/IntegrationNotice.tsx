@@ -11,7 +11,7 @@ export interface IntegrationStatus {
   calendar: { configured: boolean; mode: "live" | "sandbox"; missing?: string[] };
   llm: { configured: boolean; mode: "live" | "rules_only"; missing?: string[] };
   agentService?: { reachable: boolean; linked?: boolean };
-  you?: { googleCalendar: { connected: boolean; needsReconnect?: boolean; accountEmail?: string } };
+  you?: { googleCalendar: { connected: boolean; needsReconnect?: boolean; accountEmail?: string; accounts?: number } };
 }
 
 const SEEN = "dbit.integration.notices";
@@ -44,6 +44,7 @@ export default function IntegrationNotice() {
     if (calendar) {
       if (calendar === "connected") toast.success("Google Calendar connected. Meetings the agents arrange will now appear on your calendar.");
       else if (calendar === "cancelled") toast.info("Google Calendar was not connected. You can try again from your profile menu.");
+      else if (calendar === "permission") toast.warning("Calendar access was not granted, so nothing was connected. You can try again from your profile menu and tick the calendar permission.");
       else toast.error("We could not connect Google Calendar. Please try again from your profile menu.");
       params.delete("calendar");
       const query = params.toString();

@@ -58,7 +58,7 @@ async function sync() {
           description: row.tagline || row.problem || '',
         };
 
-        await FacultyProject.findOneAndUpdate({ id: row.id }, { $set: doc }, { upsert: true, new: true });
+        await FacultyProject.findOneAndUpdate({ id: row.id }, { $set: doc }, { upsert: true, returnDocument: 'after' });
         console.log(`Synced to FacultyProject: ${row.name} (${row.id})`);
       }
 

@@ -23,6 +23,8 @@ const investorAgent = require('../agentic/agents/investorAgent');
 const monitoringAgent = require('../agentic/agents/monitoringAgent');
 const assistant = require('../agentic/assistant');
 const { integrationStatus } = require('../agentic/config');
+const User = require('../models/User');
+const { validateWindows, windowsFor } = require('../agentic/tools/workingHours');
 
 const router = express.Router();
 router.use(authenticate);
@@ -221,6 +223,33 @@ router.post('/introductions/:id/feedback', wrap(async (req, res) => {
 router.post('/notifications/read-all', wrap(async (req, res) => {
   await AgentNotification.updateMany({ recipientUserId: String(req.user.id), readAt: null }, { $set: { readAt: new Date() } });
   res.json({ success: true });
+}));
+
+// ---------------------------------------------------------------------------
+// Your own working hours: when the agents may schedule meetings with you
+// ---------------------------------------------------------------------------
+router.get('/me/working-hours', wrap(async (req, res) => {
+  const me = await User.findOne({ _id: String(req.user.id) }).select('profile').lean();
+  const custom = Array.isArray(me?.profile?.workingHours) && me.profile.workingHours.length > 0;
+  res.json({
+    success: true,
+    data: {
+      custom,
+      windows: custom ? me.profile.workingHours : [],
+      defaultWindows: windowsFor({}).map((w) => ({ days: w.days, start: `${String(Math.floor(w.start / 60)).padStart(2, '0')}:${String(w.start % 60).padStart(2, '0')}`, end: `${String(Math.floor(w.end / 60)).padStart(2, '0')}:${String(w.end % 60).padStart(2, '0')}` })),
+    },
+  });
+}));
+
+router.put('/me/working-hours', wrap(async (req, res) => {
+  let windows;
+  try {
+    windows = validateWindows(req.body?.windows ?? []);
+  } catch (error) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+  await User.updateOne({ _id: String(req.user.id) }, { $set: { 'profile.workingHours': windows } });
+  res.json({ success: true, message: windows.length ? 'Your working hours were saved. The agents will only book meetings inside them.' : 'Your custom hours were cleared. The centre default applies.', data: { custom: windows.length > 0, windows } });
 }));
 
 // ---------------------------------------------------------------------------

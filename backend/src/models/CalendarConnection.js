@@ -8,7 +8,10 @@ const calendarConnectionSchema = new mongoose.Schema(
   {
     userId: { type: String, required: true, index: true },
     provider: { type: String, enum: ['google'], default: 'google' },
+    // The Google account (OIDC subject) this connection belongs to. One application user may connect several.
+    accountSub: { type: String, default: '' },
     accountEmail: { type: String, default: '' },
+    isPrimary: { type: Boolean, default: false },
     accessTokenEnc: { type: String, default: null },
     refreshTokenEnc: { type: String, default: null },
     expiresAt: { type: Date, default: null },
@@ -20,6 +23,6 @@ const calendarConnectionSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-calendarConnectionSchema.index({ userId: 1, provider: 1 }, { unique: true });
+calendarConnectionSchema.index({ userId: 1, provider: 1, accountSub: 1 }, { unique: true });
 
 module.exports = mongoose.models.CalendarConnection || mongoose.model('CalendarConnection', calendarConnectionSchema);

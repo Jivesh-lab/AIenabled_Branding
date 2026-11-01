@@ -20,10 +20,12 @@ const WORKER_ID = `${os.hostname()}:${process.pid}`;
 let lastSweepAt = 0;
 
 async function heartbeat(patch) {
-  await AgentRuntime.findOneAndUpdate({ key: 'scheduler' }, { $set: { workerId: WORKER_ID, ...patch } }, { upsert: true, new: true });
+  await AgentRuntime.findOneAndUpdate({ key: 'scheduler' }, { $set: { workerId: WORKER_ID, ...patch } }, { upsert: true, returnDocument: 'after' });
 }
 
 async function markStarted() {
+  // The calendar index changed from one connection per user to one per Google account; drop the old index.
+  await require('../models/CalendarConnection').syncIndexes().catch((error) => console.warn('[AGENTS] calendar index sync skipped:', error.message));
   await heartbeat({ startedAt: new Date() });
 }
 

@@ -359,7 +359,7 @@ router.post(
             notes: notes !== undefined ? notes : '',
           },
         },
-        { upsert: true, new: true, runValidators: true }
+        { upsert: true, returnDocument: 'after', runValidators: true }
       );
 
       return res.status(200).json({

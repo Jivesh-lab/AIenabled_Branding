@@ -178,15 +178,31 @@ async function handle({ user, message }) {
   const lower = text.toLowerCase();
 
   // Decisions that need a human are never executed from chat.
-  if (/\b(approve|reject|accept|admit|confirm)\b.*\b(application|startup|mentor|allocation|introduction|intro)\b/.test(lower) && !/\b(show|what|which|list|waiting|pending)\b/.test(lower)) return refuseDecision(user, text);
+  if (/\b(approve|reject|accept|admit|confirm|sign off)\b.*\b(application|startup|mentor|allocation|introduction|intro)\b/.test(lower) && !/\b(show|what|which|list|waiting|pending|any|how many)\b/.test(lower)) return refuseDecision(user, text);
 
-  if (/\b(schedule|book|set up|arrange)\b.*\b(meeting|review|call|session|catch ?up)\b/.test(lower)) return commandSchedule(user, text);
-  if (/\b(what|which)\b.*\b(missing|outstanding|need from me)\b|\bmissing (information|info|details)\b/.test(lower)) return narrateMissing(user);
-  if (/\b(awaiting|waiting for|pending|need).*\b(approval|decision|my approval)\b|\bshow.*\b(approvals|applications awaiting)\b|\bapprovals?\b/.test(lower)) return narrateApprovals(user);
-  if (/\bwhat did (the )?agents?\b|\bagents? (do|did|done)\b|\brecent activity\b|\bwhat happened\b|\bthis week\b/.test(lower)) return narrateActivity(user, /today/.test(lower) ? 1 : 7);
-  if (/\b(my )?tasks?\b|\bto ?do\b|\bwhat should i do\b/.test(lower)) return narrateTasks(user);
-  if (/\b(my )?meetings?\b|\bupcoming\b/.test(lower)) return narrateMeetings(user);
-  if (/\bstatus\b|\bwhat are the agents doing\b|\bhow is my (application|startup)\b/.test(lower)) return narrateStatus(user);
+  // A request to arrange something: an action word plus something to arrange.
+  const ACTION = /\b(schedule|book|set ?up|arrange|organi[sz]e|plan|fix|put|add|can we|could we|shall we|let'?s|lets|i (?:need|want|would like|d like) to meet|meet (?:with )?(?:my|the)|want a|need a)\b/;
+  const THING = /\b(meeting|meet|review|call|session|catch ?up|sync|chat|check-?in|discussion|appointment|1[:\- ]?1|one[- ]on[- ]one|demo|slot|talk)\b/;
+  const ASKING_ABOUT_EXISTING = /\b(what|which|when|show|list|do i have|have i got|any|how many|upcoming|my (?:next|schedule|agenda|calendar))\b/;
+  if (ACTION.test(lower) && THING.test(lower) && !(ASKING_ABOUT_EXISTING.test(lower) && !/\b(schedule|book|arrange|set ?up|organi[sz]e|can we|could we|let'?s|lets)\b/.test(lower))) return commandSchedule(user, text);
+
+  // Things waiting on a decision.
+  if (/\bapprovals?\b|\b(awaiting|waiting|pending|need(?:s)?|for)\b.*\b(my )?(approval|decision|sign[- ]?off)\b|\bwhat needs my (?:decision|approval|attention)\b|\bto decide\b/.test(lower)) return narrateApprovals(user);
+
+  // Questions about what is outstanding for me.
+  if (/\b(missing|outstanding|incomplete|left to (?:submit|do|add|send|provide)|anything (?:left|else|more|pending)|still need|need(?:ed)? from me|what (?:else )?(?:do|should|must) i (?:submit|add|send|provide|upload)|what(?:'s| is) (?:holding|stopping|blocking))\b/.test(lower)) return narrateMissing(user);
+
+  // My tasks and deadlines.
+  if (/\btasks?\b|\bto[- ]?do\b|\baction items?\b|\bdeadlines?\b|\bwhat (?:should|do|can|must) i (?:do|work on|focus on)\b|\bwhat'?s (?:next|pending|due)\b|\bwhat is (?:next|due|pending)\b|\bdue (?:soon|this week)\b/.test(lower)) return narrateTasks(user);
+
+  // What have the agents been doing.
+  if (/\bwhat (?:did|have|has|are) (?:the )?(?:agents?|you)\b|\bagents? (?:do|did|done|doing)\b|\brecent activity\b|\bwhat happened\b|\bwhat'?s (?:new|happening|going on)\b|\bany (?:updates?|news)\b|\bcatch me up\b|\bthis week\b|\bso far\b|\bdone for me\b|\blatest\b/.test(lower)) return narrateActivity(user, /today|last 24|since yesterday/.test(lower) ? 1 : 7);
+
+  // My meetings and calendar.
+  if (/\bmeetings?\b|\bagenda\b|\bcalendar\b|\bschedule\b|\bupcoming\b|\bappointments?\b|\bsessions?\b|\bwhen (?:am i|do i|is my)\b/.test(lower)) return narrateMeetings(user);
+
+  // Overall status.
+  if (/\bstatus\b|\bprogress\b|\bwhere (?:are|do) (?:we|things)\b|\bhow(?:'s| is| are) (?:my|our|the) (?:application|startup|project|things)\b|\bwhat are the agents doing\b/.test(lower)) return narrateStatus(user);
 
   const status = integrationStatus();
   return { handled: false, reply: null, hint: status.llm.configured ? 'general' : 'llm_not_configured' };

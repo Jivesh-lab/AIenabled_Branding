@@ -85,7 +85,7 @@ async function claimWithPrevious(now, opts) {
   const claimed = await AgentJob.findOneAndUpdate(
     { _id: candidate._id, state: candidate.state, lockedAt: null },
     { $set: { lockedAt: now, state: 'running', resumeState: candidate.state }, $inc: { runCount: 1 } },
-    { new: true }
+    { returnDocument: 'after' }
   ).lean();
   return claimed;
 }
@@ -121,7 +121,7 @@ async function apply(job, directive = {}) {
     $set: set,
     $push: { history: { $each: [historyEntry(from, to, set.step, directive.note)], $slice: -60 } },
   };
-  return AgentJob.findOneAndUpdate({ _id: job._id }, update, { new: true }).lean();
+  return AgentJob.findOneAndUpdate({ _id: job._id }, update, { returnDocument: 'after' }).lean();
 }
 
 /** A handler threw: back off and retry, or give up and mark the job failed for human attention. */
@@ -144,7 +144,7 @@ async function fail(job, error, now = new Date()) {
       $set: set,
       $push: { history: { $each: [historyEntry(job.state, to, job.step, `Attempt ${attempts} failed: ${message}`)], $slice: -60 } },
     },
-    { new: true }
+    { returnDocument: 'after' }
   ).lean();
 }
 
@@ -164,7 +164,7 @@ async function recoverInterrupted(now = new Date()) {
         $set: { state: back, lockedAt: null, nextRunAt: now },
         $push: { history: { $each: [historyEntry('running', back, job.step, 'Recovered after the worker stopped mid-run')], $slice: -60 } },
       },
-      { new: true }
+      { returnDocument: 'after' }
     ).lean();
     recovered += 1;
   }
@@ -178,8 +178,8 @@ async function signal(jobId, name, payload = {}) {
   const entry = { name, payload, at: new Date().toISOString() };
   const signals = [...(job.data?.signals || []), entry].slice(-20);
   const wake = { 'data.signals': signals, nextRunAt: new Date() };
-  if (job.state === 'running') return AgentJob.findOneAndUpdate({ _id: jobId }, { $set: wake }, { new: true }).lean();
-  return AgentJob.findOneAndUpdate({ _id: jobId, state: { $in: [...RUNNABLE] } }, { $set: wake }, { new: true }).lean();
+  if (job.state === 'running') return AgentJob.findOneAndUpdate({ _id: jobId }, { $set: wake }, { returnDocument: 'after' }).lean();
+  return AgentJob.findOneAndUpdate({ _id: jobId, state: { $in: [...RUNNABLE] } }, { $set: wake }, { returnDocument: 'after' }).lean();
 }
 
 async function findOpen(type, subjectId) {
@@ -196,7 +196,7 @@ async function runJobNow(jobId, { now = new Date(), trigger = { type: 'user', re
   const claimed = await AgentJob.findOneAndUpdate(
     { _id: candidate._id, state: candidate.state, lockedAt: null },
     { $set: { lockedAt: now, state: 'running', resumeState: candidate.state }, $inc: { runCount: 1 } },
-    { new: true }
+    { returnDocument: 'after' }
   ).lean();
   if (!claimed) return AgentJob.findOne({ _id: jobId }).lean();
   const handler = handlers.get(claimed.type);

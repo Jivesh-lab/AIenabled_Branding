@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     # ── LLM (OpenRouter) ──────────────────────────────────────────────────────
     # Optional: without a key the rule-based checks still run and AI-written parts say they are unavailable.
     openrouter_api_key: str = ""
+    # Demo-only features (the built-in sample mentor directory). Real mentors live in the portal's accounts.
+    agent_demo_mode: bool = False
     llm_api_key: str = ""  # preferred name; falls back to OPENROUTER_API_KEY
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     openrouter_model: str = "meta-llama/llama-3.1-8b-instruct:free"

@@ -229,7 +229,7 @@ function install(models, { readOnly = [] } = {}) {
         if (violatesUnique(Model, store, next, hit)) throw duplicateError(Model);
         Object.keys(hit).forEach((k) => delete hit[k]);
         Object.assign(hit, next);
-        return options.new ? clone(hit) : before;
+        return options.returnDocument === 'after' || options.new ? clone(hit) : before;
       });
       Model.updateOne = async (filter, update) => {
         const hit = store.find((d) => matches(d, filter));
