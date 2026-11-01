@@ -42,36 +42,43 @@ function handleValidationErrors(req, res) {
 }
 
 
-    // Automatically bridge any approved startups into the active Faculty Coordinator cohort
-    try {
-      const StartupProfile = require('../models/StartupProfile');
-      const approvedProfiles = await StartupProfile.find({ isApproved: true }).lean();
-      for (const sp of approvedProfiles) {
-        const exists = await FacultyProject.findOne({ id: sp.applicationId || sp.id });
-        if (!exists) {
-          await FacultyProject.create({
-            id: sp.applicationId || sp.id,
-            title: sp.companyName || sp.title || 'Supervised Student Startup',
-            description: sp.problemStatement || sp.tagline || 'Active incubation cohort startup.',
-            leadStudent: sp.leadStudent || sp.contactEmail || 'Student Founder',
-            rollNumber: sp.rollNumber || 'INC-2026',
-            domain: sp.industry || sp.domain || 'Tech & Innovation',
-            stage: 'Prototype',
-            progress: 75,
-            trl: 6,
-            health: 'On Track',
-            allocatedMentorName: sp.allocatedMentorName || null,
-            assignedVolunteerName: 'Prof. Ananya Sen',
-            nextMilestone: 'Prototype Milestone Review',
-            nextMilestoneDate: '2026-11-20',
-            overdueMilestonesCount: 0,
-            teamMembers: [],
-          });
-        }
+async function ensureSeedData() {
+  // Automatically bridge any approved startups into the active Faculty Coordinator cohort
+  try {
+    const StartupProfile = require('../models/StartupProfile');
+    const approvedProfiles = await StartupProfile.find({ isApproved: true }).lean();
+    for (const sp of approvedProfiles) {
+      const exists = await FacultyProject.findOne({ id: sp.applicationId || sp.id });
+      if (!exists) {
+        await FacultyProject.create({
+          id: sp.applicationId || sp.id,
+          title: sp.companyName || sp.title || 'Supervised Student Startup',
+          description: sp.problemStatement || sp.tagline || 'Active incubation cohort startup.',
+          leadStudent: sp.leadStudent || sp.contactEmail || 'Student Founder',
+          rollNumber: sp.rollNumber || 'INC-2026',
+          domain: sp.industry || sp.domain || 'Tech & Innovation',
+          stage: 'Prototype',
+          progress: 75,
+          trl: 6,
+          health: 'On Track',
+          allocatedMentorName: sp.allocatedMentorName || null,
+          assignedVolunteerName: 'Prof. Ananya Sen',
+          nextMilestone: 'Prototype Milestone Review',
+          nextMilestoneDate: '2026-11-20',
+          overdueMilestonesCount: 0,
+          teamMembers: [],
+        });
       }
-    } catch (e) {
-      console.warn('[Faculty Bridge] Could not sync StartupProfiles:', e.message);
     }
+  } catch (e) {
+    console.warn('[Faculty Bridge] Could not sync StartupProfiles:', e.message);
+  }
+  try {
+    await syncAgentApplications();
+  } catch (agentSyncErr) {
+    console.warn('[Faculty API] Agent sync notice:', agentSyncErr.message);
+  }
+}
 
 // A faculty coordinator only ever sees the startups assigned to them; admins and super admins see the centre.
 async function scopeFor(user) {

@@ -98,14 +98,6 @@ async function mentorContact(name, userId) {
       expertise: ['Venture Architecture', 'Product Go-to-Market', 'Engineering Strategy'],
     };
   }
-  return {
-    email: user.email || null,
-    organization: user.profile?.organization || 'DBIT Incubation Centre',
-    bio: user.profile?.bio || null,
-    expertise: user.profile?.expertise || [],
-  };
-}
-
   const profile = user.profile || {};
   const expertise = Array.isArray(profile.expertise)
     ? profile.expertise.filter((e) => typeof e === 'string')
