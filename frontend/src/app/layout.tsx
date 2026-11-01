@@ -22,6 +22,11 @@ export const metadata: Metadata = {
   description:
     "DBIT Incubation Centre is an AI-powered academic incubation platform connecting researchers, faculty, mentors, industry and investors.",
   keywords: ["DBIT", "DBIT Incubation Centre", "DBIT entrepreneurship", "researcher innovation", "startup incubation", "Idiot's Room"],
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/logo-mark.svg",
+  },
   openGraph: {
     title: "DBIT | Incubation Centre",
     description: "Turn researcher ideas into research, prototypes, startups, and real-world impact.",

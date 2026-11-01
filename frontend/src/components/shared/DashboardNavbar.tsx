@@ -2,6 +2,7 @@
 
 import NotificationsMenu from "@/components/agentic/NotificationsMenu";
 import CalendarDialog from "@/components/agentic/CalendarDialog";
+import { DbitLogoMark } from "@/components/shared/DbitLogo";
 
 /**
  * DashboardNavbar
@@ -340,20 +341,17 @@ export default function DashboardNavbar({
 
         {/* Brand appears here only on mobile; on desktop the sidebar owns it. */}
         <div className="flex items-center gap-2 md:hidden">
-          <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-brand-deep">
-            <svg viewBox="0 0 20 20" className="size-3.5 text-brand-cyan" fill="none" aria-hidden="true">
-              <path d="M10 2L17 6V14L10 18L3 14V6L10 18L3 14V6L10 2Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-              <path d="M10 7L13 9V13L10 15L7 13V9L10 7Z" fill="currentColor" opacity="0.5" />
-            </svg>
-          </div>
-          <div className="flex flex-col leading-tight">
-            <span className="text-[13px] font-bold tracking-tight text-ink">
-              DBIT
-            </span>
-            <span className="text-[10px] font-medium text-muted-ink leading-none">
-              Incubation Centre
-            </span>
-          </div>
+          <Link href="/workspace" className="flex items-center gap-2">
+            <DbitLogoMark size={28} idPrefix="nav-mobile-mark" />
+            <div className="flex flex-col leading-tight">
+              <span className="text-[13px] font-bold tracking-tight text-ink">
+                DBIT
+              </span>
+              <span className="text-[9.5px] font-semibold uppercase tracking-wider text-brand leading-none">
+                Incubation Centre
+              </span>
+            </div>
+          </Link>
         </div>
 
         {workspaceLabel && (

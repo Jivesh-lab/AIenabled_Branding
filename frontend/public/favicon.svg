@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Background Squircle Gradient -->
+    <linearGradient id="dbit-fav-bg" x1="4" y1="4" x2="44" y2="44" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#072F5F" />
+      <stop offset="45%" stop-color="#0B4F9C" />
+      <stop offset="100%" stop-color="#0284C7" />
+    </linearGradient>
+
+    <!-- Foundation Spine Gradient -->
+    <linearGradient id="dbit-fav-spine" x1="12" y1="10" x2="18" y2="38" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#E2E8F0" />
+    </linearGradient>
+
+    <!-- Ascending Accelerator Ribbon (Incubation Arc) -->
+    <linearGradient id="dbit-fav-arc" x1="18" y1="10" x2="40" y2="32" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="50%" stop-color="#00D2FF" />
+      <stop offset="100%" stop-color="#0284C7" />
+    </linearGradient>
+
+    <!-- Inner Core Spark / Venture Diamond -->
+    <linearGradient id="dbit-fav-spark" x1="24" y1="17" x2="33" y2="28" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#F59E0B" />
+      <stop offset="45%" stop-color="#FBBF24" />
+      <stop offset="100%" stop-color="#38BDF8" />
+    </linearGradient>
+
+    <!-- Rim Light / Bezel Highlight -->
+    <linearGradient id="dbit-fav-bezel" x1="24" y1="2" x2="24" y2="46" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.28" />
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.25" />
+    </linearGradient>
+  </defs>
+
+  <!-- Base Squircle with Bezel Highlight -->
+  <rect x="2" y="2" width="44" height="44" rx="12" fill="url(#dbit-fav-bg)" />
+  <rect x="2.5" y="2.5" width="43" height="43" rx="11.5" stroke="url(#dbit-fav-bezel)" stroke-width="1" />
+
+  <!-- D-Monogram Left Structural Pillar (Pill) -->
+  <rect x="12" y="11" width="6" height="26" rx="3" fill="url(#dbit-fav-spine)" />
+
+  <!-- Outer Incubator Orbital Arc: Swings out forming the dynamic "D" and ascends forward -->
+  <path d="M18 11H27C34.1797 11 40 16.8203 40 24C40 28.5367 37.6748 32.5307 34.1378 34.8698C33.3031 35.4218 32.2223 35.1558 31.7243 34.2794C31.2589 33.4601 31.5036 32.408 32.285 31.848C35.0336 29.8785 36.8 26.6806 36.8 24C36.8 18.5876 32.4124 14.2 27 14.2H18V11Z" fill="url(#dbit-fav-arc)" />
+
+  <!-- Inner Dynamic Chrysalis / Venture Rocket Wing (+45 deg trajectory) -->
+  <path d="M18 34H26C29.866 34 33 30.866 33 27C33 25.137 32.2743 23.4439 31.0898 22.1896L24.8 15.9C24.2 15.3 23.2 15.7 23.2 16.55V23.5H18V34Z" fill="#00D2FF" fill-opacity="0.88" />
+
+  <!-- The Nucleus: 4-Point Radiant Spark of Innovation & AI -->
+  <path d="M28.5 17L29.7 20.8L33.5 22L29.7 23.2L28.5 27L27.3 23.2L23.5 22L27.3 20.8L28.5 17Z" fill="url(#dbit-fav-spark)" />
+  <circle cx="28.5" cy="22" r="1.3" fill="#FFFFFF" />
+</svg>

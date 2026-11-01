@@ -28,6 +28,7 @@ import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
 import { ChevronDownIcon, ChevronLeftIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { DbitLogoMark } from "@/components/shared/DbitLogo";
 
 export const SIDEBAR_WIDTH_EXPANDED = 248;
 export const SIDEBAR_WIDTH_COLLAPSED = 68;
@@ -72,23 +73,16 @@ export interface DashboardSidebarProps {
 // ---------------------------------------------------------------------------
 function SidebarBrand({ isExpanded }: { isExpanded: boolean }) {
   return (
-    // The logo keeps a fixed left position in both states; only the wordmark fades, so nothing jumps.
-    <div className="flex h-16 shrink-0 items-center overflow-hidden px-5">
-      <div className="flex items-center gap-2.5">
-        {/* The mark keeps the Ocean Royale identity without darkening the rail. */}
-        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-deep shadow-sm shadow-brand-deep/20">
-          <svg viewBox="0 0 20 20" className="size-4 text-brand-cyan" fill="none" aria-hidden="true">
-            <path d="M10 2L17 6V14L10 18L3 14V6L10 2Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-            <path d="M10 7L13 9V13L10 15L7 13V9L10 7Z" fill="currentColor" opacity="0.5" />
-          </svg>
-        </div>
+    <div className="flex h-16 shrink-0 items-center overflow-hidden px-4">
+      <Link href="/workspace" className="flex items-center gap-2.5 focus:outline-none">
+        <DbitLogoMark size={34} idPrefix="sidebar-mark" />
         <div className={cn("flex flex-col transition-opacity duration-150", isExpanded ? "opacity-100" : "opacity-0")}>
-          <span className="whitespace-nowrap text-[14px] font-semibold leading-none text-ink">DBIT</span>
-          <span className="mt-1 whitespace-nowrap text-[11px] font-medium leading-none text-muted-ink">
+          <span className="whitespace-nowrap text-[14px] font-bold leading-none text-ink">DBIT</span>
+          <span className="mt-1 whitespace-nowrap text-[9.5px] font-semibold tracking-wider uppercase leading-none text-brand">
             Incubation Centre
           </span>
         </div>
-      </div>
+      </Link>
     </div>
   );
 }
