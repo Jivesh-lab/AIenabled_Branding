@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const User = require('../models/User');
 const FacultyProject = require('../models/FacultyProject');
 const StartupProfile = require('../models/StartupProfile');
+const { ensureFounderMembership, inviteRosterMembers } = require('../services/teamInvitationService');
 
 /**
  * Projects are linked to real accounts. The founder is the application's owner, the coordinator is a
@@ -63,9 +64,32 @@ async function ensureProject({ applicationId, startup = {}, applicantId, form = 
   }
   if (existing) {
     await FacultyProject.updateOne({ id: String(applicationId) }, { $set: fields });
+    // Ensure founder membership exists even for previously-created projects.
+    if (owner) {
+      await ensureFounderMembership({
+        projectId: String(applicationId),
+        applicationId: String(applicationId),
+        founderId: owner._id,
+        founderEmail: owner.email,
+        founderName: cleanName(owner.name),
+      }).catch((e) => console.warn('[projects] ensureFounderMembership (update):', e.message));
+    }
     return { ...existing, ...fields };
   }
   const created = await FacultyProject.create({ id: String(applicationId), ...fields, trl: 1, progress: 0, health: 'On Track', nextMilestone: 'Mentor onboarding', nextMilestoneDate: '' });
+  if (owner) {
+    await ensureFounderMembership({
+      projectId: String(applicationId),
+      applicationId: String(applicationId),
+      founderId: owner._id,
+      founderEmail: owner.email,
+      founderName: cleanName(owner.name),
+    }).catch((e) => console.warn('[projects] ensureFounderMembership (create):', e.message));
+    // Teammates listed on the submission get a real invitation (access is granted only on acceptance).
+    const invited = await inviteRosterMembers({ projectId: String(applicationId), founderId: owner._id, roster: form.teamMembers })
+      .catch((e) => { console.warn('[projects] inviteRosterMembers:', e.message); return []; });
+    if (invited.length) console.log('[projects] roster invitations for', applicationId, JSON.stringify(invited));
+  }
   return typeof created.toObject === 'function' ? created.toObject() : created;
 }
 

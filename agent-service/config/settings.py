@@ -53,6 +53,10 @@ class Settings(BaseSettings):
     # ── Internal Auth (shared with Next.js) ───────────────────────────────────
     internal_jwt_secret: str
 
+    # ── Node.js backend (team membership lookups) ─────────────────────────────
+    node_backend_url: str = "http://localhost:5000"
+    node_backend_timeout_seconds: float = 3.0
+
     # ── SMTP ──────────────────────────────────────────────────────────────────
     smtp_host: str = "smtp.gmail.com"
     smtp_port: int = 587

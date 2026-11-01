@@ -15,7 +15,7 @@ const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:5000";
 
 interface BackendCall {
   path: string; // e.g. "/api/student/meetings"
-  method?: "GET" | "POST" | "PUT";
+  method?: "GET" | "POST" | "PUT" | "DELETE";
   body?: unknown;
   roles: readonly Role[];
   tag: string;

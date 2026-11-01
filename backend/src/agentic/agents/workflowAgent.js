@@ -7,6 +7,7 @@ const { runAction, note } = require('../actionLog');
 const { getConfig } = require('../config');
 const { emit } = require('../events');
 const { cleanName } = require('../projects');
+const { acceptedMemberUserIds } = require('../../services/teamInvitationService');
 const { notify } = require('../tools/notify');
 const { findSlotsLogged } = require('../tools/slots');
 const { scheduleMeeting, rescheduleMeeting } = require('../tools/calendar');
@@ -163,7 +164,8 @@ async function handleMeetingJob(job, { now, config }) {
   }
 
   // ---- Book the meeting ----------------------------------------------------------------------------
-  const ids = kind === 'review' ? data.attendeeUserIds : [project.ownerUserId, data.mentorUserId || project.mentorUserId, project.coordinatorUserId];
+  const teammateIds = kind === 'review' ? [] : await acceptedMemberUserIds(project.id).catch(() => []);
+  const ids = kind === 'review' ? data.attendeeUserIds : [...new Set([project.ownerUserId, data.mentorUserId || project.mentorUserId, project.coordinatorUserId, ...teammateIds].filter(Boolean).map(String))];
   const people = await participantsFor(ids);
   if (people.length < 2) return escalateMeeting(ctx, project, null, 'There are not enough active participants with accounts to schedule a meeting.');
   const title = kind === 'onboarding' ? `Onboarding: ${project.title}` : data.title || `Review: ${project.title}`;

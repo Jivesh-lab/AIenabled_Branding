@@ -9,6 +9,7 @@ from db.standalone_store import (
     standalone_get_applications,
     standalone_get_application_queue,
     standalone_get_application_details,
+    standalone_applicant_id,
     standalone_decide_application,
     standalone_save_draft,
     standalone_update_application,
@@ -17,6 +18,7 @@ from db.standalone_store import (
 )
 from core import application_status as st
 from core import milestones as ms
+from core.team_access import has_accepted_membership
 import json
 import uuid
 import structlog
@@ -528,7 +530,12 @@ async def get_application_details(
     can_review = _is_reviewer(current_user)
 
     if not pool:
-        return standalone_get_application_details(application_id, current_user.id, can_review)
+        is_member = False
+        if not can_review and current_user.role == "student":
+            owner_id = standalone_applicant_id(application_id)
+            if owner_id is not None and owner_id != str(current_user.id):
+                is_member = await has_accepted_membership(current_user.id, application_id)
+        return standalone_get_application_details(application_id, current_user.id, can_review, is_member)
 
     try:
         async with pool.acquire() as conn:
@@ -544,20 +551,21 @@ async def get_application_details(
                 """,
                 application_id
             )
-            history_rows = []
-            if record and (can_review or str(record["applicant_id"]) == str(current_user.id)):
-                history_rows = await conn.fetch(
-                    """
-                    SELECT previous_status, new_status, comments, created_at
-                    FROM application_audit_logs WHERE application_id = $1 ORDER BY created_at ASC
-                    """,
-                    application_id,
-                )
 
         if not record:
             raise HTTPException(status_code=404, detail="Application not found")
         if not can_review and str(record["applicant_id"]) != str(current_user.id):
-            raise HTTPException(status_code=403, detail="You do not have access to this application")
+            if current_user.role != "student" or not await has_accepted_membership(current_user.id, application_id):
+                raise HTTPException(status_code=403, detail="You do not have access to this application")
+
+        async with pool.acquire() as conn:
+            history_rows = await conn.fetch(
+                """
+                SELECT previous_status, new_status, comments, created_at
+                FROM application_audit_logs WHERE application_id = $1 ORDER BY created_at ASC
+                """,
+                application_id,
+            )
 
         form = _json(record["form_data"], {})
         return {

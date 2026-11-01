@@ -5,6 +5,7 @@ const mongoose = require('mongoose');
 const StartupProfile = require('../models/StartupProfile');
 const MentorAllocation = require('../models/MentorAllocation');
 const FacultyProject = require('../models/FacultyProject');
+const TeamMembership = require('../models/TeamMembership');
 const User = require('../models/User');
 const { enqueueEvent } = require('../services/eventOrchestrator');
 
@@ -89,7 +90,7 @@ async function mentorContact(name, userId) {
 // ---------------------------------------------------------------------------
 // GET /api/student/mentor-allocation/:applicationId
 //
-// The caller must be the founder recorded on the synced StartupProfile for that application.
+// The caller must be the founder recorded on the synced StartupProfile, or an accepted team member.
 // 404 means "no mentoring record is reachable for you" (missing OR not yours - indistinguishable on
 // purpose). 200 with allocation:null means the project is yours but no mentor request exists yet.
 // ---------------------------------------------------------------------------
@@ -100,7 +101,8 @@ router.get('/mentor-allocation/:applicationId', studentOnly, async (req, res) =>
       return res.status(404).json({ success: false, message: 'No mentoring record is available for this application.' });
     }
 
-    const owned = await StartupProfile.findOne({ applicationId, founderId: req.user.id }).select('_id').lean();
+    // Founder, or a teammate with an ACCEPTED membership (never a merely-listed or pending one).
+    const owned = (await ownedProjectIds(req.user.id)).includes(applicationId);
     if (!owned) {
       return res.status(404).json({ success: false, message: 'No mentoring record is available for this application.' });
     }
@@ -160,13 +162,23 @@ const MAX_OPEN_REQUESTS_PER_PROJECT = 5;
 
 async function ownedProjectIds(userId) {
   if (!mongoose.Types.ObjectId.isValid(userId)) return [];
+
+  // 1. Projects where the user is the founder (the original behaviour).
   const profiles = await StartupProfile.find({ founderId: userId }).select('applicationId _id').lean();
-  const ids = [];
+  const ids = new Set();
   for (const p of profiles) {
-    if (p.applicationId) ids.push(p.applicationId);
-    if (p._id) ids.push(String(p._id));
+    if (p.applicationId) ids.add(p.applicationId);
+    if (p._id) ids.add(String(p._id));
   }
-  return ids;
+
+  // 2. Projects where the user has an accepted team membership (PHASE 5 extension).
+  const memberships = await TeamMembership.find({ userId: String(userId), status: 'ACCEPTED' }).select('projectId applicationId').lean();
+  for (const m of memberships) {
+    if (m.projectId) ids.add(m.projectId);
+    if (m.applicationId) ids.add(m.applicationId);
+  }
+
+  return [...ids];
 }
 
 /** Latest reminder outcome per record. Only what was recorded: absence means "no reminder was attempted". */

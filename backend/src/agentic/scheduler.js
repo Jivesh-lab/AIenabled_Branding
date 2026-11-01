@@ -27,6 +27,8 @@ async function heartbeat(patch) {
 async function markStarted() {
   // The calendar index changed from one connection per user to one per Google account; drop the old index.
   await require('../models/CalendarConnection').syncIndexes().catch((error) => console.warn('[AGENTS] calendar index sync skipped:', error.message));
+  // Ensure TeamMembership unique indexes are in place from the first run.
+  await require('../models/TeamMembership').syncIndexes().catch((error) => console.warn('[AGENTS] TeamMembership index sync skipped:', error.message));
   await heartbeat({ startedAt: new Date() });
 }
 
