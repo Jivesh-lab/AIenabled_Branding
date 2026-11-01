@@ -7,7 +7,11 @@
     "start": "node src/server.js",
     "seed:all": "node src/scripts/seedAllUsers.js",
     "seed:superadmin": "node src/scripts/seedSuperAdmin.js",
-    "seed:admin": "node src/scripts/seedAdmin.js"
+    "seed:admin": "node src/scripts/seedAdmin.js",
+    "seed:demo": "node src/scripts/seedDemoData.js --yes",
+    "seed:demo:clean": "node src/scripts/seedDemoData.js --clean --yes",
+    "seed:legacy:remove": "node src/scripts/seedDemoData.js --remove-legacy-samples --yes",
+    "test": "node --test \"src/**/*.test.js\""
   },
   "keywords": [],
   "author": "",

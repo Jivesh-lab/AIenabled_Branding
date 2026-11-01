@@ -53,16 +53,23 @@ function escapeRegExp(text) {
 }
 
 /** Whitelisted, student-safe view of an allocated mentor's account profile (if they have one). */
-async function mentorContact(name) {
-  if (!name) return null;
-  const user = await User.findOne({
-    role: 'mentor',
-    name: new RegExp(`^${escapeRegExp(name.trim())}$`, 'i'),
-    status: 'active',
-    isSoftDeleted: { $ne: true },
-  })
-    .select('name email profile')
-    .lean();
+async function mentorContact(name, userId) {
+  if (!name && !userId) return null;
+  // The linked account is authoritative; the typed name is only a fallback for older records.
+  let user = null;
+  if (userId && mongoose.Types.ObjectId.isValid(userId)) {
+    user = await User.findOne({ _id: userId, role: 'mentor', status: 'active', isSoftDeleted: { $ne: true } }).select('name email profile').lean();
+  }
+  if (!user && name) {
+    user = await User.findOne({
+      role: 'mentor',
+      name: new RegExp(`^${escapeRegExp(name.trim())}( \\(.*\\))?$`, 'i'),
+      status: 'active',
+      isSoftDeleted: { $ne: true },
+    })
+      .select('name email profile')
+      .lean();
+  }
   if (!user) return null;
 
   const profile = user.profile || {};
@@ -109,7 +116,7 @@ router.get('/mentor-allocation/:applicationId', studentOnly, async (req, res) =>
 
     const confirmed = CONFIRMED_STATUSES.includes(record.status);
     const mentorName = confirmed ? record.allocatedMentorName || project?.allocatedMentorName || null : null;
-    const contact = mentorName ? await mentorContact(mentorName) : null;
+    const contact = mentorName ? await mentorContact(mentorName, record.allocatedMentorUserId) : null;
 
     return res.json({
       success: true,
@@ -255,6 +262,7 @@ router.put('/tasks/:id/status', studentOnly, async (req, res) => {
       return res.status(409).json({ success: false, message: `A ${current} task cannot be moved back to ${next}. Ask your coordinator to reopen it.` });
     }
     task.status = next;
+    if (next === 'Completed') task.completedAt = new Date();
     await task.save();
     await enqueueEvent({
       eventType: next === 'Completed' ? 'task.completed' : 'task.updated',

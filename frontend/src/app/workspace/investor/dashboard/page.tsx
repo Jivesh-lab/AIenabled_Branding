@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import PageContainer from "@/components/shared/PageContainer";
+import Introductions from "@/components/agentic/Introductions";
+import AgentActivityFeed from "@/components/agentic/AgentActivityFeed";
 import { Card, StatusBadge } from "@/components/shared/Surface";
 import {
   Bookmark,
@@ -100,6 +102,8 @@ export default function InvestorDashboardPage() {
       description="Live deal flow metrics, watchlist overview, and introduction requests."
     >
       <div className="space-y-6">
+        <Introductions role="investor" title="Matches and introductions" />
+        <AgentActivityFeed title="Introduction activity" limit={8} emptyMessage="When the Investor Agent introduces a startup to you, and when meetings are arranged, it shows here." />
         {/* Verification Status Banner */}
         {profile && (
           <div

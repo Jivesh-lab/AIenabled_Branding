@@ -1,5 +1,6 @@
 "use client";
 
+import { useSession } from "next-auth/react";
 import { useState, useMemo, useEffect } from "react";
 import PageContainer from "@/components/shared/PageContainer";
 import { FacultyTabContentSkeleton } from "@/components/shared/loading/facultySkeletons";
@@ -43,6 +44,8 @@ import {
 } from "lucide-react";
 
 export default function FacultyCoordinatorPage() {
+  const { data: session } = useSession();
+  const me = (session?.user?.name || "Faculty").replace(/\s*\([^)]*\)\s*$/, "");
   const [projects, setProjects] = useState<IncubationProject[]>([]);
   const [mentorRequests, setMentorRequests] = useState<MentorAllocationRequest[]>([]);
   const [meetings, setMeetings] = useState<FacultyMeeting[]>([]);
@@ -76,33 +79,14 @@ export default function FacultyCoordinatorPage() {
   const [scheduleTime, setScheduleTime] = useState("14:30");
   const [scheduleAgenda, setScheduleAgenda] = useState("Evaluate TRL prototype progression against DST benchmark metrics.");
 
-  // Volunteer Roster
-  const [volunteers, setVolunteers] = useState([
-    {
-      id: "fac-vol-1",
-      name: "Prof. Ananya Sen",
-      dept: "Computer Science & AI",
-      activeProjects: 3,
-      specialization: "Applied ML, AgriTech, Edge Vision",
-      workloadStatus: "Optimal",
-    },
-    {
-      id: "fac-vol-2",
-      name: "Prof. Rajiv Menon",
-      dept: "Electronics & Embedded Systems",
-      activeProjects: 1,
-      specialization: "IoT Sensor Fusion, Firmware, Water Quality",
-      workloadStatus: "Available",
-    },
-    {
-      id: "fac-vol-3",
-      name: "Dr. Sandeep Kulkarni",
-      dept: "Mechanical & Materials Tech",
-      activeProjects: 2,
-      specialization: "Biopolymers, Finite Element Analysis",
-      workloadStatus: "Optimal",
-    },
-  ]);
+  // Volunteer roster: real volunteer faculty accounts with their real workload
+  const [volunteers, setVolunteers] = useState<{ id: string; name: string; dept: string; activeProjects: number; specialization: string; workloadStatus: string }[]>([]);
+  useEffect(() => {
+    fetch("/api/backend/faculty/volunteers", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => setVolunteers(Array.isArray(j?.data) ? j.data : []))
+      .catch(() => setVolunteers([]));
+  }, []);
 
   // Load live data from Express backend & MongoDB on mount
   useEffect(() => {
@@ -178,7 +162,7 @@ export default function FacultyCoordinatorPage() {
 
     const log: AuditHistoryItem = {
       id: `aud-${Date.now()}`,
-      actor: "Dr. K. R. Raman",
+      actor: me,
       role: "coordinator",
       action: isApproval ? "AUTHORIZE_MENTOR" : "REJECT_MENTOR",
       target: `Project #${decisionModalItem.projectId}`,
@@ -214,7 +198,7 @@ export default function FacultyCoordinatorPage() {
       title: scheduleTitle,
       projectId: scheduleProjectId,
       projectTitle: proj?.title || "Incubation Project",
-      participants: ["Dr. K. R. Raman (Coordinator)", proj?.assignedVolunteerName || "Volunteer", proj?.leadStudent || "Researcher"],
+      participants: [`${me} (Coordinator)`, proj?.assignedVolunteerName || "Volunteer", proj?.leadStudent || "Researcher"],
       date: scheduleDate,
       startTime: scheduleTime,
       durationMinutes: 45,
@@ -275,7 +259,7 @@ export default function FacultyCoordinatorPage() {
                   Faculty Coordinator
                 </span>
               </div>
-              <h1 className="text-xl font-bold text-white mt-0.5">Dr. K. R. Raman</h1>
+              <h1 className="text-xl font-bold text-white mt-0.5">{me}</h1>
               <p className="text-xs text-blue-100/80">
                 Institutional Lead · Don Bosco Institute of Technology Incubation Centre (DBIT)
               </p>

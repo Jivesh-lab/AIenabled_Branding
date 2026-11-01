@@ -1,5 +1,6 @@
 "use client";
 
+import { useSession } from "next-auth/react";
 import { useState, useMemo, useEffect } from "react";
 import PageContainer from "@/components/shared/PageContainer";
 import { FacultyTabContentSkeleton } from "@/components/shared/loading/facultySkeletons";
@@ -40,6 +41,8 @@ import {
 } from "lucide-react";
 
 export default function FacultyVolunteerPage() {
+  const { data: session } = useSession();
+  const me = (session?.user?.name || "Faculty").replace(/\s*\([^)]*\)\s*$/, "");
   const [projects, setProjects] = useState<IncubationProject[]>([]);
   const [mentorRequests, setMentorRequests] = useState<MentorAllocationRequest[]>([]);
   const [meetings, setMeetings] = useState<FacultyMeeting[]>([]);
@@ -95,7 +98,7 @@ export default function FacultyVolunteerPage() {
 
   // Metrics
   const metrics = useMemo(() => {
-    const assignedTeams = projects.filter((p) => p.assignedVolunteerName?.includes("Ananya Sen")).length;
+    const assignedTeams = projects.filter((p) => p.assignedVolunteerName?.includes(me)).length;
     const openInquiries = supportRequests.filter((s) => s.status === "Open").length;
     const pendingMentorReviews = mentorRequests.filter((r) => r.status === "recommended" || r.status === "under_review").length;
     const pendingTasks = tasks.filter((t) => t.status !== "Completed").length;
@@ -127,7 +130,7 @@ export default function FacultyVolunteerPage() {
       justification: newReqJustification.trim() || "Technical scaling support requested by researcher founder.",
       recommendedMentorName: newReqNominatedMentor.trim() || undefined,
       recommendedMentorOrg: newReqNominatedMentor.trim() ? "Industry Partner Network" : undefined,
-      recommendedByVolunteerName: "Prof. Ananya Sen (Volunteer)",
+      recommendedByVolunteerName: `${me} (Volunteer)`,
       status: newReqNominatedMentor.trim() ? "recommended" : "requested",
       createdAt: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
       updatedAt: "Just now",
@@ -142,7 +145,7 @@ export default function FacultyVolunteerPage() {
       requestedExpertise: expertiseList,
       recommendedMentorName: newReqNominatedMentor.trim() || undefined,
       recommendedMentorOrg: newReqNominatedMentor.trim() ? "Industry Partner Network" : undefined,
-      recommendedByVolunteerName: "Prof. Ananya Sen",
+      recommendedByVolunteerName: me,
     });
 
     toast.success("Mentor Request & Nomination Submitted", {
@@ -215,7 +218,7 @@ export default function FacultyVolunteerPage() {
                   Faculty Volunteer
                 </span>
               </div>
-              <h1 className="text-xl font-bold text-white mt-0.5">Prof. Ananya Sen</h1>
+              <h1 className="text-xl font-bold text-white mt-0.5">{me}</h1>
               <p className="text-xs text-blue-100/80">
                 Department of Computer Science & Artificial Intelligence · DBIT Incubation Centre
               </p>

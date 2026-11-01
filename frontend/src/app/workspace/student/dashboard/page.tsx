@@ -9,6 +9,9 @@ import { journeysFor } from "@/lib/overviewJourneys";
 import { computeKpis } from "@/lib/studentKpis";
 import { istNow } from "@/lib/workflowState";
 import type { StudentOverview } from "@/types/student-overview";
+import AgentStrip from "@/components/agentic/AgentStrip";
+import AgentActivityFeed from "@/components/agentic/AgentActivityFeed";
+import Introductions from "@/components/agentic/Introductions";
 import AiInsights from "./_components/AiInsights";
 import DashboardHeader from "./_components/DashboardHeader";
 import DashboardLayout from "./_components/DashboardLayout";
@@ -123,6 +126,7 @@ export default function DashboardPage() {
       heading={
         <div className="flex flex-col gap-3">
           <DashboardHeader />
+          <AgentStrip />
           {requestError && (
             <div role="alert" className="rounded-xl border border-red-100 bg-red-50">
               <ErrorState title="Showing the last data we loaded" message={`Refreshing failed. ${requestError}`} onRetry={retry} />
@@ -158,7 +162,13 @@ export default function DashboardPage() {
           {projects.ok && <AiInsights projects={projects.data} />}
         </>
       }
-      lower={<FundingOpportunities />}
+      lower={
+        <div className="space-y-8">
+          <AgentActivityFeed title="What the agents did for you" limit={10} emptyMessage="Nothing yet. After you submit an application you will see each check, request and booking here - with what happens next - even when you are not logged in." />
+          <Introductions role="founder" title="Investor introductions" />
+          <FundingOpportunities />
+        </div>
+      }
     />
   );
 }

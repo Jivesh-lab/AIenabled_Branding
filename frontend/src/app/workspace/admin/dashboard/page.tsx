@@ -3,6 +3,10 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import PageContainer from "@/components/shared/PageContainer";
+import AdminPipeline from "@/components/agentic/AdminPipeline";
+import ApprovalsPanel from "@/components/agentic/ApprovalsPanel";
+import AgentActivityFeed from "@/components/agentic/AgentActivityFeed";
+import AttentionPanel from "@/components/agentic/AttentionPanel";
 import { Card } from "@/components/shared/Surface";
 import {
   Users,
@@ -55,7 +59,7 @@ export default function AdminDashboardPage() {
       try {
         setLoading(true);
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/admin/stats`,
+          `/api/backend/admin/stats`,
           { credentials: "include" }
         );
         if (res.ok) {
@@ -90,10 +94,22 @@ export default function AdminDashboardPage() {
 
   return (
     <PageContainer
-      title="Incubation Operations Dashboard"
-      description="Centralized operational hub for user onboarding, account approvals, cohort oversight, and ecosystem reports."
+      title="Incubation Operations"
+      description="What the agents have prepared for your decision, what they have done on their own, and what they could not resolve."
     >
-      <div className="space-y-6">
+      <div className="space-y-8">
+        <AdminPipeline />
+        <ApprovalsPanel title="Approvals needed" types={["admission", "investor_intro"]} emptyMessage="Complete applications and investor introductions arrive here with the agent's assessment and evidence. You decide; the agents then carry the decision out." />
+        <div className="grid gap-8 xl:grid-cols-2">
+          <AgentActivityFeed title="Agent activity" limit={15} />
+          <AttentionPanel title="Needs attention across the centre" />
+        </div>
+
+        <details className="group rounded-xl border border-line bg-white shadow-sm">
+          <summary className="cursor-pointer list-none px-5 py-4 text-[15px] font-semibold text-ink marker:hidden">
+            People and account management <span className="ml-2 text-[12.5px] font-normal text-muted-ink">user accounts, vetting queue, CSV import (secondary)</span>
+          </summary>
+          <div className="space-y-6 border-t border-line p-5">
         {/* Metric Cards Banner */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="p-4 border border-slate-200">
@@ -311,6 +327,8 @@ export default function AdminDashboardPage() {
             ))}
           </div>
         </div>
+          </div>
+        </details>
       </div>
     </PageContainer>
   );

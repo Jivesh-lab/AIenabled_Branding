@@ -16,6 +16,7 @@ import { useAgentChat } from '@/hooks/useAgentChat';
 import { useSession } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 import StudentAssistantPanel from '@/components/StudentAssistantPanel';
+import AgenticCommandBox from '@/components/agentic/AgenticCommandBox';
 import cn from 'clsx';
 
 const ROLE_ASSISTANCE: Record<string, { label: string; questions: string[] }> = {
@@ -121,6 +122,8 @@ export default function AgentChatWidget() {
                 </button>
               </div>
             </div>
+
+            <AgenticCommandBox />
 
             {studentMode ? (
               <StudentAssistantPanel />

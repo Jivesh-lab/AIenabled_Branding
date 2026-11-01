@@ -2,8 +2,9 @@ const crypto = require('crypto');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const DomainEvent = require('../models/DomainEvent');
-const agentHubService = require('./agentHubService');
 const { notifyForEvent } = require('./notificationService');
+const { handleDomainEvent } = require('../agentic/dispatcher');
+const agentScheduler = require('../agentic/scheduler');
 
 const MAX_ATTEMPTS = 5;
 const DEFAULT_POLL_MS = 5000;
@@ -116,76 +117,10 @@ async function claimNextEvent() {
 }
 
 async function handleEvent(event) {
+  // People are told about the event first (role- and ownership-scoped), then the agents act on it.
   const notification = await notifyForEvent(event);
-  if (event.eventType === 'application.approved' || event.eventType === 'startup.synchronized') {
-    const result = await agentHubService.runMentorMatching({
-      projectId: event.projectId || event.aggregateId,
-      actor: { id: 'system', role: 'system', name: 'Lifecycle Orchestrator' },
-      idempotencyKey: `mentor-match:${event.applicationId || event.aggregateId}`,
-    });
-    return { action: 'mentor_matching_requested', notification, result: result?.run || result };
-  }
-
-  if (event.eventType === 'mentor.allocation.approved') {
-    const allocation = event.payload || {};
-    const projectId = event.projectId || event.aggregateId;
-    const results = [];
-    results.push(await agentHubService.coordinateWorkflowAction({
-      actionType: 'schedule_meeting',
-      targetId: projectId,
-      payload: {
-        idempotencyKey: `mentor-kickoff-meeting:${event.aggregateId}`,
-        projectId,
-        title: `Mentor kickoff for ${allocation.projectTitle || 'startup'}`,
-        agenda: 'Initial mentor onboarding and milestone planning.',
-        participants: allocation.participants || ['Student Founder', allocation.allocatedMentorName || 'Assigned Mentor'],
-      },
-      actor: { id: 'system', role: 'system', name: 'Lifecycle Orchestrator' },
-    }));
-    results.push(await agentHubService.coordinateWorkflowAction({
-      actionType: 'assign_task',
-      targetId: projectId,
-      payload: {
-        idempotencyKey: `mentor-kickoff-task:${event.aggregateId}`,
-        projectId,
-        title: 'Complete mentor onboarding and initial milestone plan',
-        assignedTo: allocation.allocatedMentorName || 'Assigned Mentor',
-        assignedRole: 'mentor',
-        dueDate: allocation.dueDate,
-      },
-      actor: { id: 'system', role: 'system', name: 'Lifecycle Orchestrator' },
-    }));
-    return { action: 'mentor_kickoff_coordinated', notification, results };
-  }
-
-  if (event.eventType === 'monitoring.report.created' && event.payload?.alertActive) {
-    const result = await agentHubService.coordinateWorkflowAction({
-      actionType: 'request_progress_report',
-      projectId: event.projectId || event.aggregateId,
-      targetId: event.projectId || event.aggregateId,
-      targetName: event.payload.leadStudent || 'Startup Founder',
-      targetRole: 'student',
-      payload: {
-        idempotencyKey: `monitoring-followup:${event.aggregateId}`,
-        title: 'Submit an evidence-based progress update',
-        description: 'Monitoring detected an active risk flag. Submit current milestone evidence and blockers.',
-        priority: 'High',
-      },
-      actor: { id: 'system', role: 'system', name: 'Monitoring Agent' },
-    });
-    return { action: 'monitoring_followup_requested', notification, result };
-  }
-
-  if (event.eventType === 'task.overdue') {
-    const report = await agentHubService.evaluateStartupMonitoring({
-      projectId: event.projectId || event.aggregateId,
-      actor: { id: 'system', role: 'system', name: 'Monitoring Agent' },
-      scheduled: false,
-    });
-    return { action: 'overdue_task_re_evaluated', notification, reportId: report.id };
-  }
-
-  return { action: 'recorded_only', notification, eventType: event.eventType };
+  const dispatched = await handleDomainEvent(event);
+  return { action: dispatched.handledBy.length ? `handled_by_${dispatched.handledBy.join('+')}` : 'recorded_only', notification, handledBy: dispatched.handledBy, eventType: event.eventType };
 }
 
 async function processOneEvent(log = console) {
@@ -218,10 +153,9 @@ async function processOneEvent(log = console) {
 }
 
 function startEventOrchestrator(env = process.env, log = console) {
+  // On by default: the agents work without anyone logged in. Set EVENT_ORCHESTRATOR_ENABLED=false to pause them.
   if (env.EVENT_ORCHESTRATOR_ENABLED === 'false') return null;
   const pollMs = Math.max(1000, Number(env.EVENT_ORCHESTRATOR_POLL_MS || DEFAULT_POLL_MS));
-  const monitoringMs = Math.max(15 * 60 * 1000, Number(env.MONITORING_SWEEP_MS || 60 * 60 * 1000));
-  let lastMonitoringSweep = 0;
   let running = false;
   const tick = async () => {
     if (running) return;
@@ -229,41 +163,16 @@ function startEventOrchestrator(env = process.env, log = console) {
     try {
       await relayPostgresEvents(log);
       while (await processOneEvent(log)) { /* drain ready events */ }
-      await enqueueOverdueTaskEvents();
-      if (Date.now() - lastMonitoringSweep >= monitoringMs) {
-        lastMonitoringSweep = Date.now();
-        await agentHubService.evaluatePortfolioMonitoring({
-          actor: { id: 'system', role: 'system', name: 'Scheduled Monitoring Agent' },
-          scheduled: true,
-        });
-      }
+      await agentScheduler.tick({ log });
     } catch (error) {
       log.error('[EVENTS] poll failed:', error.message);
     } finally {
       running = false;
     }
   };
+  agentScheduler.markStarted().catch(() => null);
   void tick();
   return setInterval(tick, pollMs);
-}
-
-async function enqueueOverdueTaskEvents() {
-  const FacultyTask = require('../models/FacultyTask');
-  const tasks = await FacultyTask.find({
-    dueDate: { $lt: new Date().toISOString().slice(0, 10) },
-    status: { $nin: ['Completed', 'Overdue'] },
-  }).select('id projectId title dueDate status').lean();
-  for (const task of tasks) {
-    await enqueueEvent({
-      eventType: 'task.overdue',
-      aggregateType: 'task',
-      aggregateId: task.id,
-      projectId: task.projectId,
-      actorId: 'system',
-      idempotencyKey: `task-overdue:${task.id}:${task.dueDate}`,
-      payload: { title: task.title, dueDate: task.dueDate, status: task.status },
-    });
-  }
 }
 
 module.exports = { enqueueEvent, processOneEvent, startEventOrchestrator, handleEvent, relayPostgresEvents };

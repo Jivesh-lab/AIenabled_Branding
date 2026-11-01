@@ -54,7 +54,7 @@ export default function ApprovalsPage() {
     setLoading(true);
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/admin/approvals`,
+        `/api/backend/admin/approvals`,
         { credentials: "include" }
       );
       if (res.ok) {
@@ -72,7 +72,7 @@ export default function ApprovalsPage() {
   async function handleDecide(user: PendingUser, decision: "approve" | "reject", reason?: string) {
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/admin/approvals/${user._id}/decide`,
+        `/api/backend/admin/approvals/${user._id}/decide`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

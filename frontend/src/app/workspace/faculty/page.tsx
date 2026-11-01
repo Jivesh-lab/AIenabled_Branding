@@ -1,5 +1,6 @@
 "use client";
 
+import { useSession } from "next-auth/react";
 import { useState, useMemo, useEffect } from "react";
 import PageContainer from "@/components/shared/PageContainer";
 import { FacultyOverviewSkeleton } from "@/components/shared/loading/facultySkeletons";
@@ -63,6 +64,8 @@ import {
 } from "lucide-react";
 
 export default function FacultyManagementPage() {
+  const { data: session } = useSession();
+  const me = (session?.user?.name || "Faculty").replace(/\s*\([^)]*\)\s*$/, "");
   // Current active faculty persona
   const [activeRole, setActiveRole] = useState<FacultySubRole>("coordinator");
   const [activeTab, setActiveTab] = useState<
@@ -212,7 +215,7 @@ export default function FacultyManagementPage() {
     // Log to audit history
     const newAudit: AuditHistoryItem = {
       id: `aud-${Date.now()}`,
-      actor: activeRole === "coordinator" ? "Dr. K. R. Raman" : "Faculty User",
+      actor: me,
       role: activeRole,
       action: isApproval ? "APPROVE_MENTOR_ALLOCATION" : "REJECT_MENTOR_ALLOCATION",
       target: `Project #${showMentorDecisionModal.projectId}`,
@@ -248,7 +251,7 @@ export default function FacultyManagementPage() {
               status: "recommended",
               recommendedMentorName: mentorName,
               recommendedMentorOrg: org,
-              recommendedByVolunteerName: "Prof. Ananya Sen (Volunteer)",
+              recommendedByVolunteerName: `${me} (Volunteer)`,
               updatedAt: "Just now",
             }
           : req
@@ -262,13 +265,13 @@ export default function FacultyManagementPage() {
         justification: targetReq.justification,
         recommendedMentorName: mentorName,
         recommendedMentorOrg: org,
-        recommendedByVolunteerName: "Prof. Ananya Sen",
+        recommendedByVolunteerName: me,
       });
     }
 
     const newAudit: AuditHistoryItem = {
       id: `aud-${Date.now()}`,
-      actor: "Prof. Ananya Sen",
+      actor: me,
       role: "volunteer",
       action: "RECOMMEND_MENTOR",
       target: `Request #${requestId}`,
@@ -302,7 +305,7 @@ export default function FacultyManagementPage() {
       requestedExpertise,
       justification,
       recommendedMentorName: suggestedMentor,
-      recommendedByVolunteerName: activeRole === "volunteer" ? "Prof. Ananya Sen" : undefined,
+      recommendedByVolunteerName: activeRole === "volunteer" ? me : undefined,
       status: suggestedMentor ? "recommended" : "requested",
       createdAt: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
       updatedAt: "Just now",
@@ -316,7 +319,7 @@ export default function FacultyManagementPage() {
       justification,
       requestedExpertise,
       recommendedMentorName: suggestedMentor,
-      recommendedByVolunteerName: activeRole === "volunteer" ? "Prof. Ananya Sen" : undefined,
+      recommendedByVolunteerName: activeRole === "volunteer" ? me : undefined,
     });
 
     toast.success("Mentor Request Created", {
@@ -411,7 +414,7 @@ export default function FacultyManagementPage() {
       projectId,
       projectTitle: proj?.title || "Incubation Project",
       participants: [
-        activeRole === "coordinator" ? "Dr. K. R. Raman" : "Prof. Ananya Sen",
+        me,
         proj?.leadStudent || "Researcher Lead",
       ],
       date,
@@ -475,9 +478,8 @@ export default function FacultyManagementPage() {
                 </span>
               </div>
               <h1 className="text-lg font-bold text-white mt-0.5">
-                {activeRole === "coordinator"
-                  ? "Dr. K. R. Raman (Incubation Faculty Coordinator)"
-                  : "Prof. Ananya Sen (Faculty Volunteer Advisor)"}
+                {me}
+                {activeRole === "coordinator" ? " (Incubation Faculty Coordinator)" : " (Faculty Volunteer Advisor)"}
               </h1>
               <p className="text-xs text-blue-100/80">
                 {activeRole === "coordinator"
@@ -892,7 +894,7 @@ export default function FacultyManagementPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[
                   {
-                    name: "Prof. Ananya Sen",
+                    name: me,
                     role: "Faculty Volunteer",
                     dept: "Computer Science & AI",
                     activeProjects: 3,
@@ -2098,7 +2100,7 @@ export default function FacultyManagementPage() {
                     <input
                       id="tOwner"
                       type="text"
-                      defaultValue="Prof. Ananya Sen"
+                      defaultValue={me}
                       className="w-full px-3 py-2 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/30 bg-white"
                     />
                   </div>

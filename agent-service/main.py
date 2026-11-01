@@ -109,6 +109,7 @@ async def health():
         "service": "agent-service",
         "version": "1.0.0",
         "environment": settings.environment,
+        "llm": {"configured": settings.llm_configured},
     }
 
 

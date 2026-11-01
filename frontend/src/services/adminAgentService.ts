@@ -7,7 +7,8 @@
  * ==============================================================================
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+// Same-origin authenticated proxy (src/app/api/backend): the backend sees the real signed-in user.
+const API_BASE = "/api/backend";
 
 export interface AdminMentorMatchingOverview {
   totalEligible: number;
@@ -109,7 +110,7 @@ export interface AdminMonitoringOverview {
 }
 
 export async function fetchAdminMentorMatchingOverview(): Promise<AdminMentorMatchingOverview> {
-  const res = await fetch(`${API_BASE}/api/admin/agents/mentor-matching/overview`, {
+  const res = await fetch(`${API_BASE}/admin/agents/mentor-matching/overview`, {
     credentials: "include",
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to fetch admin mentor-matching overview`);
@@ -118,7 +119,7 @@ export async function fetchAdminMentorMatchingOverview(): Promise<AdminMentorMat
 }
 
 export async function triggerAdminMentorMatchingSweep(): Promise<{ triggeredCount: number }> {
-  const res = await fetch(`${API_BASE}/api/admin/agents/mentor-matching/trigger-sweep`, {
+  const res = await fetch(`${API_BASE}/admin/agents/mentor-matching/trigger-sweep`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
@@ -129,7 +130,7 @@ export async function triggerAdminMentorMatchingSweep(): Promise<{ triggeredCoun
 }
 
 export async function sendCoordinatorReminder(runId: string, coordinatorName?: string): Promise<{ success: boolean; message: string }> {
-  const res = await fetch(`${API_BASE}/api/admin/agents/mentor-matching/remind-coordinator`, {
+  const res = await fetch(`${API_BASE}/admin/agents/mentor-matching/remind-coordinator`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
@@ -140,7 +141,7 @@ export async function sendCoordinatorReminder(runId: string, coordinatorName?: s
 }
 
 export async function fetchAdminWorkflowOverview(): Promise<AdminWorkflowOverview> {
-  const res = await fetch(`${API_BASE}/api/admin/agents/workflow/overview`, {
+  const res = await fetch(`${API_BASE}/admin/agents/workflow/overview`, {
     credentials: "include",
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to fetch admin workflow overview`);
@@ -149,7 +150,7 @@ export async function fetchAdminWorkflowOverview(): Promise<AdminWorkflowOvervie
 }
 
 export async function broadcastAdminWorkflowReminder(): Promise<{ success: boolean; message: string }> {
-  const res = await fetch(`${API_BASE}/api/admin/agents/workflow/broadcast-reminder`, {
+  const res = await fetch(`${API_BASE}/admin/agents/workflow/broadcast-reminder`, {
     method: "POST",
     credentials: "include",
   });
@@ -158,7 +159,7 @@ export async function broadcastAdminWorkflowReminder(): Promise<{ success: boole
 }
 
 export async function retryAdminFailedWorkflows(): Promise<{ success: boolean; message: string }> {
-  const res = await fetch(`${API_BASE}/api/admin/agents/workflow/retry-failed`, {
+  const res = await fetch(`${API_BASE}/admin/agents/workflow/retry-failed`, {
     method: "POST",
     credentials: "include",
   });
@@ -167,7 +168,7 @@ export async function retryAdminFailedWorkflows(): Promise<{ success: boolean; m
 }
 
 export async function fetchAdminMonitoringOverview(): Promise<AdminMonitoringOverview> {
-  const res = await fetch(`${API_BASE}/api/admin/agents/monitoring/overview`, {
+  const res = await fetch(`${API_BASE}/admin/agents/monitoring/overview`, {
     credentials: "include",
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to fetch admin monitoring overview`);
@@ -176,7 +177,7 @@ export async function fetchAdminMonitoringOverview(): Promise<AdminMonitoringOve
 }
 
 export async function triggerAdminMonitoringSweep(): Promise<{ evaluatedCount: number }> {
-  const res = await fetch(`${API_BASE}/api/admin/agents/monitoring/trigger-sweep`, {
+  const res = await fetch(`${API_BASE}/admin/agents/monitoring/trigger-sweep`, {
     method: "POST",
     credentials: "include",
   });

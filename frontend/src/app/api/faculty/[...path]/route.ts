@@ -1,21 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
+import { createBackendToken } from "@/lib/backendToken";
 
 const BACKEND_URL = process.env.BACKEND_URL || "http://127.0.0.1:5000";
 
 /**
  * Catch-all proxy for /api/faculty/[...path]
  * Forwards GET/POST/PUT/DELETE to Express backend at :5000/api/faculty/[...path]
- * Passes cookies so the JWT auth middleware on Express can validate the session.
+ * Signs a short-lived token for the signed-in NextAuth user so Express authenticates the real identity.
  */
 async function proxyRequest(req: NextRequest, path: string) {
   const backendTarget = `${BACKEND_URL}/api/faculty/${path}`;
-  const cookie = req.headers.get("cookie") || "";
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id || !session.user.role) {
+    return NextResponse.json({ success: false, message: "Please sign in to continue." }, { status: 401 });
+  }
+  const token = await createBackendToken(session.user.id, session.user.role);
 
   const init: RequestInit = {
     method: req.method,
     headers: {
       "Content-Type": "application/json",
-      cookie,
+      Authorization: `Bearer ${token}`,
     },
     cache: "no-store",
   };

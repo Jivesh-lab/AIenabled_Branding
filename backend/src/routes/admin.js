@@ -40,6 +40,12 @@ function handleValidationErrors(req, res) {
 // GET /api/admin/stats
 // Operational metrics dashboard
 // ---------------------------------------------------------------------------
+// Manual agent runs are an override for Super Admins. The agents run by themselves on events and schedules.
+function superAdminOnly(req, res, next) {
+  if (req.user && req.user.role === 'super_admin') return next();
+  return res.status(403).json({ success: false, message: 'The agents run automatically. Manual runs are limited to Super Admins (Run now - override).' });
+}
+
 router.get('/stats', async (req, res) => {
   try {
     const [
@@ -824,33 +830,13 @@ router.post('/applications/:id/sync-startup', async (req, res) => {
 
     // If approved, also synchronize to FacultyProject for Faculty Coordinator Control Center
     if (Boolean(isApproved) && mongoose.connection.readyState === 1) {
-      const stageRaw = startup.stage || startup.maturity || 'Prototype';
-      const stageCap = stageRaw.charAt(0).toUpperCase() + stageRaw.slice(1).toLowerCase();
-      await FacultyProject.findOneAndUpdate(
-        { id: String(applicationId) },
-        {
-          $set: {
-            id: String(applicationId),
-            title: startup.name.trim(),
-            domain: (startup.sector || startup.domain || 'Technology').trim(),
-            stage: stageCap,
-            leadStudent: applicantId && String(applicantId).includes('@') ? String(applicantId).split('@')[0] : 'Student Founder',
-            rollNumber: 'DBIT-2026',
-            department: startup.department || 'Information Technology',
-            teamMembers: startup.teamMembers || [{ name: 'Lead Founder', role: 'Student Lead', email: applicantId }],
-            assignedCoordinatorName: 'Dr. K. R. Raman',
-            assignedVolunteerName: 'Prof. Ananya Sen',
-            allocatedMentorName: null,
-            trl: stageCap.toLowerCase().includes('mvp') ? 5 : 4,
-            progress: 50,
-            health: 'On Track',
-            description: (startup.tagline || startup.problem || '').trim(),
-            nextMilestone: 'Cohort Induction & Guide Allocation',
-            nextMilestoneDate: '2026-11-15',
-          }
-        },
-        { upsert: true }
-      );
+      const { ensureProject } = require('../agentic/projects');
+      await ensureProject({
+        applicationId: String(applicationId),
+        startup: { name: startup.name, sector: startup.sector || startup.domain, stage: startup.stage || startup.maturity, tagline: startup.tagline, problem: startup.problem },
+        applicantId,
+        form: { department: startup.department, teamMembers: startup.teamMembers },
+      });
 
       await enqueueEvent({
         eventType: 'startup.synchronized',
@@ -897,7 +883,9 @@ router.get('/agents/mentor-matching/overview', async (req, res) => {
     const totalEligible = projects.length;
     const allocatedCount = projects.filter(p => p.allocatedMentorName).length;
     const withoutMentors = totalEligible - allocatedCount;
-    const pendingDecisions = runs.filter(r => r.coordinatorDecision?.status === 'pending');
+    const Approval = require('../models/Approval');
+    const pendingApprovals = await Approval.find({ type: 'mentor_allocation', status: 'pending' }).lean();
+    const pendingDecisions = pendingApprovals.map((a) => ({ projectId: a.projectId, domain: a.evidence?.startup?.domain }));
     const allocationCoverageRate = totalEligible > 0 ? Math.round((allocatedCount / totalEligible) * 100) : 0;
 
     // Mentor capacity distribution by domain
@@ -922,7 +910,7 @@ router.get('/agents/mentor-matching/overview', async (req, res) => {
     // Coordinator activity breakdown
     const coordMap = new Map();
     projects.forEach(p => {
-      const cName = p.assignedCoordinatorName || 'Dr. K. R. Raman';
+      const cName = p.assignedCoordinatorName || 'Unassigned';
       if (!coordMap.has(cName)) {
         coordMap.set(cName, { coordinatorName: cName, assignedStartups: 0, allocatedMentors: 0, pendingDecisions: 0 });
       }
@@ -933,7 +921,7 @@ router.get('/agents/mentor-matching/overview', async (req, res) => {
 
     pendingDecisions.forEach(r => {
       const p = projects.find(proj => proj.id === r.projectId);
-      const cName = p?.assignedCoordinatorName || 'Dr. K. R. Raman';
+      const cName = p?.assignedCoordinatorName || 'Unassigned';
       if (coordMap.has(cName)) {
         coordMap.get(cName).pendingDecisions++;
       }
@@ -975,7 +963,7 @@ router.get('/agents/mentor-matching/overview', async (req, res) => {
 });
 
 // Admin center-wide matching sweep
-router.post('/agents/mentor-matching/trigger-sweep', async (req, res) => {
+router.post('/agents/mentor-matching/trigger-sweep', superAdminOnly, async (req, res) => {
   try {
     const projects = await FacultyProject.find({ allocatedMentorName: null }).lean();
     const runs = [];
@@ -1050,12 +1038,12 @@ router.get('/agents/workflow/overview', async (req, res) => {
     // Faculty workflow activity
     const facultyActivityMap = new Map();
     tasks.forEach(t => {
-      const c = t.assignedByName || 'Dr. K. R. Raman';
+      const c = t.assignedByName || 'Unassigned';
       if (!facultyActivityMap.has(c)) facultyActivityMap.set(c, { coordinatorName: c, tasksCreated: 0, meetingsScheduled: 0 });
       facultyActivityMap.get(c).tasksCreated++;
     });
     meetings.forEach(m => {
-      const c = m.scheduledByName || 'Dr. K. R. Raman';
+      const c = m.scheduledByName || 'Unassigned';
       if (!facultyActivityMap.has(c)) facultyActivityMap.set(c, { coordinatorName: c, tasksCreated: 0, meetingsScheduled: 0 });
       facultyActivityMap.get(c).meetingsScheduled++;
     });
@@ -1186,7 +1174,7 @@ router.get('/agents/monitoring/overview', async (req, res) => {
         domain: p.domain,
         health: p.health,
         overdueMilestonesCount: p.overdueMilestonesCount || 0,
-        coordinator: p.assignedCoordinatorName || 'Dr. K. R. Raman',
+        coordinator: p.assignedCoordinatorName || 'Unassigned',
         nextMilestone: p.nextMilestone,
         nextMilestoneDate: p.nextMilestoneDate,
       }));
@@ -1196,7 +1184,7 @@ router.get('/agents/monitoring/overview', async (req, res) => {
     reports.forEach(r => {
       (r.recommendedInterventions || []).forEach(inv => {
         if (inv.status === 'pending') {
-          const c = r.assignedCoordinatorName || 'Dr. K. R. Raman';
+          const c = r.assignedCoordinatorName || 'Unassigned';
           if (!facultyInterventionMap.has(c)) facultyInterventionMap.set(c, { coordinatorName: c, pendingInterventions: 0, assignedProjects: [] });
           const entry = facultyInterventionMap.get(c);
           entry.pendingInterventions++;
@@ -1228,7 +1216,7 @@ router.get('/agents/monitoring/overview', async (req, res) => {
 });
 
 // Admin triggers portfolio monitoring sweep
-router.post('/agents/monitoring/trigger-sweep', async (req, res) => {
+router.post('/agents/monitoring/trigger-sweep', superAdminOnly, async (req, res) => {
   try {
     const sweep = await agentHubService.evaluatePortfolioMonitoring({ actor: req.user, scheduled: false });
     res.json({

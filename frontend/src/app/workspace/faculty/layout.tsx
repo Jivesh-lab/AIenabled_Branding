@@ -10,22 +10,14 @@ import {
   UserCircleIcon,
   UsersIcon,
 } from "@heroicons/react/24/outline";
-import { Sparkles, Zap, Activity } from "lucide-react";
 
 const COORDINATOR_SECTIONS: NavSection[] = [
   {
     label: "Governance & Approvals",
     items: [
+      { label: "Home: approvals & activity", icon: Squares2X2Icon, href: "/workspace/faculty/dashboard" },
       { label: "Coordinator Control", icon: ShieldCheckIcon, href: "/workspace/faculty/coordinator" },
       { label: "Management Hub", icon: BriefcaseIcon, href: "/workspace/faculty" },
-    ],
-  },
-  {
-    label: "Autonomous AI Agents",
-    items: [
-      { label: "AI Mentor Matching", icon: Sparkles, href: "/workspace/faculty/mentor-matching" },
-      { label: "AI Workflow Automation", icon: Zap, href: "/workspace/faculty/workflow" },
-      { label: "AI Startup Monitoring", icon: Activity, href: "/workspace/faculty/monitoring" },
     ],
   },
   {
@@ -43,7 +35,6 @@ const VOLUNTEER_SECTIONS: NavSection[] = [
     items: [
       { label: "Volunteer Workdesk", icon: UserCircleIcon, href: "/workspace/faculty/volunteer" },
       { label: "Assigned Projects", icon: UsersIcon, href: "/workspace/faculty/student-projects" },
-      { label: "AI Startup Monitoring", icon: Activity, href: "/workspace/faculty/monitoring" },
       { label: "Team Oversight", icon: BriefcaseIcon, href: "/workspace/faculty/oversight" },
     ],
   },
@@ -56,14 +47,6 @@ const DEFAULT_FACULTY_SECTIONS: NavSection[] = [
       { label: "Coordinator Portal", icon: ShieldCheckIcon, href: "/workspace/faculty/coordinator" },
       { label: "Volunteer Portal", icon: UserCircleIcon, href: "/workspace/faculty/volunteer" },
       { label: "Researcher Projects", icon: UsersIcon, href: "/workspace/faculty/student-projects" },
-    ],
-  },
-  {
-    label: "Autonomous AI Agents",
-    items: [
-      { label: "AI Mentor Matching", icon: Sparkles, href: "/workspace/faculty/mentor-matching" },
-      { label: "AI Workflow Automation", icon: Zap, href: "/workspace/faculty/workflow" },
-      { label: "AI Startup Monitoring", icon: Activity, href: "/workspace/faculty/monitoring" },
     ],
   },
 ];

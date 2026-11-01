@@ -10,6 +10,8 @@ const facultyRouter = require('./routes/faculty');
 const studentRouter = require('./routes/student');
 const notificationsRouter = require('./routes/notifications');
 const superAdminRouter = require('./routes/superAdmin');
+const agenticRouter = require('./routes/agentic');
+const integrationsRouter = require('./routes/integrations');
 
 const app = express();
 
@@ -59,6 +61,8 @@ app.use('/api/faculty', facultyRouter);
 app.use('/api/student', studentRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/super-admin', superAdminRouter);
+app.use('/api/agentic', agenticRouter);
+app.use('/api/integrations', integrationsRouter);
 
 // Health check
 app.get('/api/health', (_request, response) => {

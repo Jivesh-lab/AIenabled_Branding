@@ -334,7 +334,7 @@ export default function UserManagementPage() {
   async function handleApproveUser(user: UserItem) {
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/admin/approvals/${user._id}/decide`,
+        `/api/backend/admin/approvals/${user._id}/decide`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -361,7 +361,7 @@ export default function UserManagementPage() {
   async function handleRejectUser(user: UserItem, reason?: string) {
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/admin/approvals/${user._id}/decide`,
+        `/api/backend/admin/approvals/${user._id}/decide`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -390,7 +390,7 @@ export default function UserManagementPage() {
   async function handleVerifyInvestor(user: UserItem) {
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/admin/approvals/${user._id}/decide`,
+        `/api/backend/admin/approvals/${user._id}/decide`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

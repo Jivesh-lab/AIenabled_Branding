@@ -1,5 +1,6 @@
 "use client";
 
+import AgentHealthPanel from "@/components/agentic/AgentHealthPanel";
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import PageContainer from "@/components/shared/PageContainer";
@@ -144,7 +145,7 @@ const WORKSPACES = [
   },
 ];
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API = "/api/backend"; // authenticated same-origin proxy
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
@@ -305,7 +306,7 @@ function UserManagementTab() {
       if (roleFilter !== "all") params.set("role", roleFilter);
       if (statusFilter !== "all") params.set("status", statusFilter);
 
-      const res = await fetch(`${API}/api/admin/users?${params}`, { credentials: "include" });
+      const res = await fetch(`${API}/admin/users?${params}`, { credentials: "include" });
       if (res.ok) {
         const data = await res.json();
         setUsers(data.users || []);
@@ -329,14 +330,14 @@ function UserManagementTab() {
     try {
       let res: Response;
       if (actionType === "reset") {
-        res = await fetch(`${API}/api/admin/users/${actionTarget._id}/reset-password`, {
+        res = await fetch(`${API}/admin/users/${actionTarget._id}/reset-password`, {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ newPassword: actionValue || undefined, mustChangePassword: true }),
         });
       } else if (actionType === "role") {
-        res = await fetch(`${API}/api/admin/users/${actionTarget._id}`, {
+        res = await fetch(`${API}/admin/users/${actionTarget._id}`, {
           method: "PUT",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
@@ -344,7 +345,7 @@ function UserManagementTab() {
         });
       } else {
         // deactivate
-        res = await fetch(`${API}/api/admin/users/${actionTarget._id}`, {
+        res = await fetch(`${API}/admin/users/${actionTarget._id}`, {
           method: "PUT",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
@@ -605,12 +606,13 @@ function AgentsTab() {
   const [subAgent, setSubAgent] = useState<"mentor-matching" | "workflow" | "monitoring">("mentor-matching");
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      <AgentHealthPanel />
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-4">
         <div>
-          <h2 className="text-base font-bold text-slate-900">Autonomous AI Agents Governance & Control</h2>
+          <h2 className="text-base font-bold text-slate-900">Manual override: per-agent controls</h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Executive oversight, execution telemetry, and intervention management across all active specialist agents.
+            The agents run on their own. These screens exist for inspection, replaying a failed step and forcing a run when you need to (Run now - override).
           </p>
         </div>
 
@@ -724,7 +726,7 @@ function BroadcastTab() {
 
   useEffect(() => {
     setLoadingList(true);
-    fetch(`${API}/api/admin/announcements`, { credentials: "include" })
+    fetch(`${API}/admin/announcements`, { credentials: "include" })
       .then((r) => r.json())
       .then((d) => { if (d.announcements) setAnnouncements(d.announcements); })
       .catch(() => {})
@@ -739,7 +741,7 @@ function BroadcastTab() {
     setSubmitting(true);
     setMsg(null);
     try {
-      const res = await fetch(`${API}/api/admin/announcements`, {
+      const res = await fetch(`${API}/admin/announcements`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -901,7 +903,7 @@ function SuperAdminDashboardContent() {
 
   useEffect(() => {
     setStatsLoading(true);
-    fetch(`${API}/api/admin/stats`, { credentials: "include" })
+    fetch(`${API}/admin/stats`, { credentials: "include" })
       .then((r) => r.json())
       .then((d) => { if (d.stats) setStats(d.stats); })
       .catch(() => {})

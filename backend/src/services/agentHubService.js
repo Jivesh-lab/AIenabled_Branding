@@ -79,206 +79,37 @@ class AgentHubService {
     });
   }
 
-  async runMentorMatching({ projectId, actor, idempotencyKey }) {
-    if (idempotencyKey) {
-      const existing = await MentorMatchingRun.findOne({ executionIdempotencyKey: idempotencyKey }).lean();
-      if (existing) return existing;
-    }
-    const project = await FacultyProject.findOne({ id: projectId });
-    if (!project) {
-      throw new Error(`Startup project not found for ID: ${projectId}`);
-    }
-
-    const existingAllocations = await MentorAllocation.find({
-      status: { $in: ['approved', 'allocated', 'recommended'] },
-    }).lean();
-
-    const requestedExpertise = [project.domain.split('/')[0].trim()];
-    const reqPayload = {
-      domain: project.domain,
-      stage: project.stage,
-      challenges: project.description || `Scaling ${project.title} and securing seed validation`,
-      requestedExpertise,
-      existingAllocations: existingAllocations.map((a) => ({
-        mentor_name: a.allocatedMentorName || a.recommendedMentorName,
-        project_id: a.projectId,
-      })),
-    };
-
-    const runId = `mm-run-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
-    const startTime = new Date();
-
-    let agentResult = await this._callAgentService('/api/agents/mentor-match', reqPayload);
-
-    let normalizedRecs = [];
-    if (agentResult && Array.isArray(agentResult.recommendations)) {
-      normalizedRecs = agentResult.recommendations.map((rec, idx) => ({
-        mentor_id: rec.mentor_id || rec.id || `mentor-${idx + 1}`,
-        name: rec.name,
-        domain: Array.isArray(rec.domains) ? rec.domains.join(', ') : (rec.domain || project.domain),
-        company: rec.company || rec.affiliation || 'DBIT Research & Incubation Partner',
-        role: rec.role || 'Incubation Mentor',
-        email: rec.email || `${(rec.name || 'mentor').toLowerCase().replace(/[^a-z]/g, '.')}@incubation.dbit.ac.in`,
-        match_score: rec.match_score || 75,
-        score_breakdown: rec.score_breakdown || {
-          domain_match: 40,
-          skills_match: 30,
-          availability: 15,
-        },
-        explanation: Array.isArray(rec.match_reasons)
-          ? rec.match_reasons.join('. ')
-          : (rec.explanation || `Evaluated expertise aligned with ${project.title}`),
-        matched_skills: rec.matched_skills || rec.expertise || [],
-        duplicate_allocation_warning: Boolean(
-          rec.duplicate_allocation_warning ||
-          (rec.conflict_reason && rec.conflict_reason.includes('already assigned'))
-        ),
-        capacity_conflict_warning: Boolean(
-          rec.capacity_conflict_warning ||
-          (rec.conflict_reason && rec.conflict_reason.includes('capacity')) ||
-          (rec.available_slots !== undefined && rec.available_slots <= 0)
-        ),
-        current_load: rec.current_load !== undefined ? rec.current_load : 1,
-        max_load: rec.max_load || rec.max_capacity || 3,
-      }));
-    }
-
-    // If external call failed or returned empty, generate deterministic matches based on domain
-    if (normalizedRecs.length === 0) {
-      const existingMentors = [
-        {
-          id: 'mentor-1',
-          name: 'Dr. Vikram Malhotra',
-          domain: 'AgriTech / ML',
-          company: 'Indian Agricultural Research & DBIT',
-          role: 'Principal Scientist & AI Mentor',
-          skills: ['Computer Vision', 'Deep Learning', 'Sensor Integration', 'Edge AI'],
-          load: 1,
-        },
-        {
-          id: 'mentor-2',
-          name: 'Prof. Ananya Sen',
-          domain: 'GreenTech / Materials',
-          company: 'DBIT Department of Chemical & Materials',
-          role: 'Associate Professor & Lab Director',
-          skills: ['Biopolymers', 'Life Cycle Analysis', 'ISO Standards', 'Packaging'],
-          load: 2,
-        },
-        {
-          id: 'mentor-3',
-          name: 'Mr. Rajesh Kulkarni',
-          domain: 'HealthTech / MedTech',
-          company: 'Nexus Health Technologies',
-          role: 'VP Technology & MedTech Advisor',
-          skills: ['Medical Devices', 'ISO 13485', 'Regulatory Compliance', 'Embedded Systems'],
-          load: 0,
-        },
-        {
-          id: 'mentor-4',
-          name: 'Dr. Sunita Deshpande',
-          domain: 'CleanTech / IoT',
-          company: 'DBIT Environmental Research Cell',
-          role: 'Professor & CleanTech Consultant',
-          skills: ['Smart Grid', 'Battery Analytics', 'IoT Telemetry', 'Embedded C++'],
-          load: 1,
-        },
-        {
-          id: 'mentor-5',
-          name: 'Aakash Verma',
-          domain: 'SaaS / Fintech',
-          company: 'FinPulse Labs (Ex-Razorpay)',
-          role: 'Chief Technology Officer',
-          skills: ['Cloud Architecture', 'Payment Gateways', 'PCI-DSS', 'Go'],
-          load: 0,
-        },
-        {
-          id: 'mentor-6',
-          name: 'Meera Iyer',
-          domain: 'EdTech / AI',
-          company: 'LearnNova Systems',
-          role: 'Head of AI & Learning Science',
-          skills: ['LLMs', 'NLP', 'Adaptive Learning Systems', 'Python'],
-          load: 1,
-        },
-      ];
-
-      const domainWords = project.domain.toLowerCase().split(/[\s/]+/);
-      const scored = existingMentors.map((m) => {
-        let domainScore = 20;
-        const mDomain = m.domain.toLowerCase();
-        for (const w of domainWords) {
-          if (w.length > 2 && mDomain.includes(w)) domainScore = 45;
-        }
-
-        const skillsScore = 25;
-        const capacityScore = m.load >= 3 ? 5 : m.load === 2 ? 12 : 20;
-        const total = domainScore + skillsScore + capacityScore;
-
-        const isDuplicate = existingAllocations.some(
-          (a) => (a.allocatedMentorName || a.recommendedMentorName) === m.name && a.projectId === projectId
-        );
-
-        return {
-          mentor_id: m.id,
-          name: m.name,
-          domain: m.domain,
-          company: m.company,
-          role: m.role,
-          email: `${m.name.toLowerCase().replace(/[^a-z]/g, '.')}@incubation.dbit.ac.in`,
-          match_score: total,
-          score_breakdown: {
-            domain_match: domainScore,
-            skills_match: skillsScore,
-            availability: capacityScore,
-          },
-          explanation: `Strong synergy in ${m.domain} aligned with ${project.title}. Evaluated capacity: ${m.load}/3 slots active.`,
-          matched_skills: m.skills.slice(0, 3),
-          duplicate_allocation_warning: isDuplicate,
-          capacity_conflict_warning: m.load >= 3,
-          current_load: m.load,
-          max_load: 3,
-        };
-      });
-
-      scored.sort((a, b) => b.match_score - a.match_score);
-      agentResult = {
-        recommendations: scored.slice(0, 3),
-        evaluated_mentors_count: existingMentors.length,
-        warnings: scored.some((s) => s.capacity_conflict_warning)
-          ? ['One or more evaluated mentors are near maximum advisory capacity.']
-          : [],
-      };
-    }
-
-    const endTime = new Date();
-
-    const runDoc = new MentorMatchingRun({
-      id: runId,
-      executionIdempotencyKey: idempotencyKey || null,
+  /**
+   * Manual "run now" (Super Admin override). It starts the SAME persistent Mentor-Matching job the agent
+   * starts on approval: real mentor accounts are ranked and asked one at a time. Nothing is faked here.
+   */
+  async runMentorMatching({ projectId, actor }) {
+    const project = await FacultyProject.findOne({ id: projectId }).lean();
+    if (!project) throw new Error(`Startup project not found for ID: ${projectId}`);
+    const jobs = require('../agentic/jobs');
+    const open = await jobs.findOpen('mentor.matching', project.id);
+    if (open) return this._runSummary(project, open, false);
+    const { job, created } = await jobs.enqueue({
+      type: 'mentor.matching',
+      agent: 'Mentor-Matching Agent',
+      dedupeKey: `mentor.matching:${project.id}:override:${Date.now()}`,
+      applicationId: project.applicationId,
       projectId: project.id,
-      projectTitle: project.title,
-      domain: project.domain,
-      stage: project.stage,
-      challenges: reqPayload.challenges,
-      requestedExpertise,
-      executionStatus: 'completed',
-      startedAt: startTime,
-      completedAt: endTime,
-      evaluatedMentorsCount: agentResult.evaluated_mentors_count || agentResult.recommendations?.length || 3,
-      recommendations: normalizedRecs.length > 0 ? normalizedRecs : (agentResult.recommendations || []),
-      warnings: agentResult.warnings || [],
-      coordinatorDecision: {
-        status: 'pending',
-        selectedMentorId: null,
-        selectedMentorName: null,
-        decidedBy: null,
-        decidedAt: null,
-        comments: '',
-      },
+      subjectType: 'project',
+      subjectId: project.id,
+      triggerEvent: 'override.run',
+      data: { phase: 'start', index: 0, tried: [], requestedBy: actor?.id || null },
     });
+    return this._runSummary(project, job, created);
+  }
 
-    await runDoc.save();
-    return runDoc;
+  /** What a manual run returns: the job that now owns the work (results appear in the action log as it proceeds). */
+  _runSummary(project, job, created) {
+    return {
+      id: String(job._id), jobId: String(job._id), projectId: project.id, projectTitle: project.title, executionStatus: created ? 'queued' : 'running',
+      note: created ? 'Started. The Mentor-Matching Agent will ask mentors one at a time.' : 'Matching is already in progress for this startup.',
+      recommendations: [], coordinatorDecision: { status: 'pending' },
+    };
   }
 
   async getMentorMatchingRuns(projectId) {
@@ -286,89 +117,17 @@ class AgentHubService {
     return await MentorMatchingRun.find(filter).sort({ createdAt: -1 }).lean();
   }
 
-  async decideMentorRecommendation({ runId, decision, selectedMentorId, selectedMentorName, comments, actor }) {
+  /** Coordinator decision on a proposed allocation. It is recorded on the Approval, which is what gates the action. */
+  async decideMentorRecommendation({ runId, decision, comments, actor }) {
     const run = await MentorMatchingRun.findOne({ id: runId });
-    if (!run) {
-      throw new Error(`Mentor matching run not found: ${runId}`);
-    }
-
-    run.coordinatorDecision = {
-      status: decision,
-      selectedMentorId: decision === 'approved' ? selectedMentorId : null,
-      selectedMentorName: decision === 'approved' ? selectedMentorName : null,
-      decidedBy: actor.name || 'Faculty Coordinator',
-      decidedAt: new Date(),
-      comments: comments || '',
-    };
-
-    if (decision === 'approved') {
-      // 1. Update/create MentorAllocation
-      let alloc = await MentorAllocation.findOne({ projectId: run.projectId });
-      if (!alloc) {
-        alloc = new MentorAllocation({
-          id: `alloc-${Date.now()}`,
-          projectId: run.projectId,
-          projectTitle: run.projectTitle,
-          studentName: 'Lead Student',
-          domain: run.domain,
-          justification: comments || `AI matched mentor allocation: ${selectedMentorName}`,
-        });
-      }
-      alloc.status = 'approved';
-      alloc.allocatedMentorName = selectedMentorName;
-      alloc.coordinatorComment = comments || 'Approved via AI Mentor Matching Hub';
-      await alloc.save();
-      run.linkedAllocationId = alloc.id;
-
-      // 2. Update FacultyProject
-      const project = await FacultyProject.findOne({ id: run.projectId });
-      if (project) {
-        project.allocatedMentorName = selectedMentorName;
-        await project.save();
-      }
-
-      // 3. Workflow Agent Integration: Schedule initial onboarding meeting & create kickoff task
-      const meetingExecution = await this.coordinateWorkflowAction({
-        actionType: 'schedule_meeting',
-        projectId: run.projectId,
-        projectTitle: run.projectTitle,
-        targetId: run.projectId,
-        targetName: selectedMentorName,
-        targetRole: 'mentor',
-        targetEmail: `${selectedMentorName.toLowerCase().replace(/[^a-z]/g, '.')}@incubation.dbit.ac.in`,
-        payload: {
-          title: `Mentor Onboarding Alignment: ${selectedMentorName} & ${run.projectTitle}`,
-          date: new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0],
-          startTime: '15:00',
-          durationMinutes: 45,
-          meetingType: 'Strategic Mentorship Kickoff',
-          agenda: `Strategic kickoff for ${run.projectTitle} with newly allocated mentor ${selectedMentorName}. Review milestone roadmap and technical deliverables.`,
-        },
-        actor,
-      });
-
-      const taskExecution = await this.coordinateWorkflowAction({
-        actionType: 'assign_task',
-        projectId: run.projectId,
-        projectTitle: run.projectTitle,
-        targetId: run.projectId,
-        targetName: selectedMentorName,
-        targetRole: 'mentor',
-        targetEmail: `${selectedMentorName.toLowerCase().replace(/[^a-z]/g, '.')}@incubation.dbit.ac.in`,
-        payload: {
-          title: `Prepare Mentorship Charter & Q1 Milestone Goals`,
-          dueDate: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
-          priority: 'High',
-          description: `Coordinate with ${run.projectTitle} student founders to establish key milestone expectations and cadence for reviews.`,
-        },
-        actor,
-      });
-
-      run.linkedWorkflowExecutionId = meetingExecution.id;
-    }
-
-    await run.save();
-    return run;
+    if (!run) throw new Error(`Mentor matching run not found: ${runId}`);
+    const approvals = require('../agentic/approvals');
+    const Approval = require('../models/Approval');
+    const pending = await Approval.findOne({ type: 'mentor_allocation', subjectId: run.projectId, status: 'pending' }).lean();
+    if (!pending) throw new Error('There is no pending mentor proposal for this startup.');
+    const result = await approvals.decide({ approvalId: pending._id, user: actor, decision, comment: comments || '' });
+    if (result.executionError) throw new Error(`The decision was saved, but applying it failed: ${result.executionError}`);
+    return MentorMatchingRun.findOne({ id: runId }).lean();
   }
 
   // ---------------------------------------------------------------------------
@@ -384,16 +143,84 @@ class AgentHubService {
     return await WorkflowExecution.find(filter).sort({ createdAt: -1 }).lean();
   }
 
+  /** Runs one workflow action through the real tools and returns what actually happened. */
+  async _runWorkflowTool({ actionType, projectId, projectTitle, targetId, targetName, targetRole, payload, actor, idempotencyKey }) {
+    const User = require('../models/User');
+    const { notify } = require('../agentic/tools/notify');
+    const { createTask, requestReport } = require('../agentic/tools/tasks');
+    const { scheduleMeeting } = require('../agentic/tools/calendar');
+    const { zonedToUtc } = require('../agentic/time');
+    const project = await FacultyProject.findOne({ id: projectId }).lean();
+    const system = actor?.role === 'system';
+    const ctx = {
+      agent: 'Workflow Agent',
+      trigger: system ? { type: 'schedule', ref: actor.name || 'worker' } : { type: 'user', ref: String(actor?.id || 'unknown') },
+      correlationId: null,
+      jobId: null,
+      projectId,
+      applicationId: project?.applicationId || null,
+    };
+    const isUserId = /^[a-f0-9]{24}$/i.test(String(targetId || ''));
+    const recipient = isUserId ? String(targetId) : (targetRole === 'student' ? project?.ownerUserId : null);
+
+    if (actionType === 'assign_task') {
+      const out = await createTask(ctx, {
+        key: idempotencyKey,
+        projectId,
+        projectTitle,
+        title: payload.title || 'Incubation action item',
+        description: payload.description || '',
+        assignedUserId: payload.assignedUserId || (targetRole === 'student' ? project?.ownerUserId : null),
+        assignedTo: targetName || project?.leadStudent,
+        assignedRole: targetRole || 'student',
+        dueDate: payload.dueDate || payload.due_date,
+        priority: payload.priority || 'Medium',
+        link: '/workspace/student/dashboard',
+      });
+      return { linkedRecord: { modelName: 'FacultyTask', recordId: out.result?.taskId }, receipt: out.summary, status: out.status };
+    }
+    if (actionType === 'request_progress_report') {
+      const out = await requestReport(ctx, { key: idempotencyKey, projectId, projectTitle, founderUserId: project?.ownerUserId, founderName: targetName || project?.leadStudent, reason: payload.description });
+      return { linkedRecord: { modelName: 'FacultyTask', recordId: out.result?.taskId }, receipt: out.summary, status: out.status };
+    }
+    if (actionType === 'send_reminder') {
+      const out = await notify(ctx, {
+        key: idempotencyKey,
+        userIds: recipient ? [String(recipient)] : [],
+        title: payload.title || 'Reminder',
+        message: payload.description || payload.message || 'A reminder from the incubation team.',
+        link: '/workspace/student/dashboard',
+        kind: 'reminder',
+        severity: 'action',
+        action: 'application.remind',
+        projectId,
+      });
+      return { linkedRecord: { modelName: null, recordId: null }, receipt: out.summary, status: out.status };
+    }
+    if (actionType === 'schedule_meeting') {
+      if (!payload.date || !payload.startTime) throw new Error('A meeting needs a date and a start time.');
+      const startUtc = zonedToUtc(payload.date, payload.startTime);
+      const endUtc = new Date(startUtc.getTime() + (payload.durationMinutes || 45) * 60000);
+      const actorId = actor?.id && /^[a-f0-9]{24}$/i.test(String(actor.id)) ? actor.id : null;
+      const ids = [project?.ownerUserId, project?.mentorUserId, project?.coordinatorUserId, actorId].filter(Boolean).map(String);
+      const people = await User.find({ _id: { $in: [...new Set(ids)] }, status: 'active' }).select('_id name email').lean();
+      const out = await scheduleMeeting(ctx, {
+        key: idempotencyKey,
+        projectId,
+        projectTitle,
+        title: payload.title || 'Review meeting',
+        agenda: payload.agenda || '',
+        startUtc,
+        endUtc,
+        attendees: people.map((u) => ({ userId: String(u._id), name: u.name, email: u.email })),
+      });
+      return { linkedRecord: { modelName: 'FacultyMeeting', recordId: out.result?.meetingId }, receipt: out.summary, status: out.status };
+    }
+    throw new Error(`Unsupported workflow action: ${actionType}`);
+  }
+
   async coordinateWorkflowAction({
-    actionType,
-    projectId = 'general',
-    projectTitle = 'Incubation Project',
-    targetId,
-    targetName = '',
-    targetRole = 'student',
-    targetEmail = '',
-    payload = {},
-    actor = {},
+    actionType, projectId = 'general', projectTitle = 'Incubation Project', targetId, targetName = '', targetRole = 'student', targetEmail = '', payload = {}, actor = {},
   }) {
     const requestedIdempotencyKey = payload.idempotencyKey || payload.idempotency_key;
     if (requestedIdempotencyKey) {
@@ -403,157 +230,81 @@ class AgentHubService {
     const execId = `wf-exec-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
     const idempotencyKey = requestedIdempotencyKey || `wf-${actionType}-${targetId}-${payload.title || Date.now()}`;
     const startTime = new Date();
+    const actorName = actor.role === 'system' ? (actor.name || 'Workflow Agent') : (actor.name || 'Staff member');
 
-    // Call Agent Service workflow coordinator
-    const agentReq = {
-      action_type: actionType,
-      target_id: targetId,
-      payload: { ...payload, project_id: projectId, project_title: projectTitle },
-      actor_id: actor.id || 'coordinator',
-      actor_role: actor.role || 'faculty_coordinator',
-    };
-
-    let agentRes = await this._callAgentService('/api/agents/workflow/coordinate', agentReq);
-
-    let linkedRecord = { modelName: null, recordId: null };
-    let deliveryReceipt = 'Task logged and delivered to incubation portal';
-
-    if (actionType === 'assign_task') {
-      const taskId = `task-${Date.now()}`;
-      const task = new FacultyTask({
-        id: taskId,
-        title: payload.title || 'Incubation Action Item',
-        projectId,
-        projectTitle,
-        assignedTo: targetName || 'Faculty Volunteer',
-        assignedRole: targetRole || 'volunteer',
-        dueDate: payload.dueDate || payload.due_date || new Date(Date.now() + 5 * 86400000).toISOString().split('T')[0],
-        priority: payload.priority || 'Medium',
-        status: 'Pending',
-        description: payload.description || '',
-      });
-      await task.save();
-      linkedRecord = { modelName: 'FacultyTask', recordId: taskId };
-      deliveryReceipt = `Created FacultyTask [${taskId}] and queued in-app notification`;
-    } else if (actionType === 'schedule_meeting') {
-      const meetingId = `meet-${Date.now()}`;
-      const meeting = new FacultyMeeting({
-        id: meetingId,
-        title: payload.title || 'Incubation Review Meeting',
-        projectId,
-        projectTitle,
-        participants: [targetName || 'Student Founders', actor.name || 'Coordinator'],
-        date: payload.date || new Date(Date.now() + 2 * 86400000).toISOString().split('T')[0],
-        startTime: payload.startTime || '14:00',
-        durationMinutes: payload.durationMinutes || 45,
-        meetingType: payload.meetingType || 'Milestone Review',
-        agenda: payload.agenda || payload.description || 'Milestone and progress review',
-        meetingProvider: 'In-Person (DBITIC Lab 402)',
-        meetingLinkOrLocation: 'DBIT Incubation Centre, Lab 402',
-        invitationStatus: 'Sent',
-        notes: payload.notes || '',
-      });
-      await meeting.save();
-      linkedRecord = { modelName: 'FacultyMeeting', recordId: meetingId };
-      deliveryReceipt = `Created FacultyMeeting [${meetingId}] and sent calendar dispatch`;
-    } else if (actionType === 'send_reminder') {
-      deliveryReceipt = `Scheduled reminder dispatched to ${targetEmail || targetName} with confirmation timestamp`;
-    } else if (actionType === 'request_progress_report') {
-      const taskId = `task-${Date.now()}`;
-      const task = new FacultyTask({
-        id: taskId,
-        title: `Submit Fortnightly Progress Report: ${projectTitle}`,
-        projectId,
-        projectTitle,
-        assignedTo: targetName || 'Lead Student',
-        assignedRole: 'student',
-        dueDate: new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0],
-        priority: 'High',
-        status: 'Pending',
-        description: payload.description || 'Submit updated progress report with code repository commits and milestone proof.',
-      });
-      await task.save();
-      linkedRecord = { modelName: 'FacultyTask', recordId: taskId };
-      deliveryReceipt = `Progress report request created task [${taskId}] and founder notification confirmed`;
+    let outcome;
+    let errorMessage = null;
+    try {
+      outcome = await this._runWorkflowTool({ actionType, projectId, projectTitle, targetId, targetName, targetRole, payload, actor, idempotencyKey });
+    } catch (error) {
+      errorMessage = error.message;
     }
-
+    const failed = Boolean(errorMessage);
+    const simulated = outcome?.status === 'simulated';
     const execution = new WorkflowExecution({
       id: execId,
       actionType,
-      status: 'completed',
+      status: failed ? 'failed' : 'completed',
       projectId,
       projectTitle,
-      actorId: actor.id || 'coordinator',
-      actorRole: actor.role || 'faculty_coordinator',
-      actorName: actor.name || 'Dr. K. R. Raman',
-      targetId,
+      actorId: actor.id || 'system',
+      actorRole: actor.role || 'system',
+      actorName,
+      targetId: targetId || 'unknown',
       targetName,
       targetRole,
       targetEmail,
       payload,
       idempotencyKey,
-      deliveryStatus: 'delivered',
+      deliveryStatus: failed ? 'failed' : simulated ? 'queued' : 'delivered',
       deliveryTimestamp: new Date(),
-      deliveryReceipt,
+      deliveryReceipt: failed ? `Not completed: ${errorMessage}` : outcome.receipt,
+      errorMessage,
       retryCount: 0,
       startedAt: startTime,
       completedAt: new Date(),
-      linkedRecord,
+      linkedRecord: outcome?.linkedRecord || { modelName: null, recordId: null },
       executionLogs: [
-        {
-          timestamp: startTime,
-          message: `Initiated ${actionType} coordination by ${actor.name || 'Coordinator'}`,
-          level: 'info',
-        },
-        {
-          timestamp: new Date(),
-          message: `Agent confirmed action execution. Delivery: ${deliveryReceipt}`,
-          level: 'info',
-        },
+        { timestamp: startTime, message: `${actionType} requested by ${actorName}`, level: 'info' },
+        { timestamp: new Date(), message: failed ? `Failed: ${errorMessage}` : outcome.receipt, level: failed ? 'error' : 'info' },
       ],
     });
-
     await execution.save();
     return execution;
   }
 
   async retryWorkflowExecution({ executionId, actor }) {
     const execution = await WorkflowExecution.findOne({ id: executionId });
-    if (!execution) {
-      throw new Error(`Workflow execution not found: ${executionId}`);
-    }
-
-    if (execution.retryCount >= execution.maxRetries) {
-      throw new Error(`Maximum retry limit (${execution.maxRetries}) reached for this execution.`);
-    }
-
+    if (!execution) throw new Error(`Workflow execution not found: ${executionId}`);
+    if (execution.status !== 'failed') throw new Error('Only a failed action can be retried.');
+    if (execution.retryCount >= execution.maxRetries) throw new Error(`Maximum retry limit (${execution.maxRetries}) reached for this execution.`);
     execution.retryCount += 1;
     execution.status = 'running';
-    execution.executionLogs.push({
-      timestamp: new Date(),
-      message: `Retry #${execution.retryCount} initiated by ${actor.name || 'Coordinator'}`,
-      level: 'info',
-    });
     await execution.save();
-
-    // Call Agent Service
-    await this._callAgentService('/api/agents/workflow/coordinate', {
-      action_type: execution.actionType,
-      target_id: execution.targetId,
-      payload: execution.payload,
-      actor_id: actor.id || 'coordinator',
-      actor_role: actor.role || 'faculty_coordinator',
-    });
-
-    execution.status = 'completed';
-    execution.deliveryStatus = 'delivered';
+    try {
+      const outcome = await this._runWorkflowTool({
+        actionType: execution.actionType,
+        projectId: execution.projectId,
+        projectTitle: execution.projectTitle,
+        targetId: execution.targetId,
+        targetName: execution.targetName,
+        targetRole: execution.targetRole,
+        payload: execution.payload,
+        actor,
+        idempotencyKey: `${execution.idempotencyKey}:retry${execution.retryCount}`,
+      });
+      execution.status = 'completed';
+      execution.deliveryStatus = outcome.status === 'simulated' ? 'queued' : 'delivered';
+      execution.deliveryReceipt = outcome.receipt;
+      execution.errorMessage = null;
+      execution.linkedRecord = outcome.linkedRecord;
+      execution.executionLogs.push({ timestamp: new Date(), message: `Retry #${execution.retryCount} succeeded: ${outcome.receipt}`, level: 'info' });
+    } catch (error) {
+      execution.status = 'failed';
+      execution.errorMessage = error.message;
+      execution.executionLogs.push({ timestamp: new Date(), message: `Retry #${execution.retryCount} failed: ${error.message}`, level: 'error' });
+    }
     execution.deliveryTimestamp = new Date();
-    execution.executionLogs.push({
-      timestamp: new Date(),
-      message: `Retry #${execution.retryCount} succeeded. Action confirmed.`,
-      level: 'info',
-    });
-
     await execution.save();
     return execution;
   }

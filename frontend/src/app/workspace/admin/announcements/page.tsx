@@ -84,7 +84,7 @@ export default function AnnouncementsPage() {
     setLoading(true);
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/admin/announcements`,
+        `/api/backend/admin/announcements`,
         { credentials: "include" }
       );
       if (res.ok) {
@@ -107,7 +107,7 @@ export default function AnnouncementsPage() {
 
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/admin/announcements`,
+        `/api/backend/admin/announcements`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import DashboardNavbar, { NavbarUser } from "@/components/shared/DashboardNavbar";
 import DashboardSidebar, { NavSection } from "@/components/shared/DashboardSidebar";
 import SuperAdminBanner from "@/components/shared/SuperAdminBanner";
+import IntegrationNotice from "@/components/agentic/IntegrationNotice";
 
 export type AllowedRole =
   | "student"
@@ -72,6 +73,7 @@ export default function BaseWorkspaceLayout({
   return (
     <div className="flex flex-col min-h-screen w-full bg-canvas">
       <SuperAdminBanner />
+      <IntegrationNotice />
       <div className="flex flex-1 min-w-0">
         <DashboardSidebar
           sections={sections}

@@ -1,5 +1,8 @@
 "use client";
 
+import NotificationsMenu from "@/components/agentic/NotificationsMenu";
+import CalendarDialog from "@/components/agentic/CalendarDialog";
+
 /**
  * DashboardNavbar
  * Shared top header for all authenticated role shells. Sticky, 60px tall.
@@ -26,6 +29,7 @@ import {
   Bars3Icon,
   BellIcon,
   ChevronDownIcon,
+  CalendarDaysIcon,
   Cog6ToothIcon,
   MagnifyingGlassIcon,
   PlusIcon,
@@ -155,45 +159,11 @@ function IconButton({
 }
 
 // ---------------------------------------------------------------------------
-// Notifications
-// ---------------------------------------------------------------------------
-function NotificationButton({ count = 0 }: { count?: number }) {
-  const [liveCount, setLiveCount] = useState(count);
-  useEffect(() => {
-    let active = true;
-    fetch("/api/notifications", { cache: "no-store" })
-      .then((response) => response.ok ? response.json() : null)
-      .then((data) => {
-        if (!active || !Array.isArray(data?.data)) return;
-        setLiveCount(data.data.filter((notification: { readAt?: string | null }) => !notification.readAt).length);
-      })
-      .catch(() => undefined);
-    return () => { active = false; };
-  }, []);
-  const effectiveCount = Math.max(count, liveCount);
-  const capped = Math.min(effectiveCount, 99);
-  return (
-    <div className="relative">
-      <IconButton label={effectiveCount > 0 ? `Notifications, ${effectiveCount} unread` : "Notifications"}>
-        <BellIcon className="size-5" aria-hidden="true" />
-      </IconButton>
-      {capped > 0 && (
-        <span
-          aria-hidden="true"
-          className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full border-2 border-white bg-danger px-1 text-[9px] font-bold leading-none text-white"
-        >
-          {capped}
-        </span>
-      )}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Profile dropdown
 // ---------------------------------------------------------------------------
 const MENU_ITEMS = [
   { icon: UserCircleIcon, label: "My Profile", getPath: (role: string) => `/workspace/${role.toLowerCase().replace(' ', '-')}/profile` },
+  { icon: CalendarDaysIcon, label: "Calendar & reminders", getPath: () => "" },
   { icon: Cog6ToothIcon, label: "Account Settings", getPath: (role: string) => `/workspace/${role.toLowerCase().replace(' ', '-')}/settings` },
   { icon: ArrowRightOnRectangleIcon, label: "Sign Out", getPath: () => "/login" },
 ];
@@ -201,6 +171,7 @@ const MENU_ITEMS = [
 function ProfileDropdown({ user }: { user: NavbarUser }) {
   const [open, setOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
@@ -278,7 +249,9 @@ function ProfileDropdown({ user }: { user: NavbarUser }) {
               disabled={label === "Sign Out" && isSigningOut}
               onClick={async () => {
                 setOpen(false);
-                if (label === "Sign Out") {
+                if (label === "Calendar & reminders") {
+                  setCalendarOpen(true);
+                } else if (label === "Sign Out") {
                   setIsSigningOut(true);
                   try {
                     await signOut({ redirect: false });
@@ -305,6 +278,7 @@ function ProfileDropdown({ user }: { user: NavbarUser }) {
           ))}
         </div>
       )}
+      <CalendarDialog open={calendarOpen} onClose={() => setCalendarOpen(false)} />
     </div>
   );
 }
@@ -420,7 +394,7 @@ export default function DashboardNavbar({
           <QuestionMarkCircleIcon className="size-5" aria-hidden="true" />
         </IconButton>
 
-        <NotificationButton count={notificationCount} />
+        <NotificationsMenu />
 
         {userLoading ? <ProfileSkeleton /> : <ProfileDropdown user={user} />}
       </div>

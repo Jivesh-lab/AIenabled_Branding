@@ -7,7 +7,8 @@
  * ==============================================================================
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+// Same-origin authenticated proxy (src/app/api/backend): the backend sees the real signed-in user.
+const API_BASE = "/api/backend";
 
 export interface SuperAdminMentorMatchingGovernance {
   agentHealth: string;
@@ -154,7 +155,7 @@ export interface SuperAdminMonitoringGovernance {
 }
 
 export async function fetchSuperAdminMentorMatchingGovernance(): Promise<SuperAdminMentorMatchingGovernance> {
-  const res = await fetch(`${API_BASE}/api/super-admin/agents/mentor-matching/governance`, {
+  const res = await fetch(`${API_BASE}/super-admin/agents/mentor-matching/governance`, {
     credentials: "include",
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to fetch Super Admin mentor-matching governance`);
@@ -163,7 +164,7 @@ export async function fetchSuperAdminMentorMatchingGovernance(): Promise<SuperAd
 }
 
 export async function fetchSuperAdminWorkflowGovernance(): Promise<SuperAdminWorkflowGovernance> {
-  const res = await fetch(`${API_BASE}/api/super-admin/agents/workflow/governance`, {
+  const res = await fetch(`${API_BASE}/super-admin/agents/workflow/governance`, {
     credentials: "include",
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to fetch Super Admin workflow governance`);
@@ -172,7 +173,7 @@ export async function fetchSuperAdminWorkflowGovernance(): Promise<SuperAdminWor
 }
 
 export async function reprocessSuperAdminDeadLetterEvent(eventId: string): Promise<{ success: boolean; message: string }> {
-  const res = await fetch(`${API_BASE}/api/super-admin/agents/workflow/reprocess-dlq/${encodeURIComponent(eventId)}`, {
+  const res = await fetch(`${API_BASE}/super-admin/agents/workflow/reprocess-dlq/${encodeURIComponent(eventId)}`, {
     method: "POST",
     credentials: "include",
   });
@@ -181,7 +182,7 @@ export async function reprocessSuperAdminDeadLetterEvent(eventId: string): Promi
 }
 
 export async function fetchSuperAdminMonitoringGovernance(): Promise<SuperAdminMonitoringGovernance> {
-  const res = await fetch(`${API_BASE}/api/super-admin/agents/monitoring/governance`, {
+  const res = await fetch(`${API_BASE}/super-admin/agents/monitoring/governance`, {
     credentials: "include",
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to fetch Super Admin monitoring governance`);
@@ -190,7 +191,7 @@ export async function fetchSuperAdminMonitoringGovernance(): Promise<SuperAdminM
 }
 
 export async function pingAgentServiceDiagnostic(): Promise<{ status: string; latencyMs: number }> {
-  const res = await fetch(`${API_BASE}/api/super-admin/agents/ping`, {
+  const res = await fetch(`${API_BASE}/super-admin/agents/ping`, {
     method: "POST",
     credentials: "include",
   });

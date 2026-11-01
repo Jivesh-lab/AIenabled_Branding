@@ -1,12 +1,9 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import AiStartupMonitoringDashboard from "@/components/agents/AiStartupMonitoringDashboard";
-
-export default function FacultyMonitoringPage() {
-  return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <AiStartupMonitoringDashboard />
-    </div>
-  );
+/**
+ * The agents no longer have a page of their own for this role. Their work arrives on the home screen as approvals,
+ * activity and escalations. Manual runs live under Super Admin > Autonomous AI Agents ("Run now (override)").
+ */
+export default function Page() {
+  redirect("/workspace/faculty/dashboard");
 }
-
