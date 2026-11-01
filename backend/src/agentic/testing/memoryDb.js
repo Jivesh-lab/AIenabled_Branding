@@ -166,7 +166,7 @@ function install(models, { readOnly = [] } = {}) {
     const store = [];
     stores.set(Model, store);
     const saved = {};
-    ['create', 'find', 'findOne', 'findById', 'findOneAndUpdate', 'updateOne', 'updateMany', 'deleteOne', 'countDocuments'].forEach((m) => { saved[m] = Model[m]; });
+    ['create', 'find', 'findOne', 'findById', 'findOneAndUpdate', 'updateOne', 'updateMany', 'deleteOne', 'countDocuments', 'aggregate'].forEach((m) => { saved[m] = Model[m]; });
     originals.set(Model, saved);
     const frozen = readOnly.includes(Model.modelName);
 
@@ -190,6 +190,25 @@ function install(models, { readOnly = [] } = {}) {
     Model.findOne = (filter = {}) => query((s) => clone(sortDocs(store.filter((d) => matches(d, filter)), s.sort)[0] || null));
     Model.findById = (id) => Model.findOne({ _id: id });
     Model.countDocuments = async (filter = {}) => store.filter((d) => matches(d, filter)).length;
+    // Only what the dashboards use: $match, then $group by one field or an object of fields with { $sum: 1 }.
+    Model.aggregate = async (stages = []) => {
+      let docs = store.map(clone);
+      for (const stage of stages) {
+        if (stage.$match) docs = docs.filter((d) => matches(d, stage.$match));
+        else if (stage.$group) {
+          const ref = (expr, d) => (typeof expr === 'string' && expr.startsWith('$') ? getPath(d, expr.slice(1)) : expr);
+          const groups = new Map();
+          docs.forEach((d) => {
+            const id = stage.$group._id && typeof stage.$group._id === 'object' ? Object.fromEntries(Object.entries(stage.$group._id).map(([k, v]) => [k, ref(v, d)])) : ref(stage.$group._id, d);
+            const key = JSON.stringify(id);
+            if (!groups.has(key)) groups.set(key, { _id: id, count: 0 });
+            groups.get(key).count += 1;
+          });
+          docs = [...groups.values()];
+        }
+      }
+      return docs;
+    };
     if (!frozen) {
       Model.findOneAndUpdate = (filter, update, options = {}) => query((s) => {
         const hit = sortDocs(store.filter((d) => matches(d, filter)), options.sort || s.sort)[0];

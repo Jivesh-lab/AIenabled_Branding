@@ -19,13 +19,13 @@ function frontendUrl(path) {
  */
 router.get('/google/callback', async (req, res) => {
   try {
-    if (req.query.error) return res.redirect(frontendUrl(`/workspace?calendar=cancelled`));
+    if (req.query.error) return res.redirect(frontendUrl(`/login?calendar=cancelled`));
     const result = await google.handleCallback({ code: String(req.query.code || ''), state: String(req.query.state || '') });
     const user = await User.findById(result.userId).select('role').lean();
-    return res.redirect(frontendUrl(`/workspace/${WORKSPACE[user?.role] || 'student'}/settings?calendar=connected`));
+    return res.redirect(frontendUrl(`/workspace/${WORKSPACE[user?.role] || 'student'}/dashboard?calendar=connected`));
   } catch (error) {
     console.error('[integrations] google callback failed:', error.message);
-    return res.redirect(frontendUrl(`/workspace?calendar=error`));
+    return res.redirect(frontendUrl(`/login?calendar=error`));
   }
 });
 
@@ -52,7 +52,7 @@ router.get('/status', async (req, res) => {
     success: true,
     data: {
       ...status,
-      agentService: { reachable: agentService.reachable },
+      agentService: { reachable: agentService.reachable, linked: Boolean(process.env.INTERNAL_JWT_SECRET) },
       you: {
         googleCalendar: connection ? { connected: connection.status === 'connected', needsReconnect: connection.status === 'needs_reconnect', accountEmail: connection.accountEmail } : { connected: false },
       },
