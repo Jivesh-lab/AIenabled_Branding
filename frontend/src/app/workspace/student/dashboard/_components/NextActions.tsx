@@ -30,11 +30,11 @@ export default function NextActions({ journeys }: { journeys: Journey[] }) {
           <ul className="divide-y divide-line">
             {actions.map((action) => (
               <li key={action.key}>
-                <Link href={action.href} className="flex items-start gap-3 p-4 hover:bg-nav-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand/40">
+                <Link href={action.href} className="flex items-start gap-3 px-4 py-3.5 hover:bg-nav-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand/40">
                   {/* A status dot, not a hollow circle: these rows navigate, they are not check-off items. */}
-                  <span className={cn("mt-[7px] size-2 shrink-0 rounded-full", action.urgent ? "bg-brand-gold" : "bg-icon/50")} aria-hidden="true" />
+                  <span className={cn("mt-[6px] size-2 shrink-0 rounded-full", action.urgent ? "bg-brand-gold" : "bg-icon/50")} aria-hidden="true" />
                   <span className="min-w-0 flex-1">
-                    <span className="block text-[14px] font-medium text-ink">{action.label}</span>
+                    <span className="block text-[14px] font-medium leading-snug text-ink">{action.label}</span>
                     <span className="mt-0.5 block truncate text-[12px] text-muted-ink">{action.project}</span>
                   </span>
                   {action.urgent && (

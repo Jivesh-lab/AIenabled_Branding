@@ -1,10 +1,10 @@
 import PageContainer from "@/components/shared/PageContainer";
+import PageHeader from "@/components/shared/PageHeader";
 
 export default function ProfilePage() {
   return (
     <PageContainer>
-      <h1 className="text-[28px] font-semibold tracking-tight text-ink">My Profile</h1>
-      <p className="mt-2 text-[14px] text-muted-ink">Content coming soon.</p>
+      <PageHeader title="My Profile" description="Content coming soon." />
     </PageContainer>
   );
 }

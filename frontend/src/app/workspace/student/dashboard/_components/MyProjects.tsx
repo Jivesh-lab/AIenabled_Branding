@@ -72,13 +72,13 @@ export default function MyProjects({
                   <Card interactive className="p-5">
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0">
-                        <h3 className="truncate text-[16px] font-semibold text-ink">{project.name}</h3>
+                        <h3 className="truncate text-[15px] font-semibold leading-snug text-ink">{project.name}</h3>
                         <p className="mt-0.5 text-[13px] text-muted-ink">{project.domain || "Sector not set"}</p>
                       </div>
                       <StatusBadge label={REVIEW_STATUS_LABEL[project.reviewStatus]} tone={REVIEW_STATUS_TONE[project.reviewStatus]} />
                     </div>
 
-                    <div className="mt-3 flex flex-col gap-1 text-[13px] sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4">
+                    <div className="mt-3 flex flex-col gap-1.5 text-[13px] sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4">
                       <MentorLine result={mentors?.[project.id]} />
                       {stage && (
                         <p className="min-w-0 truncate text-muted-ink sm:border-l sm:border-line sm:pl-4">
@@ -101,7 +101,7 @@ export default function MyProjects({
                       )}
                     </div>
 
-                    <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-line pt-4">
+                    <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-line pt-3.5">
                       <p className="min-w-0 truncate text-[13px] text-ink">
                         <span className="font-medium text-muted-ink">Next:</span> {project.next?.label ?? "Nothing pending"}
                       </p>

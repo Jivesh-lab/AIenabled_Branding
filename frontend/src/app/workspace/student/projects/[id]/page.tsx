@@ -178,11 +178,11 @@ export default async function ProjectPage({
                 )}
               </div>
 
-              <h1 className="text-2xl font-bold tracking-tight text-ink sm:text-3xl">
+              <h1 className="text-[18px] font-semibold leading-tight tracking-tight text-ink sm:text-[20px]">
                 {project.startup.name}
               </h1>
 
-              <p className="max-w-2xl text-[14px] leading-relaxed text-muted-ink">
+              <p className="max-w-2xl text-[13px] leading-relaxed text-muted-ink">
                 {project.startup.tagline}
               </p>
 

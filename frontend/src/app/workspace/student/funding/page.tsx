@@ -6,17 +6,15 @@ import PageContainer from "@/components/shared/PageContainer";
 import PageHeader from "@/components/shared/PageHeader";
 import { Card } from "@/components/shared/Surface";
 import {
-  Coins,
   Sparkles,
   Calendar,
   Building,
   CheckCircle2,
   ArrowRight,
   Search,
-  Award,
-  ShieldCheck,
   Check,
 } from "lucide-react";
+import { BanknotesIcon, ShieldCheckIcon, TrophyIcon } from "@heroicons/react/24/outline";
 
 interface GrantOpportunity {
   id: string;
@@ -160,6 +158,14 @@ export default function StudentFundingPage() {
   const domains = ["All", "AI / Deep Tech", "Any Domain", "AgriTech", "Hardware / CleanTech / IoT", "ICT / Software / Electronics", "HealthTech / BioTech"];
   const categories = ["All", "Institutional", "Government Scheme", "Industry Partner"];
 
+  // Open-call count is derived from the opportunity list, not hardcoded.
+  const openCalls = GRANT_OPPORTUNITIES.filter((g) => g.openCall).length;
+  const KPIS = [
+    { label: "Total Grant Corpus", value: "₹77+ Lakhs", icon: BanknotesIcon },
+    { label: "Active Funding Calls", value: `${openCalls} schemes`, icon: TrophyIcon },
+    { label: "Grant Equity Policy", value: "0% equity", icon: ShieldCheckIcon },
+  ];
+
   const filtered = GRANT_OPPORTUNITIES.filter((item) => {
     const matchDomain = selectedDomain === "All" || item.domain.toLowerCase().includes(selectedDomain.toLowerCase());
     const matchCategory = selectedCategory === "All" || item.category === selectedCategory;
@@ -185,67 +191,48 @@ export default function StudentFundingPage() {
         <PageHeader
           title="Funding & Grant Opportunities"
           description="Institutional incubation grants, DST PRAYAS, MeitY TIDE, and corporate seed funds available for student innovators at DBIT."
-          action={{ label: "My Projects", href: "/workspace/student/projects" }}
         />
 
-        {/* Overview Banner Metrics */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Card className="p-4 flex items-center gap-3.5 bg-gradient-to-r from-emerald-50/50 to-transparent">
-            <span className="flex size-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600">
-              <Coins className="size-5" />
-            </span>
-            <div>
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-ink">Total Grant Corpus</span>
-              <p className="text-xl font-bold text-ink">₹77+ Lakhs</p>
+        {/* KPI strip — matches the dashboard: one connected surface, dividers between tiles, no per-tile shadow. */}
+        <div className="grid grid-cols-1 divide-y divide-line overflow-hidden rounded-xl border border-line bg-white sm:grid-cols-3 sm:divide-y-0 sm:divide-x">
+          {KPIS.map(({ label, value, icon: Icon }) => (
+            <div key={label} className="flex items-center gap-3 px-4 py-3.5">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand">
+                <Icon className="size-4.5" aria-hidden="true" />
+              </span>
+              <div className="min-w-0">
+                <p className="truncate text-[11px] font-medium uppercase tracking-[0.05em] text-muted-ink">{label}</p>
+                <p className="mt-0.5 text-[20px] font-bold leading-none text-ink">{value}</p>
+              </div>
             </div>
-          </Card>
-
-          <Card className="p-4 flex items-center gap-3.5 bg-gradient-to-r from-indigo-50/50 to-transparent">
-            <span className="flex size-10 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-600">
-              <Award className="size-5" />
-            </span>
-            <div>
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-ink">Active Funding Calls</span>
-              <p className="text-xl font-bold text-ink">6 Available Schemes</p>
-            </div>
-          </Card>
-
-          <Card className="p-4 flex items-center gap-3.5 bg-gradient-to-r from-blue-50/50 to-transparent">
-            <span className="flex size-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600">
-              <ShieldCheck className="size-5" />
-            </span>
-            <div>
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-ink">Grant Equity Policy</span>
-              <p className="text-xl font-bold text-ink">0% Equity (Pure Grant)</p>
-            </div>
-          </Card>
+          ))}
         </div>
 
-        {/* Search & Filters */}
-        <Card className="p-4 space-y-3">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+        {/* Search & Filters — flat bordered bar, no card wrapper inflating vertical space. */}
+        <div className="overflow-hidden rounded-xl border border-line bg-white">
+          {/* Row 1: search + category */}
+          <div className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-ink" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-ink" />
               <input
                 type="text"
                 placeholder="Search grant by name, provider, or keyword..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-xs border border-line rounded-lg bg-canvas/30 focus:outline-none focus:ring-2 focus:ring-brand/30"
+                className="w-full rounded-lg border border-line bg-canvas/40 py-1.5 pl-8 pr-3 text-[13px] text-ink placeholder:text-muted-ink focus:outline-none focus:ring-2 focus:ring-brand/30"
               />
             </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-semibold text-muted-ink">Category:</span>
+            <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+              <span className="text-[11px] font-medium text-muted-ink">Category:</span>
               {categories.map((c) => (
                 <button
                   key={c}
                   type="button"
                   onClick={() => setSelectedCategory(c)}
-                  className={`px-2.5 py-1 text-xs font-medium rounded-lg border transition-colors ${
+                  className={`rounded-lg border px-2.5 py-1 text-[12px] font-medium transition-colors ${
                     selectedCategory === c
-                      ? "bg-brand text-white border-brand"
-                      : "bg-white text-muted-ink border-line hover:border-brand/40 hover:text-brand"
+                      ? "border-brand bg-brand text-white"
+                      : "border-line bg-white text-muted-ink hover:border-brand/40 hover:text-brand"
                   }`}
                 >
                   {c}
@@ -253,25 +240,25 @@ export default function StudentFundingPage() {
               ))}
             </div>
           </div>
-
-          <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-line text-xs">
-            <span className="font-semibold text-muted-ink mr-1">Domain:</span>
+          {/* Row 2: domain — same pill token as category */}
+          <div className="flex flex-wrap items-center gap-1.5 border-t border-line px-4 py-2.5">
+            <span className="text-[11px] font-medium text-muted-ink">Domain:</span>
             {domains.map((d) => (
               <button
                 key={d}
                 type="button"
                 onClick={() => setSelectedDomain(d)}
-                className={`px-2 py-0.5 rounded text-[11px] transition-colors ${
+                className={`rounded-lg border px-2.5 py-1 text-[12px] font-medium transition-colors ${
                   selectedDomain === d
-                    ? "bg-brand/10 text-brand font-bold"
-                    : "text-muted-ink hover:text-ink hover:bg-canvas"
+                    ? "border-brand bg-brand text-white"
+                    : "border-line bg-white text-muted-ink hover:border-brand/40 hover:text-brand"
                 }`}
               >
                 {d}
               </button>
             ))}
           </div>
-        </Card>
+        </div>
 
         {/* Opportunity Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
