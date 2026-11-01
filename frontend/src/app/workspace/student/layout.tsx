@@ -5,7 +5,7 @@ import { STUDENT_READ_ROLES, authorize, initialsOf } from "@/lib/apiPolicy";
 import StudentShell from "./_components/StudentShell";
 
 const ROLE_LABEL: Record<string, string> = {
-  student: "Student",
+  student: "Researcher",
   admin: "Admin (viewing)",
   super_admin: "Super Admin (viewing)",
 };
@@ -20,10 +20,10 @@ export default async function StudentLayout({ children }: { children: React.Reac
   if (authorize(session?.user, STUDENT_READ_ROLES)) redirect("/login");
 
   const user = session!.user!;
-  const name = user.name?.trim() || user.email?.split("@")[0] || "Student";
+  const name = user.name?.trim() || user.email?.split("@")[0] || "Researcher";
 
   return (
-    <StudentShell user={{ name, role: ROLE_LABEL[user.role ?? ""] ?? "Student", initials: initialsOf(name) || "ST" }}>
+    <StudentShell user={{ name, role: ROLE_LABEL[user.role ?? ""] ?? "Researcher", initials: initialsOf(name) || "RS" }}>
       {children}
     </StudentShell>
   );

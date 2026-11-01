@@ -35,7 +35,7 @@ export default function SignupBrandPanel() {
       {/* Audience Indicator */}
       <div className="flex items-center gap-2 mt-4 text-xs font-medium text-slate-500">
         <Users className="size-4 text-blue-600 shrink-0" aria-hidden="true" />
-        <span>Students · Faculty · Mentors · Investors</span>
+        <span>Researchers · Faculty · Mentors · Investors</span>
       </div>
     </div>
   );

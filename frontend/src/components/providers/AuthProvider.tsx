@@ -1,7 +1,6 @@
 "use client";
 
 import { SessionProvider } from "next-auth/react";
-import AppStartupLoader from "@/components/shared/AppStartupLoader";
 
 export default function AuthProvider({
   children,
@@ -10,7 +9,6 @@ export default function AuthProvider({
 }) {
   return (
     <SessionProvider>
-      <AppStartupLoader />
       {children}
     </SessionProvider>
   );

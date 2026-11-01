@@ -37,9 +37,9 @@ type EmailTemplate = {
 const EMAIL_TEMPLATES: EmailTemplate[] = [
   {
     id: "welcome-student",
-    name: "Student Onboarding Welcome",
+    name: "Researcher Onboarding Welcome",
     subject: "Welcome to DBIT Incubation Centre - Getting Started",
-    body: `Dear Innovator,\n\nWelcome to the DBIT Incubation Centre! Your student incubation workspace is now active.\n\nYou can now submit new project proposals, collaborate with assigned mentors, track milestone deliverables, and access innovation grants through your unified dashboard.\n\nBest regards,\nDBIT Incubation Directorate`,
+    body: `Dear Innovator,\n\nWelcome to the DBIT Incubation Centre! Your researcher incubation workspace is now active.\n\nYou can now submit new project proposals, collaborate with assigned mentors, track milestone deliverables, and access innovation grants through your unified dashboard.\n\nBest regards,\nDBIT Incubation Directorate`,
   },
   {
     id: "project-approved",
@@ -169,7 +169,7 @@ export default function AnnouncementsPage() {
                     className="w-full h-9 rounded-md border border-slate-200 bg-white px-3 text-xs text-slate-700"
                   >
                     <option value="all">All Ecosystem Users</option>
-                    <option value="student">Students Only</option>
+                    <option value="student">Researchers Only</option>
                     <option value="faculty">Faculty Only</option>
                     <option value="mentor">Mentors Only</option>
                     <option value="investor">Investors Only</option>

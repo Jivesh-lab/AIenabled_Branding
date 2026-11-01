@@ -4,22 +4,20 @@ import { useSession } from "next-auth/react";
 import BaseWorkspaceLayout from "@/components/shared/BaseWorkspaceLayout";
 import { NavSection } from "@/components/shared/DashboardSidebar";
 import {
-  ShieldCheck,
-  UserCheck,
-  Users,
-  Briefcase,
-  LayoutDashboard,
-  Sparkles,
-  Zap,
-  Activity,
-} from "lucide-react";
+  BriefcaseIcon,
+  ShieldCheckIcon,
+  Squares2X2Icon,
+  UserCircleIcon,
+  UsersIcon,
+} from "@heroicons/react/24/outline";
+import { Sparkles, Zap, Activity } from "lucide-react";
 
 const COORDINATOR_SECTIONS: NavSection[] = [
   {
     label: "Governance & Approvals",
     items: [
-      { label: "Coordinator Control", icon: ShieldCheck, href: "/workspace/faculty/coordinator" },
-      { label: "Management Hub", icon: Briefcase, href: "/workspace/faculty" },
+      { label: "Coordinator Control", icon: ShieldCheckIcon, href: "/workspace/faculty/coordinator" },
+      { label: "Management Hub", icon: BriefcaseIcon, href: "/workspace/faculty" },
     ],
   },
   {
@@ -33,20 +31,20 @@ const COORDINATOR_SECTIONS: NavSection[] = [
   {
     label: "Incubation Teams",
     items: [
-      { label: "Student Projects", icon: Users, href: "/workspace/faculty/student-projects" },
-      { label: "Research Oversight", icon: LayoutDashboard, href: "/workspace/faculty/oversight" },
+      { label: "Researcher Projects", icon: UsersIcon, href: "/workspace/faculty/student-projects" },
+      { label: "Research Oversight", icon: Squares2X2Icon, href: "/workspace/faculty/oversight" },
     ],
   },
 ];
 
 const VOLUNTEER_SECTIONS: NavSection[] = [
   {
-    label: "Student Mentorship & Guidance",
+    label: "Researcher Mentorship & Guidance",
     items: [
-      { label: "Volunteer Workdesk", icon: UserCheck, href: "/workspace/faculty/volunteer" },
-      { label: "Assigned Projects", icon: Users, href: "/workspace/faculty/student-projects" },
+      { label: "Volunteer Workdesk", icon: UserCircleIcon, href: "/workspace/faculty/volunteer" },
+      { label: "Assigned Projects", icon: UsersIcon, href: "/workspace/faculty/student-projects" },
       { label: "AI Startup Monitoring", icon: Activity, href: "/workspace/faculty/monitoring" },
-      { label: "Team Oversight", icon: Briefcase, href: "/workspace/faculty/oversight" },
+      { label: "Team Oversight", icon: BriefcaseIcon, href: "/workspace/faculty/oversight" },
     ],
   },
 ];
@@ -55,9 +53,9 @@ const DEFAULT_FACULTY_SECTIONS: NavSection[] = [
   {
     label: "Faculty Workspace",
     items: [
-      { label: "Coordinator Portal", icon: ShieldCheck, href: "/workspace/faculty/coordinator" },
-      { label: "Volunteer Portal", icon: UserCheck, href: "/workspace/faculty/volunteer" },
-      { label: "Student Projects", icon: Users, href: "/workspace/faculty/student-projects" },
+      { label: "Coordinator Portal", icon: ShieldCheckIcon, href: "/workspace/faculty/coordinator" },
+      { label: "Volunteer Portal", icon: UserCircleIcon, href: "/workspace/faculty/volunteer" },
+      { label: "Researcher Projects", icon: UsersIcon, href: "/workspace/faculty/student-projects" },
     ],
   },
   {
@@ -98,6 +96,7 @@ export default function FacultyLayout({ children }: { children: React.ReactNode 
       }}
       workspaceLabel={isVolunteer ? "Faculty Volunteer Workspace" : "Faculty Coordinator Workspace"}
       allowedRole="faculty"
+      waitForSession
     >
       {children}
     </BaseWorkspaceLayout>

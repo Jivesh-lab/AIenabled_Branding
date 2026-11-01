@@ -152,7 +152,7 @@ export default function SubmissionSuccess({
             </div>
             <h4 className="mt-3 text-[13px] font-bold text-ink">2. Eligibility Check</h4>
             <p className="mt-1 text-[12px] text-muted-ink leading-relaxed">
-              Verified DBIT student affiliation, team members, academic department, and basic compliance rules.
+              Verified DBIT researcher affiliation, team members, academic department, and basic compliance rules.
             </p>
           </div>
 

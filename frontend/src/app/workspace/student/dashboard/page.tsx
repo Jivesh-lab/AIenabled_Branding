@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Card, SectionHeading } from "@/components/shared/Surface";
 import { ErrorState, SlowNotice } from "@/components/shared/loading/primitives";
 import { useDelayedFlag, useLongWait } from "@/hooks/useDelayedFlag";
@@ -52,13 +53,21 @@ export default function DashboardPage() {
     try {
       const res = await fetch("/api/student/overview", { cache: "no-store", signal: controller.signal });
       const body = await res.json().catch(() => null);
-      if (!res.ok || !body) throw new Error((body && typeof body.message === "string" && body.message) || "The dashboard could not be loaded.");
+      if (!res.ok || !body) throw new Error(res.status === 401 ? "Your session has expired. Please sign in again." : "We couldn't load your dashboard right now. Please try again.");
       if (id !== latest.current) return;
       setOverview(body as StudentOverview);
     } catch (err) {
       if (id !== latest.current) return; // superseded by a newer request
       const timedOut = controller.signal.aborted;
-      setRequestError(timedOut ? "The server took too long to respond." : err instanceof Error ? err.message : "The dashboard could not be loaded.");
+      const message = timedOut
+        ? "This is taking longer than expected. Please try again."
+        : err instanceof TypeError
+          ? "We couldn't reach the server. Check your connection and try again."
+          : err instanceof Error
+            ? err.message
+            : "We couldn't load your dashboard right now. Please try again.";
+      setRequestError(message);
+      toast.error(message, { id: "dashboard-load" });
     } finally {
       clearTimeout(timeout);
       if (id === latest.current) setLoading(false);
@@ -140,7 +149,7 @@ export default function DashboardPage() {
               <NextActions journeys={journeys} />
               {(!tasks.ok || !meetings.ok) && (
                 <p role="status" className="-mt-4 text-[12px] text-muted-ink">
-                  {[!tasks.ok && "Task", !meetings.ok && "Meeting"].filter(Boolean).join(" and ")} actions are unavailable right now, so they are not listed.
+                  {[!tasks.ok && "Tasks", !meetings.ok && "meetings"].filter(Boolean).join(" and ")} couldn&apos;t be loaded, so they are not listed. Refresh to try again.
                 </p>
               )}
             </>

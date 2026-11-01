@@ -6,12 +6,13 @@
  *
  * Structure:
  *   LEFT:   mobile menu trigger (mobile only) - brand (mobile only, the sidebar
- *           owns the brand on desktop) - workspace label
- *   CENTER: global search
- *   RIGHT:  + New Idea (STUDENTS ONLY) - Help - Notifications - Profile
+ *           owns the brand on desktop) - "DBIT / workspace" breadcrumb (lg+)
+ *   CENTER: global search (flexes; never squeezes the sides)
+ *   RIGHT:  Submit Proposal (STUDENTS ONLY) - Help - Notifications - Profile
  *
- * Ocean Royale tokens: bg-white - border-line - text-ink - text-muted-ink
- *                       primary: bg-brand / hover:bg-brand-hover
+ * Tokens: bg-white - border-line - text-ink - text-muted-ink
+ *         primary: bg-brand / hover:bg-brand-hover
+ * Icons: Heroicons (outline, 24px set).
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -19,17 +20,18 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Bell,
-  ChevronDown,
-  CircleHelp,
-  LogOut,
-  Menu,
-  Plus,
-  Search,
-  Settings,
-  User,
-} from "lucide-react";
+  ArrowRightOnRectangleIcon,
+  Bars3Icon,
+  BellIcon,
+  ChevronDownIcon,
+  Cog6ToothIcon,
+  MagnifyingGlassIcon,
+  PlusIcon,
+  QuestionMarkCircleIcon,
+  UserCircleIcon,
+} from "@heroicons/react/24/outline";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -51,6 +53,15 @@ interface DashboardNavbarProps {
   /** When given, the header shows a working search box and calls this on submit. Omitted = no search box. */
   onSearch?: (query: string) => void;
   searchPlaceholder?: string;
+  /** A role-specific search (e.g. the student portal's global search). Replaces the default box when given. */
+  searchSlot?: React.ReactNode;
+  /** True while the signed-in user is still being resolved, so no placeholder name or initials flash. */
+  userLoading?: boolean;
+}
+
+/** Compact label for the navbar: drops a trailing "(Student Founder)" style suffix. The dropdown keeps the full name. */
+function compactName(name: string) {
+  return name.replace(/\s*\([^)]*\)\s*$/, "").trim() || name;
 }
 
 // ---------------------------------------------------------------------------
@@ -75,7 +86,7 @@ function GlobalSearch({ onSearch, placeholder }: { onSearch: (query: string) => 
   return (
     <form
       role="search"
-      className="mx-4 hidden w-full max-w-[360px] md:flex lg:mx-6"
+      className="hidden min-w-[160px] max-w-[480px] flex-1 md:flex"
       onSubmit={(e) => {
         e.preventDefault();
         const query = value.trim();
@@ -83,7 +94,7 @@ function GlobalSearch({ onSearch, placeholder }: { onSearch: (query: string) => 
       }}
     >
       <div className="group relative w-full">
-        <Search
+        <MagnifyingGlassIcon
           className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-ink transition-colors group-focus-within:text-brand"
           aria-hidden="true"
         />
@@ -95,15 +106,15 @@ function GlobalSearch({ onSearch, placeholder }: { onSearch: (query: string) => 
           placeholder={placeholder}
           aria-label={placeholder}
           className={cn(
-            "h-10 w-full rounded-[8px] border border-line bg-canvas",
-            "pl-9 pr-14 text-[13px] text-ink placeholder:text-muted-ink",
+            "h-9 w-full rounded-lg border border-line bg-canvas",
+            "pl-9 pr-3 text-[13px] lg:pr-16 text-ink placeholder:text-muted-ink",
             "focus:border-brand focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand/20",
             "transition-colors duration-150"
           )}
         />
         <kbd
           aria-hidden="true"
-          className="absolute right-3 top-1/2 hidden -translate-y-1/2 items-center rounded border border-line bg-white px-1.5 py-0.5 text-[10px] font-medium text-[#94A3B8] lg:inline-flex"
+          className="absolute right-3 top-1/2 hidden -translate-y-1/2 items-center rounded border border-line bg-white px-1.5 py-0.5 text-[10px] font-medium text-muted-ink lg:inline-flex"
         >
           Ctrl K
         </kbd>
@@ -132,8 +143,8 @@ function IconButton({
       aria-label={label}
       onClick={onClick}
       className={cn(
-        "flex size-9 shrink-0 items-center justify-center rounded-[8px]",
-        "text-muted-ink transition-colors duration-150 hover:bg-[#F1F5F9] hover:text-ink",
+        "flex size-9 shrink-0 items-center justify-center rounded-lg",
+        "text-muted-ink transition-colors duration-150 hover:bg-nav-hover hover:text-ink",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40",
         className
       )}
@@ -164,12 +175,12 @@ function NotificationButton({ count = 0 }: { count?: number }) {
   return (
     <div className="relative">
       <IconButton label={effectiveCount > 0 ? `Notifications, ${effectiveCount} unread` : "Notifications"}>
-        <Bell className="size-[18px]" strokeWidth={2} aria-hidden="true" />
+        <BellIcon className="size-5" aria-hidden="true" />
       </IconButton>
       {capped > 0 && (
         <span
           aria-hidden="true"
-          className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full border-2 border-white bg-[#DC2626] px-1 text-[9px] font-bold leading-none text-white"
+          className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full border-2 border-white bg-danger px-1 text-[9px] font-bold leading-none text-white"
         >
           {capped}
         </span>
@@ -182,9 +193,9 @@ function NotificationButton({ count = 0 }: { count?: number }) {
 // Profile dropdown
 // ---------------------------------------------------------------------------
 const MENU_ITEMS = [
-  { icon: User, label: "My Profile", getPath: (role: string) => `/workspace/${role.toLowerCase().replace(' ', '-')}/profile` },
-  { icon: Settings, label: "Account Settings", getPath: (role: string) => `/workspace/${role.toLowerCase().replace(' ', '-')}/settings` },
-  { icon: LogOut, label: "Sign Out", getPath: () => "/login" },
+  { icon: UserCircleIcon, label: "My Profile", getPath: (role: string) => `/workspace/${role.toLowerCase().replace(' ', '-')}/profile` },
+  { icon: Cog6ToothIcon, label: "Account Settings", getPath: (role: string) => `/workspace/${role.toLowerCase().replace(' ', '-')}/settings` },
+  { icon: ArrowRightOnRectangleIcon, label: "Sign Out", getPath: () => "/login" },
 ];
 
 function ProfileDropdown({ user }: { user: NavbarUser }) {
@@ -221,8 +232,8 @@ function ProfileDropdown({ user }: { user: NavbarUser }) {
         aria-label="User menu"
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          "flex h-9 items-center gap-2 rounded-[8px] px-1.5",
-          "transition-colors duration-150 hover:bg-[#F1F5F9]",
+          "flex h-9 items-center gap-2 rounded-lg px-1.5",
+          "transition-colors duration-150 hover:bg-nav-hover",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
         )}
       >
@@ -233,14 +244,16 @@ function ProfileDropdown({ user }: { user: NavbarUser }) {
           {user.initials}
         </div>
 
-        <div className="hidden flex-col items-start text-left leading-none lg:flex">
-          <span className="text-[13px] font-semibold leading-none text-ink">{user.name}</span>
-          <span className="mt-1 text-[11px] leading-none text-muted-ink">{user.role}</span>
+        <div className="hidden min-w-0 max-w-[160px] flex-col items-start text-left leading-none lg:flex">
+          <span className="w-full truncate text-[13px] font-semibold leading-none text-ink" title={user.name}>
+            {compactName(user.name)}
+          </span>
+          <span className="mt-1 w-full truncate text-[11px] leading-none text-muted-ink">{user.role}</span>
         </div>
 
-        <ChevronDown
+        <ChevronDownIcon
           className={cn(
-            "hidden size-[14px] text-[#94A3B8] transition-transform duration-150 lg:block",
+            "hidden size-3.5 text-muted-ink transition-transform duration-150 lg:block",
             open && "rotate-180"
           )}
           aria-hidden="true"
@@ -250,10 +263,10 @@ function ProfileDropdown({ user }: { user: NavbarUser }) {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-[8px] border border-line bg-white py-1 shadow-lg shadow-slate-200/60"
+          className="absolute right-0 top-full z-50 mt-2 w-60 overflow-hidden rounded-lg border border-line bg-white py-1 shadow-lg shadow-slate-200/60"
         >
           <div className="border-b border-line px-4 py-3">
-            <p className="text-[13px] font-semibold text-ink">{user.name}</p>
+            <p className="break-words text-[13px] font-semibold text-ink">{user.name}</p>
             <p className="mt-0.5 text-[11px] text-muted-ink">{user.role}</p>
           </div>
 
@@ -282,16 +295,31 @@ function ProfileDropdown({ user }: { user: NavbarUser }) {
                 "flex w-full items-center gap-3 px-4 py-2 text-[13px] font-medium",
                 "transition-colors duration-100",
                 label === "Sign Out"
-                  ? "text-[#DC2626] hover:bg-red-50"
-                  : "text-[#334155] hover:bg-[#F1F5F9] hover:text-ink"
+                  ? "text-danger hover:bg-danger/10"
+                  : "text-icon hover:bg-nav-hover hover:text-ink"
               )}
             >
-              <Icon className="size-4 shrink-0 opacity-70" aria-hidden="true" />
+              <Icon className="size-[18px] shrink-0 opacity-80" aria-hidden="true" />
               {label}
             </button>
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Profile placeholder - same footprint as the profile button
+// ---------------------------------------------------------------------------
+function ProfileSkeleton() {
+  return (
+    <div role="status" aria-label="Loading account" className="flex h-9 items-center gap-2 px-1.5">
+      <Skeleton className="size-8 shrink-0 rounded-full" />
+      <div className="hidden flex-col gap-1.5 lg:flex">
+        <Skeleton className="h-3 w-24" />
+        <Skeleton className="h-2.5 w-14" />
+      </div>
     </div>
   );
 }
@@ -307,6 +335,8 @@ export default function DashboardNavbar({
   allowedRole,
   onSearch,
   searchPlaceholder = "Search",
+  searchSlot,
+  userLoading = false,
 }: DashboardNavbarProps) {
   const pathname = usePathname();
 
@@ -321,18 +351,17 @@ export default function DashboardNavbar({
         pathname.startsWith("/workspace/industry") ||
         pathname.startsWith("/workspace/investor"))
   );
-
   const isStudent =
     !isNonStudentRole &&
     !isNonStudentPath &&
     (allowedRole === "student" || Boolean(pathname?.startsWith("/workspace/student")));
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-line bg-white px-4 lg:px-6">
+    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-line bg-white px-4 lg:px-6">
       {/* LEFT */}
-      <div className="flex min-w-0 items-center gap-3">
+      <div className="flex shrink-0 items-center gap-3 lg:pr-2">
         <IconButton label="Open navigation" onClick={onMenuClick} className="-ml-1.5 md:hidden">
-          <Menu className="size-5" aria-hidden="true" />
+          <Bars3Icon className="size-5" aria-hidden="true" />
         </IconButton>
 
         {/* Brand appears here only on mobile; on desktop the sidebar owns it. */}
@@ -354,39 +383,46 @@ export default function DashboardNavbar({
         </div>
 
         {workspaceLabel && (
-          <span className="hidden truncate text-[13px] font-medium text-muted-ink md:inline-block">
-            {workspaceLabel}
-          </span>
+          <nav aria-label="Breadcrumb" className="hidden items-center gap-2 whitespace-nowrap text-[13px] lg:flex">
+            <span className="text-muted-ink">DBIT</span>
+            <span className="text-line" aria-hidden="true">/</span>
+            <span className="font-medium text-ink">{workspaceLabel}</span>
+          </nav>
         )}
       </div>
 
       {/* CENTER */}
-      {onSearch && <GlobalSearch onSearch={onSearch} placeholder={searchPlaceholder} />}
+      {searchSlot ? (
+        <div className="flex min-w-0 flex-1 items-center">{searchSlot}</div>
+      ) : (
+        onSearch && <GlobalSearch onSearch={onSearch} placeholder={searchPlaceholder} />
+      )}
 
       {/* RIGHT */}
-      <div className="ml-auto flex shrink-0 items-center gap-1.5">
+      <div className="ml-auto flex shrink-0 items-center gap-1">
         {isStudent && (
           <Link
             href="/workspace/student/submit"
+            aria-label="Submit Proposal"
             className={cn(
-              "hidden h-10 items-center gap-1.5 rounded-[8px] px-4 sm:inline-flex",
+              "mr-2 inline-flex h-9 items-center justify-center gap-1.5 rounded-lg px-2.5 sm:px-3.5",
               "bg-brand text-[13px] font-semibold text-white",
               "transition-colors duration-150 hover:bg-brand-hover active:bg-brand-active",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 focus-visible:ring-offset-1"
             )}
           >
-            <Plus className="-ml-0.5 size-4" aria-hidden="true" />
-            <span>New Idea</span>
+            <PlusIcon className="size-4 stroke-2" aria-hidden="true" />
+            <span className="hidden sm:inline">Submit Proposal</span>
           </Link>
         )}
 
         <IconButton label="Help and support" className="hidden sm:flex">
-          <CircleHelp className="size-[18px]" strokeWidth={2} aria-hidden="true" />
+          <QuestionMarkCircleIcon className="size-5" aria-hidden="true" />
         </IconButton>
 
         <NotificationButton count={notificationCount} />
 
-        <ProfileDropdown user={user} />
+        {userLoading ? <ProfileSkeleton /> : <ProfileDropdown user={user} />}
       </div>
     </header>
   );

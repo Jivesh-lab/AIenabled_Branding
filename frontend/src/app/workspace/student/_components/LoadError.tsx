@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertTriangle } from "lucide-react";
+import { toast } from "sonner";
+import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import { Card } from "@/components/shared/Surface";
 
 /**
@@ -23,11 +25,15 @@ export default function LoadError({
   backLabel?: string;
 }) {
   const router = useRouter();
+  // One toast per failure (the id de-duplicates re-renders); the card below stays as the lasting, retryable message.
+  useEffect(() => {
+    toast.error(title, { id: `load-error-${title}`, description: message });
+  }, [title, message]);
   return (
     <Card>
       <div role="alert" className="flex flex-col items-start gap-4 p-6">
         <div className="flex items-start gap-3">
-          <AlertTriangle className="mt-0.5 size-5 shrink-0 text-danger" aria-hidden="true" />
+          <ExclamationTriangleIcon className="mt-0.5 size-5 shrink-0 text-danger" aria-hidden="true" />
           <div>
             <h2 className="text-[16px] font-semibold text-ink">{title}</h2>
             <p className="mt-1 text-[13px] text-muted-ink">{message}</p>

@@ -83,7 +83,7 @@ export default function SignupPage() {
           {/* Audience */}
           <div className="flex items-center gap-2 mt-5 text-[12px] font-medium text-slate-400">
             <Users className="size-3.5 text-blue-500 shrink-0" aria-hidden="true" />
-            <span>Students · Faculty · Mentors · Investors</span>
+            <span>Researchers · Faculty · Mentors · Investors</span>
           </div>
         </div>
 

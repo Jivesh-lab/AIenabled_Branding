@@ -23,6 +23,9 @@ interface BaseWorkspaceLayoutProps {
   allowedRole: AllowedRole;
   onSearch?: (query: string) => void;
   searchPlaceholder?: string;
+  searchSlot?: React.ReactNode;
+  /** Roles whose layout only has a placeholder identity wait for the session before showing a name. */
+  waitForSession?: boolean;
 }
 
 export default function BaseWorkspaceLayout({
@@ -33,9 +36,11 @@ export default function BaseWorkspaceLayout({
   allowedRole,
   onSearch,
   searchPlaceholder,
+  searchSlot,
+  waitForSession = false,
 }: BaseWorkspaceLayoutProps) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
 
   const closeMobile = useCallback(() => setIsMobileOpen(false), []);
   const openMobile = useCallback(() => setIsMobileOpen(true), []);
@@ -81,6 +86,8 @@ export default function BaseWorkspaceLayout({
           user={user}
           onSearch={onSearch}
           searchPlaceholder={searchPlaceholder}
+          searchSlot={searchSlot}
+          userLoading={waitForSession && status === "loading"}
           onMenuClick={openMobile}
           allowedRole={allowedRole}
         />

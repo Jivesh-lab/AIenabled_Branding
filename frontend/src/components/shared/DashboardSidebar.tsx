@@ -11,7 +11,7 @@
  *   surface   bg-white          border  border-line (#D8EAF0)
  *   text      text-ink          muted   text-muted-ink
  *   icons     text-icon         hover   bg-nav-hover (#F1FAFC)
- *   active    bg-brand-soft (#CAF0F8) + text/icon/indicator brand (#023EBA)
+ *   active    bg-brand-soft + text/icon/left indicator in brand
  *   AI accent text-brand-cyan (#00B4D8)
  *   logo mark bg-brand-deep (#03045E) with a cyan glyph
  *
@@ -22,13 +22,12 @@
  *   - the 64px brand row matches the header height so both baselines align
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
-import { ChevronDown, PanelLeft, X } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { ChevronDownIcon, ChevronLeftIcon, XMarkIcon } from "@heroicons/react/24/outline";
 
 export const SIDEBAR_WIDTH_EXPANDED = 248;
 export const SIDEBAR_WIDTH_COLLAPSED = 68;
@@ -43,7 +42,8 @@ export interface NavSubItem {
 
 export interface NavItem {
   label: string;
-  icon: LucideIcon;
+  /** Any icon component that takes a className (Heroicons or Lucide while roles migrate). */
+  icon: React.ElementType;
   href?: string;
   isAI?: boolean;
   subItems?: NavSubItem[];
@@ -72,12 +72,8 @@ export interface DashboardSidebarProps {
 // ---------------------------------------------------------------------------
 function SidebarBrand({ isExpanded }: { isExpanded: boolean }) {
   return (
-    <div
-      className={cn(
-        "flex h-16 shrink-0 items-center",
-        isExpanded ? "px-5" : "justify-center px-0"
-      )}
-    >
+    // The logo keeps a fixed left position in both states; only the wordmark fades, so nothing jumps.
+    <div className="flex h-16 shrink-0 items-center overflow-hidden px-5">
       <div className="flex items-center gap-2.5">
         {/* The mark keeps the Ocean Royale identity without darkening the rail. */}
         <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-brand-deep">
@@ -86,14 +82,12 @@ function SidebarBrand({ isExpanded }: { isExpanded: boolean }) {
             <path d="M10 7L13 9V13L10 15L7 13V9L10 7Z" fill="currentColor" opacity="0.5" />
           </svg>
         </div>
-        {isExpanded && (
-          <div className="flex flex-col">
-            <span className="text-[14px] font-semibold leading-none text-ink">DBIT</span>
-            <span className="mt-1 text-[11px] font-medium leading-none text-muted-ink">
-              Incubation Centre
-            </span>
-          </div>
-        )}
+        <div className={cn("flex flex-col transition-opacity duration-150", isExpanded ? "opacity-100" : "opacity-0")}>
+          <span className="whitespace-nowrap text-[14px] font-semibold leading-none text-ink">DBIT</span>
+          <span className="mt-1 whitespace-nowrap text-[11px] font-medium leading-none text-muted-ink">
+            Incubation Centre
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -130,42 +124,46 @@ function SidebarItem({
         )}
         aria-hidden="true"
       />
-      {isExpanded && (
-        <div className="ml-3 flex flex-1 items-center justify-between overflow-hidden">
-          <span
-            className={cn(
-              "truncate text-[14px] transition-colors duration-150",
-              isActive ? "font-semibold text-white" : "font-medium text-ink"
-            )}
-          >
-            {item.label}
-          </span>
-          {hasSubItems && (
-            <ChevronDown
-              className={cn(
-                "size-[14px] transition-transform duration-150",
-                isActive ? "text-white" : "text-muted-ink",
-                isOpen && "rotate-180"
-              )}
-              aria-hidden="true"
-            />
+      {/* Label is always mounted; it fades and the narrowing rail clips it, so the icon never jumps. */}
+      <div
+        className={cn(
+          "ml-3 flex flex-1 items-center justify-between overflow-hidden transition-opacity duration-150",
+          isExpanded ? "opacity-100" : "opacity-0"
+        )}
+      >
+        <span
+          className={cn(
+            "truncate whitespace-nowrap text-[14px] transition-colors duration-150",
+            isActive ? "font-semibold text-white" : "font-medium text-ink"
           )}
-        </div>
-      )}
+        >
+          {item.label}
+        </span>
+        {hasSubItems && (
+          <ChevronDownIcon
+            className={cn(
+              "size-[14px] shrink-0 transition-transform duration-150",
+              isActive ? "text-white" : "text-muted-ink",
+              isOpen && "rotate-180"
+            )}
+            aria-hidden="true"
+          />
+        )}
+      </div>
 
       {/* Collapsed-state label, revealed on hover */}
       {!isExpanded && (
-        <span className="pointer-events-none absolute left-full z-50 ml-3 hidden whitespace-nowrap rounded-md bg-brand-deep px-2.5 py-1.5 text-[12px] font-medium text-white opacity-0 shadow-sm transition-opacity duration-150 group-hover:opacity-100 md:block">
+        <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md bg-brand-deep px-2.5 py-1.5 text-[12px] font-medium text-white opacity-0 shadow-sm transition-opacity duration-150 group-hover:opacity-100 md:block">
           {item.label}
         </span>
       )}
     </>
   );
 
+  // Icons stay at a fixed left position (px-3) in both states; collapsing only narrows the rail and fades labels.
   const wrapperClass = cn(
-    "group relative flex h-11 w-full items-center rounded-lg outline-none transition-colors duration-150",
+    "group relative flex h-11 w-full items-center rounded-lg px-3 outline-none transition-colors duration-150",
     "focus-visible:ring-2 focus-visible:ring-brand/40",
-    isExpanded ? "px-3" : "justify-center px-0",
     isActive ? "bg-brand" : "hover:bg-nav-hover"
   );
 
@@ -216,16 +214,29 @@ export default function DashboardSidebar({
     onMobileClose();
   }, [pathname, onMobileClose]);
 
-  // A nav item stays active on its nested routes, e.g. My Projects on /student/projects/2.
+  // A nav item stays active on its nested routes (My Projects on /student/projects/2), but only the MOST SPECIFIC
+  // match is active, so a parent route such as /workspace/faculty never lights up beside /workspace/faculty/oversight.
+  const activeHref = useMemo(() => {
+    let best = "";
+    for (const section of sections) {
+      for (const item of section.items) {
+        for (const href of [item.href, ...(item.subItems?.map((sub) => sub.href) ?? [])]) {
+          if (href && (pathname === href || pathname.startsWith(`${href}/`)) && href.length > best.length) best = href;
+        }
+      }
+    }
+    return best;
+  }, [sections, pathname]);
+
   const isItemActive = useCallback(
-    (item: NavItem) => {
-      const matches = (href?: string) => !!href && (pathname === href || pathname.startsWith(`${href}/`));
-      return matches(item.href) || (item.subItems?.some((sub) => matches(sub.href)) ?? false);
-    },
-    [pathname]
+    (item: NavItem) => !!activeHref && (item.href === activeHref || (item.subItems?.some((sub) => sub.href === activeHref) ?? false)),
+    [activeHref]
   );
 
-  const renderContent = (expanded: boolean, showProfile = false) => (
+  const renderContent = (
+    expanded: boolean,
+    opts: { showProfile?: boolean; onToggle?: () => void } = {}
+  ) => (
     <div className="flex h-full w-full flex-col bg-white">
       <SidebarBrand isExpanded={expanded} />
 
@@ -248,8 +259,33 @@ export default function DashboardSidebar({
         </div>
       </nav>
 
+      {/* Collapse/expand toggle — desktop only, pinned at the bottom so it is always visible in both states. */}
+      {opts.onToggle && (
+        <div className="shrink-0 border-t border-line p-2">
+          <button
+            type="button"
+            onClick={opts.onToggle}
+            aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
+            className="group flex h-9 w-full items-center rounded-lg px-3 text-muted-ink outline-none transition-colors duration-150 hover:bg-nav-hover hover:text-ink focus-visible:ring-2 focus-visible:ring-brand/40"
+          >
+            <ChevronLeftIcon
+              className={cn("size-5 shrink-0 transition-transform duration-200", !expanded && "rotate-180")}
+              aria-hidden="true"
+            />
+            <span
+              className={cn(
+                "ml-3 truncate whitespace-nowrap text-[13px] font-medium transition-opacity duration-150",
+                expanded ? "opacity-100" : "opacity-0"
+              )}
+            >
+              Collapse
+            </span>
+          </button>
+        </div>
+      )}
+
       {/* Profile: the desktop header already carries the user menu, so only the mobile drawer repeats it. */}
-      {showProfile && (
+      {opts.showProfile && (
       <div className="shrink-0 border-t border-line p-3">
         <button
           type="button"
@@ -271,7 +307,7 @@ export default function DashboardSidebar({
                   {user.role}
                 </span>
               </div>
-              <ChevronDown className="size-[14px] shrink-0 text-muted-ink" aria-hidden="true" />
+              <ChevronDownIcon className="size-[14px] shrink-0 text-muted-ink" aria-hidden="true" />
             </>
           )}
         </button>
@@ -287,16 +323,7 @@ export default function DashboardSidebar({
         style={{ width: isExpanded ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED }}
         className="sticky top-0 z-30 hidden h-screen shrink-0 border-r border-line transition-[width] duration-200 ease-in-out md:block"
       >
-        {renderContent(isExpanded)}
-
-        <button
-          type="button"
-          onClick={() => setIsExpanded((v) => !v)}
-          aria-label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
-          className={cn("absolute hidden size-8 items-center justify-center rounded-md text-muted-ink transition-colors hover:bg-nav-hover hover:text-ink md:flex", isExpanded ? "right-3 top-4" : "left-[18px] top-[72px]")}
-        >
-          <PanelLeft className="size-[18px]" aria-hidden="true" />
-        </button>
+        {renderContent(isExpanded, { onToggle: () => setIsExpanded((v) => !v) })}
       </aside>
 
       {/* Mobile drawer */}
@@ -318,14 +345,14 @@ export default function DashboardSidebar({
               transition={{ type: "tween", duration: 0.25, ease: "easeOut" }}
               className="fixed inset-y-0 left-0 z-50 w-[248px] border-r border-line md:hidden"
             >
-              {renderContent(true, true)}
+              {renderContent(true, { showProfile: true })}
               <button
                 type="button"
                 onClick={onMobileClose}
                 aria-label="Close navigation"
                 className="absolute -right-11 top-3 flex size-9 items-center justify-center rounded-full bg-brand-deep text-white"
               >
-                <X className="size-5" aria-hidden="true" />
+                <XMarkIcon className="size-5" aria-hidden="true" />
               </button>
             </motion.aside>
           </>

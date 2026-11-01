@@ -531,7 +531,7 @@ export default function UserManagementPage() {
             className="h-9 rounded-md border border-slate-200 bg-white px-3 text-xs text-slate-700 focus:ring-1 focus:ring-indigo-500"
           >
             <option value="all">All Roles</option>
-            <option value="student">Student</option>
+            <option value="student">Researcher</option>
             <option value="faculty">Faculty</option>
             <option value="mentor">Mentor</option>
             <option value="investor">Investor</option>
@@ -786,7 +786,7 @@ export default function UserManagementPage() {
                   onChange={(e) => setCreateForm({ ...createForm, role: e.target.value })}
                   className="w-full h-9 rounded-md border border-slate-200 bg-white px-3 text-xs text-slate-700 focus:ring-1 focus:ring-indigo-500"
                 >
-                  <option value="student">Student</option>
+                  <option value="student">Researcher</option>
                   <option value="faculty">Faculty</option>
                   <option value="mentor">Mentor</option>
                   <option value="investor">Investor</option>

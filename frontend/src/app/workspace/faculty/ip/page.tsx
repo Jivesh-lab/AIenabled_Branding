@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from "react";
 import PageContainer from "@/components/shared/PageContainer";
+import { FacultyListSkeleton } from "@/components/shared/loading/facultySkeletons";
 import { Card, SectionHeading, StatusBadge } from "@/components/shared/Surface";
+import MetricCard from "@/components/shared/MetricCard";
 import {
   Lightbulb,
   Search,
@@ -13,8 +15,7 @@ import {
   ExternalLink,
   Shield,
   BookOpen,
-  Loader2,
-} from "lucide-react";
+  } from "lucide-react";
 
 type IPStatus = "Filed" | "Pending" | "Granted" | "Draft";
 
@@ -75,7 +76,7 @@ export default function FacultyIPPage() {
               title: `${p.title} (IP Asset)`,
               type: p.trl >= 4 ? "Patent" : "Provisional Patent",
               applicationNo: `DBIT-IP-${new Date().getFullYear()}-${1000 + idx}`,
-              student: p.leadStudent || "Student Innovator",
+              student: p.leadStudent || "Researcher Innovator",
               filedDate: p.updatedAt ? new Date(p.updatedAt).toLocaleDateString() : "Recent",
               status: (p.stage === "Completed" ? "Granted" : p.stage === "In Review" ? "Filed" : "Pending") as IPStatus,
               trl: p.trl || 1,
@@ -134,24 +135,14 @@ export default function FacultyIPPage() {
     >
       <div className="space-y-6">
         {/* Stats Row */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           {[
             { label: "Total IP Assets", value: stats.total, icon: Shield, color: "bg-brand/10 text-brand" },
             { label: "Granted / Registered", value: stats.granted, icon: CheckCircle2, color: "bg-emerald-50 text-emerald-700" },
             { label: "Filed / Pending", value: stats.pending, icon: Clock, color: "bg-amber-50 text-amber-700" },
             { label: "Drafts in Progress", value: stats.draft, icon: FileText, color: "bg-slate-50 text-slate-600" },
           ].map((s) => (
-            <Card key={s.label} className="p-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-xs font-medium text-muted-ink">{s.label}</p>
-                  <p className="text-2xl font-bold text-ink mt-1">{loading ? "—" : s.value}</p>
-                </div>
-                <div className={`flex size-9 items-center justify-center rounded-lg ${s.color}`}>
-                  <s.icon className="size-4" />
-                </div>
-              </div>
-            </Card>
+            <MetricCard key={s.label} label={s.label} value={loading ? "—" : s.value} icon={s.icon} tone={s.color.includes("danger") ? "danger" : s.color.includes("amber") ? "attention" : "default"} loading={loading} />
           ))}
         </div>
 
@@ -195,10 +186,7 @@ export default function FacultyIPPage() {
         {/* IP Records */}
         <div className="space-y-3">
           {loading ? (
-            <div className="flex items-center justify-center py-16 text-muted-ink">
-              <Loader2 className="size-5 animate-spin mr-2" />
-              <span className="text-xs">Loading intellectual property records...</span>
-            </div>
+            <FacultyListSkeleton />
           ) : filtered.length === 0 ? (
             <div className="text-center py-16 text-muted-ink text-sm border border-dashed border-line rounded-xl bg-card">
               <Shield className="size-8 mx-auto text-muted-ink/40 mb-2" />
@@ -278,7 +266,7 @@ export default function FacultyIPPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-ink mb-1.5">Inventor / Lead Student *</label>
+                    <label className="block text-xs font-semibold text-ink mb-1.5">Inventor / Lead Researcher *</label>
                     {students.length > 0 ? (
                       <select
                         value={newStudent}
@@ -296,7 +284,7 @@ export default function FacultyIPPage() {
                         type="text"
                         value={newStudent}
                         onChange={(e) => setNewStudent(e.target.value)}
-                        placeholder="Student / Researcher Name"
+                        placeholder="Researcher / Researcher Name"
                         className="w-full px-3 py-2 text-sm border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
                       />
                     )}

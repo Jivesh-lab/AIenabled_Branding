@@ -93,14 +93,14 @@ const STATUS_COLORS: Record<string, string> = {
 
 const WORKSPACES = [
   {
-    title: "Student Workspace",
+    title: "Researcher Workspace",
     role: "student",
     path: "/workspace/student/dashboard",
     icon: GraduationCap,
     color: "from-blue-500/10 to-indigo-500/10 border-blue-200",
     iconColor: "text-blue-600",
     badgeColor: "bg-blue-100 text-blue-800",
-    description: "Inspect student project submissions, milestone trackers, meeting requests, and team profiles.",
+    description: "Inspect researcher project submissions, milestone trackers, meeting requests, and team profiles.",
   },
   {
     title: "Faculty Workspace",
@@ -225,7 +225,7 @@ function OverviewTab({ stats, loading }: { stats: SystemStats | null; loading: b
           color="bg-red-50 text-red-600"
         />
         <StatCard
-          label="Mentor:Student Ratio"
+          label="Mentor:Researcher Ratio"
           value={stats.mentorStudentRatio}
           sub="Current cohort"
           icon={Activity}
@@ -788,7 +788,7 @@ function BroadcastTab() {
               className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300"
             >
               <option value="all">All Users (System-wide)</option>
-              <option value="student">Students Only</option>
+              <option value="student">Researchers Only</option>
               <option value="faculty">Faculty Coordinators</option>
               <option value="mentor">Mentors</option>
               <option value="investor">Investors</option>

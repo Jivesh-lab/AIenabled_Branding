@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
+import { friendlyActionMessage, friendlyThrown } from "@/lib/friendlyError";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Card, StatusBadge } from "@/components/shared/Surface";
@@ -35,10 +37,18 @@ export default function TaskList({ tasks, today }: { tasks: StudentTask[]; today
         body: JSON.stringify({ status }),
       });
       const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(typeof body.message === "string" ? body.message : "The task could not be updated.");
+      if (!res.ok) {
+        const message = friendlyActionMessage(res.status, body, "We couldn't update that task. Please try again.");
+        setError({ id: task.id, message });
+        toast.error(message);
+        return;
+      }
+      toast.success("Task updated.");
       router.refresh();
     } catch (err) {
-      setError({ id: task.id, message: err instanceof Error ? err.message : "The task could not be updated." });
+      const message = friendlyThrown(err, "We couldn't update that task. Please try again.");
+      setError({ id: task.id, message });
+      toast.error(message);
     } finally {
       setBusy(null);
     }

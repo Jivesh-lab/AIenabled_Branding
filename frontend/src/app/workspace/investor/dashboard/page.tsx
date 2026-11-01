@@ -252,7 +252,7 @@ export default function InvestorDashboardPage() {
                       <Building2 className="size-3.5 text-brand" /> Approved Startups
                     </p>
                     <p className="text-[11px] text-muted-ink mt-0.5">
-                      Explore active student ventures and filter by industry sector.
+                      Explore active researcher ventures and filter by industry sector.
                     </p>
                   </Link>
 

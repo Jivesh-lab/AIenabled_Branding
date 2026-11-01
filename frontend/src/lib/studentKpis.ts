@@ -47,7 +47,7 @@ export function computeKpis(
     ),
     fromProjects(
       "needs-attention", "Needs Attention",
-      "Urgent actions that are the student's to take: a requested revision, an unfinished draft, overdue milestones, overdue or soon-due tasks, a meeting today. Waiting for a faculty review is not counted.",
+      "Urgent actions that are the researcher's to take: a requested revision, an unfinished draft, overdue milestones, overdue or soon-due tasks, a meeting today. Waiting for a faculty review is not counted.",
       "/workspace/student/journey",
       () => journeys.reduce((n, j) => n + j.actions.filter((a) => a.urgent).length, 0),
     ),

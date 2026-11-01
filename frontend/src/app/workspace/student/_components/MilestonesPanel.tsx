@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { FriendlyError, friendlyActionMessage } from "@/lib/friendlyError";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Card, StatusBadge } from "@/components/shared/Surface";
@@ -32,7 +33,7 @@ async function send(url: string, method: "POST" | "PATCH", body: unknown) {
   if (!res.ok) {
     const detail = data?.detail;
     const field = Array.isArray(detail) ? detail[0]?.msg : undefined;
-    throw new Error(field || (typeof data.message === "string" ? data.message : "That change could not be saved."));
+    throw new FriendlyError(field || friendlyActionMessage(res.status, data, "We couldn't save that change. Please try again."));
   }
   return data;
 }

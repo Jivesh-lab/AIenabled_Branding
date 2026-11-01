@@ -149,14 +149,14 @@ export default function AdminDashboardPage() {
           <Card className="p-4 border border-slate-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-slate-500 font-medium">Mentor-to-Student Ratio</p>
+                <p className="text-xs text-slate-500 font-medium">Mentor-to-Researcher Ratio</p>
                 <p className="text-2xl font-bold text-slate-900 mt-1">
                   {loading ? "—" : stats.mentorStudentRatio || "0:0"}
                 </p>
                 <p className="text-[11px] text-blue-600 font-semibold mt-0.5">
                   {loading
                     ? "Calculating..."
-                    : `${mentorCount} Mentors • ${studentCount} Students`}
+                    : `${mentorCount} Mentors • ${studentCount} Researchers`}
                 </p>
               </div>
               <div className="flex size-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
@@ -278,7 +278,7 @@ export default function AdminDashboardPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
               {
-                role: "Student",
+                role: "Researcher",
                 key: "student",
                 count: studentCount,
                 color: "border-blue-200 bg-blue-50/50 text-blue-700",

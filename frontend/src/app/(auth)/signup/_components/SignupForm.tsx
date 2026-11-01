@@ -30,13 +30,13 @@ import { Label } from "@/components/ui/label";
 const ROLES = [
   {
     value: "student",
-    label: "Student",
+    label: "Researcher",
     description: "Develop an idea or startup",
   },
   {
     value: "faculty",
     label: "Faculty",
-    description: "Guide student innovation",
+    description: "Guide researcher innovation",
   },
   {
     value: "mentor",
