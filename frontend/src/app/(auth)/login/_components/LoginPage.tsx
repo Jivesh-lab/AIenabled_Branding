@@ -21,6 +21,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Users } from "lucide-react";
 import LoginForm from "./LoginForm";
+import DbitLogo from "@/components/shared/DbitLogo";
 
 // Brand SVG — kept inline so it renders without an extra network request
 function BrandIcon({ className }: { className?: string }) {
@@ -53,13 +54,7 @@ export default function LoginPage() {
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <header className="shrink-0 flex items-center gap-3 px-10 sm:px-14 border-b border-slate-100" style={{ height: "72px" }}>
-        <div className="flex size-9 items-center justify-center rounded-xl bg-blue-50 border border-blue-100 text-blue-600">
-          <BrandIcon className="size-4" />
-        </div>
-        <div className="flex flex-col">
-          <p className="text-[14px] font-bold text-slate-900 leading-tight tracking-tight">DBIT</p>
-          <p className="text-[11px] font-medium text-slate-500 leading-none mt-0.5">Incubation Centre</p>
-        </div>
+        <DbitLogo variant="full" size="md" theme="light" href="/" />
       </header>
 
       {/* ── Main two-panel area ─────────────────────────────────────────────── */}

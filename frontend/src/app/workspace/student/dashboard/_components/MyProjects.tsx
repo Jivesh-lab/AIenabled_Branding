@@ -17,8 +17,7 @@ const LAUNCH_STEPS = [
 ] as const;
 
 /**
- * Dashboard preview of the projects that most need attention (see lib/dashboardProjects.ts). The complete list,
- * with filters, is on My Projects; nothing is removed, only ordered and capped here.
+ * Dashboard preview of the active projects that most need attention.
  */
 export default function MyProjects({
   projects,
@@ -29,12 +28,15 @@ export default function MyProjects({
   mentors?: Record<string, MentorResult>;
   journeys: Journey[];
 }) {
-  const { shown, total } = dashboardPreview(projects);
-  const stageOf = new Map(journeys.map((j) => [j.projectId, j.stages.find((s) => s.id === j.currentStageId)]));
+  const { shown, total } = dashboardPreview(projects || []);
+  const stageOf = new Map((journeys || []).map((j) => [j.projectId, j.stages.find((s) => s.id === j.currentStageId)]));
 
   return (
-    <section aria-label="My projects">
-      <SectionHeading title="My Projects" action={{ label: "View all", href: "/workspace/student/projects" }} />
+    <section aria-label="Active projects ledger">
+      <SectionHeading
+        title="Active Projects"
+        action={{ label: "View all projects", href: "/workspace/student/projects" }}
+      />
 
       {projects.length === 0 ? (
         <Card className="p-6">
@@ -69,7 +71,7 @@ export default function MyProjects({
               const stage = stageOf.get(project.id);
               return (
                 <li key={project.id}>
-                  <Card interactive className="p-5">
+                  <Card interactive className="p-5 border border-line bg-white">
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0">
                         <h3 className="truncate text-[15px] font-semibold leading-snug text-ink">{project.name}</h3>
@@ -103,14 +105,14 @@ export default function MyProjects({
 
                     <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-line pt-3.5">
                       <p className="min-w-0 truncate text-[13px] text-ink">
-                        <span className="font-medium text-muted-ink">Next:</span> {project.next?.label ?? "Nothing pending"}
+                        <span className="font-medium text-muted-ink">Next step:</span> {project.next?.label ?? "Nothing pending"}
                       </p>
                       <Link
                         href={projectHref(project)}
-                        className="group inline-flex shrink-0 items-center gap-1 text-[13px] font-semibold text-brand hover:text-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 rounded-md"
+                        className="inline-flex shrink-0 items-center gap-1 text-[13px] font-medium text-brand hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
                       >
                         {project.reviewStatus === "DRAFT" ? "Continue draft" : "View project"}
-                        <ArrowRight className="size-3.5 transition-transform duration-150 group-hover:translate-x-0.5" aria-hidden="true" />
+                        <ArrowRight className="size-3" aria-hidden="true" />
                       </Link>
                     </div>
                   </Card>
@@ -120,8 +122,8 @@ export default function MyProjects({
           </ul>
           <p className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[13px] text-muted-ink">
             <span>Showing {shown.length} of {total} {total === 1 ? "project" : "projects"}</span>
-            <Link href="/workspace/student/projects" className="font-semibold text-brand hover:underline">
-              View all projects →
+            <Link href="/workspace/student/projects" className="font-medium text-brand hover:underline">
+              View all projects
             </Link>
           </p>
         </>

@@ -461,9 +461,9 @@ export default function MatchmakingPage() {
                   </p>
                   <Link
                     href="/workspace/investor/opportunities"
-                    className="inline-flex items-center gap-1 text-xs font-bold text-brand hover:underline mt-2"
+                    className="inline-flex items-center text-xs font-semibold text-brand hover:underline mt-2"
                   >
-                    Browse Opportunities Directory <ArrowRight className="size-3.5" />
+                    Browse Opportunities Directory
                   </Link>
                 </Card>
               )}
@@ -597,9 +597,9 @@ export default function MatchmakingPage() {
                           </span>
                           <Link
                             href="/workspace/investor/opportunities"
-                            className="inline-flex items-center gap-1 font-bold text-brand hover:underline"
+                            className="inline-flex items-center font-semibold text-brand hover:underline"
                           >
-                            Explore in Opportunities <ArrowRight className="size-3.5" />
+                            Explore in Opportunities Directory
                           </Link>
                         </div>
                       </Card>

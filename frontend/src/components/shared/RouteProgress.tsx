@@ -148,7 +148,6 @@ function RouteProgressInner() {
         className="h-full bg-brand shadow-[0_0_8px_rgba(29,78,216,0.55)] transition-[width] duration-200 ease-out motion-reduce:transition-none"
         style={{ width: `${progress}%` }}
       >
-        {/* a soft head on the leading edge, hidden for reduced motion */}
         <span className="float-right h-full w-16 bg-gradient-to-r from-transparent to-white/40 motion-reduce:hidden" />
       </div>
     </div>

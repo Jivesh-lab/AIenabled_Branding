@@ -349,6 +349,10 @@ export default function FacultyVolunteerPage() {
                           <strong className="text-ink">{proj.leadStudent} ({proj.rollNumber})</strong>
                         </div>
                         <div className="flex justify-between text-muted-ink">
+                          <span>Allocated Mentor:</span>
+                          <strong className="text-emerald-700">{proj.allocatedMentorName || "Pending Allocation"}</strong>
+                        </div>
+                        <div className="flex justify-between text-muted-ink">
                           <span>Next Milestone:</span>
                           <strong className="text-ink">{proj.nextMilestone}</strong>
                         </div>

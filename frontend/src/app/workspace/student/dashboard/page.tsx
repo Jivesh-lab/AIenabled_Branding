@@ -101,17 +101,26 @@ export default function DashboardPage() {
         />
       );
     }
-    return showSkeleton ? (
-      <div>
-        <DashboardSkeleton />
-        <div className="mx-auto w-full max-w-[1440px] px-6 lg:px-8">
-          <SlowNotice show={slow} />
-        </div>
-      </div>
-    ) : (
-      <DashboardLayout heading={<DashboardHeader />} kpis={null} main={null} side={null} lower={null} />
+    return (
+      <DashboardLayout
+        heading={<DashboardHeader />}
+        kpis={null}
+        main={
+          showSkeleton ? (
+            <div className="space-y-4">
+              <DashboardSkeleton />
+              <div className="mx-auto w-full max-w-[1440px] px-6 lg:px-8">
+                <SlowNotice show={slow} />
+              </div>
+            </div>
+          ) : null
+        }
+        side={null}
+        lower={null}
+      />
     );
   }
+
 
   const now = istNow();
   const { projects, meetings, tasks } = overview;

@@ -7,7 +7,7 @@ export default function FundingOpportunities() {
   return (
     <section aria-label="Funding opportunities">
       <SectionHeading
-        title="Funding & Grant Opportunities"
+        title="Funding & Grant Schemes"
         action={{ label: "Explore all schemes", href: "/workspace/student/funding" }}
       />
 

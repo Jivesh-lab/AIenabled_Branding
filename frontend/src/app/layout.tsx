@@ -22,6 +22,11 @@ export const metadata: Metadata = {
   description:
     "DBIT Incubation Centre is an AI-powered academic incubation platform connecting researchers, faculty, mentors, industry and investors.",
   keywords: ["DBIT", "DBIT Incubation Centre", "DBIT entrepreneurship", "researcher innovation", "startup incubation", "Idiot's Room"],
+  icons: {
+    icon: "/favicon.png?v=orbit_2026",
+    shortcut: "/favicon.png?v=orbit_2026",
+    apple: "/logo-mark.png?v=orbit_2026",
+  },
   openGraph: {
     title: "DBIT | Incubation Centre",
     description: "Turn researcher ideas into research, prototypes, startups, and real-world impact.",
@@ -31,11 +36,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html
+    <html suppressHydrationWarning
       lang="en"
       className={`${inter.variable} ${spaceGrotesk.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <RouteProgress />
         <AuthProvider>
           {children}

@@ -141,14 +141,25 @@ router.post(
       const emailClean = (email || '').toLowerCase().trim();
       let user = await User.findOne({ email: emailClean });
 
+      if (!user) {
+        if (emailClean.endsWith('@aai-dbit.edu')) {
+          const alternateEmail = emailClean.replace('@aai-dbit.edu', '@aai-dbitic.edu');
+          user = await User.findOne({ email: alternateEmail });
+        } else if (emailClean.endsWith('@aai-dbitic.edu')) {
+          const alternateEmail = emailClean.replace('@aai-dbitic.edu', '@aai-dbit.edu');
+          user = await User.findOne({ email: alternateEmail });
+        }
+      }
+
       // Super Admin email aliases
-      if (!user && (emailClean === 'superadmin@dbit.ac.in' || emailClean === 'superadmin@aai-dbitic.edu')) {
+      if (!user && (emailClean === 'superadmin@dbit.ac.in' || emailClean === 'superadmin@aai-dbitic.edu' || emailClean === 'superadmin@aai-dbit.edu')) {
         user = await User.findOne({ role: 'super_admin' });
       }
 
       // Student email aliases
       const studentAliases = [
         'student@aai-dbitic.edu',
+        'student@aai-dbit.edu',
         'student@dbit.ac.in',
         'student@dbit.edu',
         'student@gmail.com',

@@ -30,11 +30,11 @@ class Settings(BaseSettings):
     agent_demo_mode: bool = False
     llm_api_key: str = ""  # preferred name; falls back to OPENROUTER_API_KEY
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
-    openrouter_model: str = "meta-llama/llama-3.1-8b-instruct:free"
+    openrouter_model: str = "openai/gpt-4o-mini"
     openrouter_embed_model: str = "openai/text-embedding-ada-002"
     # Student assistant: set false to disable the AI suggestion step (the verified-records part still works).
     assistant_guidance_enabled: bool = True
-    assistant_guidance_timeout_seconds: int = 20
+    assistant_guidance_timeout_seconds: int = 8
 
     # ── PostgreSQL ────────────────────────────────────────────────────────────
     postgres_host: str = "localhost"
@@ -75,7 +75,7 @@ class Settings(BaseSettings):
 
     # ── Rate Limiting ─────────────────────────────────────────────────────────
     max_agent_runs_per_user_per_hour: int = 20
-    max_tokens_per_run: int = 4096
+    max_tokens_per_run: int = 1024
 
     # ── CORS ──────────────────────────────────────────────────────────────────
     frontend_url: str = "http://localhost:3000"

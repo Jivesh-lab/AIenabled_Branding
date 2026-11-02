@@ -2,6 +2,7 @@
 
 import NotificationsMenu from "@/components/agentic/NotificationsMenu";
 import CalendarDialog from "@/components/agentic/CalendarDialog";
+import { DbitLogoMark } from "@/components/shared/DbitLogo";
 
 /**
  * DashboardNavbar
@@ -337,20 +338,17 @@ export default function DashboardNavbar({
 
         {/* Brand appears here only on mobile; on desktop the sidebar owns it. */}
         <div className="flex items-center gap-2 md:hidden">
-          <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-brand-deep">
-            <svg viewBox="0 0 20 20" className="size-3.5 text-brand-cyan" fill="none" aria-hidden="true">
-              <path d="M10 2L17 6V14L10 18L3 14V6L10 2Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-              <path d="M10 7L13 9V13L10 15L7 13V9L10 7Z" fill="currentColor" opacity="0.5" />
-            </svg>
-          </div>
-          <div className="flex flex-col leading-tight">
-            <span className="text-[13px] font-bold tracking-tight text-ink">
-              DBIT
-            </span>
-            <span className="text-[10px] font-medium text-muted-ink leading-none">
-              Incubation Centre
-            </span>
-          </div>
+          <Link href="/workspace" className="flex items-center gap-2">
+            <DbitLogoMark size={28} idPrefix="nav-mobile-mark" />
+            <div className="flex flex-col leading-tight">
+              <span className="text-[13px] font-bold tracking-tight text-ink">
+                DBIT
+              </span>
+              <span className="text-[9.5px] font-semibold uppercase tracking-wider text-brand leading-none">
+                Incubation Centre
+              </span>
+            </div>
+          </Link>
         </div>
 
         {workspaceLabel && (
@@ -358,6 +356,33 @@ export default function DashboardNavbar({
             <span className="text-muted-ink">DBIT</span>
             <span className="text-line" aria-hidden="true">/</span>
             <span className="font-medium text-ink">{workspaceLabel}</span>
+            <span
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded border border-line/80 px-2 py-0.5 text-[11px] font-medium",
+                workspaceLabel.includes("Student") && "bg-teal-50 text-teal-800 border-teal-200/60",
+                workspaceLabel.includes("Mentor") && "bg-emerald-50 text-emerald-800 border-emerald-200/60",
+                (workspaceLabel.includes("Investor") || workspaceLabel.includes("Partner")) && "bg-amber-50 text-amber-900 border-amber-200/60",
+                workspaceLabel.includes("Admin") && "bg-indigo-50 text-indigo-900 border-indigo-200/60"
+              )}
+            >
+              <span
+                className={cn(
+                  "size-1.5 rounded-full",
+                  workspaceLabel.includes("Student") && "bg-teal-600",
+                  workspaceLabel.includes("Mentor") && "bg-emerald-600",
+                  (workspaceLabel.includes("Investor") || workspaceLabel.includes("Partner")) && "bg-amber-600",
+                  workspaceLabel.includes("Admin") && "bg-indigo-600"
+                )}
+                aria-hidden="true"
+              />
+              {workspaceLabel.includes("Student")
+                ? "Founder"
+                : workspaceLabel.includes("Mentor")
+                ? "Advisor"
+                : workspaceLabel.includes("Investor")
+                ? "Capital"
+                : "Governance"}
+            </span>
           </nav>
         )}
       </div>

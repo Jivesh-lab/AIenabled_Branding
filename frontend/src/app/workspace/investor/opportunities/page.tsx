@@ -19,6 +19,7 @@ import {
   Calendar,
   CheckCircle2,
   Bot,
+  Video,
 } from "lucide-react";
 
 interface Startup {
@@ -36,6 +37,8 @@ interface Startup {
   interestLevel: string | null;
   pitchDeckAvailable: boolean;
   pitchVideoAvailable: boolean;
+  pitchDeckUrl?: string | null;
+  pitchVideoUrl?: string | null;
   tractionSummary: string | null;
 }
 
@@ -105,9 +108,9 @@ export default function OpportunitiesPage() {
           setStartups((prev) =>
             prev.map((s) => (s.id === startup.id ? { ...s, isSaved: false, interestLevel: null } : s))
           );
-          toast.success("Removed from watchlist");
+          toast.success("Removed from pitch queue");
         } else {
-          toast.error("Failed to remove from watchlist");
+          toast.error("Failed to remove from pitch queue");
         }
       } else {
         const res = await fetch("/api/investor/watchlist", {
@@ -119,13 +122,13 @@ export default function OpportunitiesPage() {
           setStartups((prev) =>
             prev.map((s) => (s.id === startup.id ? { ...s, isSaved: true, interestLevel: "watching" } : s))
           );
-          toast.success("Saved to watchlist");
+          toast.success("Saved to diligence pitch queue");
         } else {
-          toast.error("Failed to save to watchlist");
+          toast.error("Failed to save to pitch queue");
         }
       }
     } catch {
-      toast.error("Network error updating watchlist");
+      toast.error("Network error updating pitch queue");
     }
   }
 
@@ -141,7 +144,6 @@ export default function OpportunitiesPage() {
         ? "We have reviewed your startup profile and would like to schedule a 30-minute founder introduction call to explore potential synergy and seed investment."
         : "We are impressed with your milestones and would like to formally register our interest in your upcoming funding round."
     );
-    // Default to 2 days from today in YYYY-MM-DD
     const d = new Date(Date.now() + 86400000 * 2);
     setPreferredDate(d.toISOString().slice(0, 10));
     setScheduledResult(null);
@@ -202,7 +204,7 @@ export default function OpportunitiesPage() {
 
       const data = await res.json();
       if (res.ok) {
-        toast.success("Interest submitted! Admin oversight notified.");
+        toast.success("Interest submitted! Centre governance notified.");
         setModalOpen(false);
       } else {
         toast.error(data.message || "Failed to submit request.");
@@ -214,7 +216,7 @@ export default function OpportunitiesPage() {
     }
   }
 
-  const sectors = ["all", "AgriTech", "FinTech", "HealthTech", "CleanTech", "EdTech", "DeepTech", "AI/ML"];
+  const sectors = ["all", "AgriTech", "FinTech", "HealthTech", "CleanTech", "EdTech", "DeepTech", "AI/ML", "IoT & Hardware", "Mobility", "Smart Cities"];
   const stages = ["all", "idea", "concept", "prototype", "mvp", "growth"];
 
   const filtered = startups.filter((s) => {
@@ -317,7 +319,7 @@ export default function OpportunitiesPage() {
         {!loading && !error && filtered.length > 0 && (
           <div className="space-y-4">
             {filtered.map((opp) => (
-              <Card key={opp.id} className="overflow-hidden">
+              <Card key={opp.id} className="overflow-hidden shadow-xs hover:border-line-hover transition-colors">
                 <div className="p-5">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
@@ -330,6 +332,11 @@ export default function OpportunitiesPage() {
                         {opp.readinessScore > 0 && (
                           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
                             <Sparkles className="size-2.5" /> Score: {opp.readinessScore}
+                          </span>
+                        )}
+                        {opp.isSaved && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                            <Bookmark className="size-2.5 fill-current" /> In Pitch Queue
                           </span>
                         )}
                       </div>
@@ -349,10 +356,10 @@ export default function OpportunitiesPage() {
                       <div className="flex gap-2">
                         <button
                           onClick={() => toggleWatchlist(opp)}
-                          title={opp.isSaved ? "Remove from Watchlist" : "Save to Watchlist"}
+                          title={opp.isSaved ? "Remove from Pitch Queue" : "Save to Pitch Queue"}
                           className={`size-8 rounded-lg flex items-center justify-center border transition-colors ${
                             opp.isSaved
-                              ? "bg-brand-gold/10 border-brand-gold/40 text-brand-gold-ink"
+                              ? "bg-amber-100 border-amber-300 text-amber-800"
                               : "border-line text-muted-ink hover:border-brand/40"
                           }`}
                         >
@@ -390,32 +397,54 @@ export default function OpportunitiesPage() {
                       </div>
                     )}
 
-                    <div className="flex flex-wrap gap-2 pt-2 border-t border-line">
-                      <button
-                        onClick={() => openIntroModal(opp, "expression_of_interest")}
-                        disabled={!isVerified}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                          isVerified
-                            ? "bg-brand text-white hover:bg-brand-hover"
-                            : "bg-muted text-muted-ink cursor-not-allowed border border-line"
-                        }`}
-                      >
-                        {!isVerified && <Lock className="size-3" />}
-                        Express Interest
-                      </button>
-
+                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-line">
                       <button
                         onClick={() => openIntroModal(opp, "meeting_request")}
                         disabled={!isVerified}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                           isVerified
-                            ? "border-line text-ink hover:border-brand/40 hover:text-brand"
+                            ? "bg-blue-600 text-white hover:bg-blue-700"
                             : "border-line text-muted-ink cursor-not-allowed bg-canvas"
                         }`}
                       >
                         {!isVerified && <Lock className="size-3" />}
-                        <MessageSquare className="size-3" /> Request Meeting
+                        <Bot className="size-3" /> AI Schedule Meeting
                       </button>
+
+                      <button
+                        onClick={() => openIntroModal(opp, "expression_of_interest")}
+                        disabled={!isVerified}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${
+                          isVerified
+                            ? "border-line bg-card text-ink hover:border-brand/40 hover:text-brand"
+                            : "bg-muted text-muted-ink cursor-not-allowed border border-line"
+                        }`}
+                      >
+                        {!isVerified && <Lock className="size-3" />}
+                        <MessageSquare className="size-3" /> Express Interest
+                      </button>
+
+                      {isVerified && opp.pitchDeckUrl && (
+                        <a
+                          href={opp.pitchDeckUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-line bg-card text-xs font-semibold text-ink hover:border-brand/40 hover:text-brand transition-colors"
+                        >
+                          <ExternalLink className="size-3" /> View Pitch Deck
+                        </a>
+                      )}
+
+                      {isVerified && opp.pitchVideoUrl && (
+                        <a
+                          href={opp.pitchVideoUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-line bg-card text-xs font-semibold text-ink hover:border-brand/40 hover:text-brand transition-colors"
+                        >
+                          <Video className="size-3" /> Watch Teaser
+                        </a>
+                      )}
                     </div>
                   </div>
                 )}

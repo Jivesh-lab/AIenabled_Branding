@@ -185,7 +185,7 @@ export default function MentorProfilePage() {
               {PROFILE_DATA.education.map((edu) => (
                 <div key={edu.degree} className="p-3 rounded-lg bg-canvas border border-line">
                   <p className="text-xs font-bold text-ink">{edu.degree}</p>
-                  <p className="text-[11px] text-muted-ink mt-0.5">{edu.institution} · {edu.year}</p>
+                  <p className="text-[11px] text-muted-ink mt-0.5">{edu.institution}, {edu.year}</p>
                 </div>
               ))}
             </div>

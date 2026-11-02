@@ -14,6 +14,7 @@ Features:
 
 from __future__ import annotations
 
+import asyncio
 import json
 from datetime import datetime, timezone
 from typing import Any, Dict, List
@@ -120,7 +121,7 @@ async def assess_application(application_data: Dict[str, Any]) -> Dict[str, Any]
             SystemMessage(content=SYSTEM_PROMPT),
             HumanMessage(content=f"Application to evaluate:\n{json.dumps(application_data, default=str)}"),
         ]
-        response = await llm.ainvoke(messages)
+        response = await asyncio.wait_for(llm.ainvoke(messages), timeout=8.0)
         content = response.content.strip()
         if "```" in content:
             content = content.split("```")[1].replace("json\n", "").strip()

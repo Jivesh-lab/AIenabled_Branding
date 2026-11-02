@@ -17,23 +17,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Users } from "lucide-react";
 import SignupForm from "./SignupForm";
-
-function BrandIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className={className}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-    </svg>
-  );
-}
+import DbitLogo from "@/components/shared/DbitLogo";
 
 export default function SignupPage() {
   return (
@@ -41,13 +25,7 @@ export default function SignupPage() {
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <header className="shrink-0 flex items-center gap-3 px-10 sm:px-14 border-b border-slate-100" style={{ height: "72px" }}>
-        <div className="flex size-9 items-center justify-center rounded-xl bg-blue-50 border border-blue-100 text-blue-600">
-          <BrandIcon className="size-4" />
-        </div>
-        <div className="flex flex-col">
-          <p className="text-[14px] font-bold text-slate-900 leading-tight tracking-tight">DBIT</p>
-          <p className="text-[11px] font-medium text-slate-500 leading-none mt-0.5">Incubation Centre</p>
-        </div>
+        <DbitLogo variant="full" size="md" theme="light" href="/" />
       </header>
 
       {/* ── Main two-panel area ─────────────────────────────────────────────── */}
@@ -74,44 +52,66 @@ export default function SignupPage() {
           <h1 className="text-[26px] xl:text-[28px] font-bold text-slate-900 tracking-tight mt-6 leading-[1.2]">
             Turn your ideas<br />into impact.
           </h1>
-
-          {/* Body copy */}
-          <p className="text-[13.5px] text-slate-500 leading-relaxed mt-3 max-w-[340px]">
-            Connect with mentors, develop prototypes, and build your startup within the campus innovation ecosystem.
+          <p className="text-[13px] text-slate-500 mt-2 max-w-sm leading-relaxed">
+            Connect with mentors, track milestone deliverables, and access innovation grants through your unified researcher workspace.
           </p>
 
-          {/* Audience */}
-          <div className="flex items-center gap-2 mt-5 text-[12px] font-medium text-slate-400">
-            <Users className="size-3.5 text-blue-500 shrink-0" aria-hidden="true" />
-            <span>Researchers · Faculty · Mentors · Investors</span>
+          {/* Mini trust row */}
+          <div className="flex items-center gap-2 mt-5 text-[11px] text-slate-400">
+            <span className="flex size-5 items-center justify-center rounded-full bg-slate-100 text-slate-500 font-bold text-[9px]">
+              <Users className="size-3 text-slate-500" />
+            </span>
+            <span>Academic incubation platform · Don Bosco Institute of Technology</span>
           </div>
         </div>
 
-        {/* ── Vertical separator (desktop only) ──────────────────────────── */}
-        <div className="hidden lg:block w-px bg-slate-100 self-stretch shrink-0" />
+        {/* ── 1px continuous vertical separator ────────────────────────────── */}
+        <div className="hidden lg:block w-[1px] bg-slate-100 self-stretch" />
 
-        {/* ── Right: Form panel (flex-1 = 58%) ───────────────────────────── */}
-        {/*
-         * overflow-y-auto: later signup steps (role-specific, password) are taller.
-         * This panel scrolls internally rather than causing a page-level scrollbar.
-         */}
-        <div className="flex-1 flex flex-col overflow-y-auto">
-          <div className="flex-1 flex items-center justify-center px-8 sm:px-12 lg:px-14 xl:px-20 py-10">
-            <div className="w-full max-w-[480px]">
-              <Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-slate-100" />}>
+        {/* ── Right: Form area (58%) ───────────────────────────────────────── */}
+        <div className="flex flex-1 flex-col justify-center px-8 sm:px-14 md:px-20 lg:px-14 xl:px-20 py-8 overflow-y-auto">
+          <div className="w-full max-w-[400px] mx-auto flex flex-col">
+
+            {/* Mobile-only brand banner */}
+            <div className="lg:hidden mb-6 flex items-center gap-2.5">
+              <div className="flex size-8 items-center justify-center rounded-lg bg-blue-50 border border-blue-100 text-blue-600">
+                <DbitLogo variant="mark" size="sm" />
+              </div>
+              <span className="text-[14px] font-bold text-slate-900">DBIT Incubation Centre</span>
+            </div>
+
+            {/* Title */}
+            <h2 className="text-[22px] font-bold text-slate-900 tracking-tight">Create your account</h2>
+            <p className="text-[13px] text-slate-500 mt-1">
+              Select your role to get access to the DBIT Incubation Centre platform.
+            </p>
+
+            {/* Form wrapped in Suspense for useSearchParams */}
+            <div className="mt-5">
+              <Suspense fallback={
+                <div className="h-64 flex items-center justify-center text-sm text-slate-400">
+                  Loading registration form…
+                </div>
+              }>
                 <SignupForm />
               </Suspense>
             </div>
-          </div>
 
-          {/* Back to homepage — inside the panel, not a separate footer strip */}
-          <div className="shrink-0 px-8 pb-5 text-center">
-            <Link
-              href="/"
-              className="text-[11px] text-slate-400 hover:text-slate-600 transition-colors inline-flex items-center gap-1"
-            >
-              ← Back to homepage
-            </Link>
+            {/* Already registered? */}
+            <p className="text-[12px] text-center text-slate-500 mt-4">
+              Already have an account?{" "}
+              <Link href="/login" className="text-blue-600 hover:text-blue-700 font-semibold underline underline-offset-2">
+                Sign in
+              </Link>
+            </p>
+
+            {/* Back to home */}
+            <div className="mt-3 text-center">
+              <Link href="/" className="text-[11px] text-slate-400 hover:text-slate-600 transition-colors">
+                ← Back to homepage
+              </Link>
+            </div>
+
           </div>
         </div>
 

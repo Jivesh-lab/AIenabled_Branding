@@ -44,13 +44,13 @@ export default function SummaryFilters({
             aria-pressed={isActive}
             onClick={() => onSelect(status)}
             className={cn(
-              "flex items-start justify-between gap-3 rounded-xl border bg-white p-4 text-left shadow-sm outline-none",
-              "transition-colors duration-150 focus-visible:ring-3 focus-visible:ring-brand/20",
+              "flex items-start justify-between gap-3 rounded-lg border bg-white p-3.5 sm:p-4 text-left outline-none",
+              "transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-brand/40",
               isActive
                 ? attention
-                  ? "border-brand-gold bg-brand-gold/5"
-                  : "border-brand bg-brand-cyan-soft/40"
-                : "border-line hover:border-brand-cyan/40 hover:bg-nav-hover"
+                  ? "border-amber-400 bg-amber-50/70"
+                  : "border-brand bg-slate-50"
+                : "border-line hover:border-slate-300 hover:bg-[#FAFBFB]"
             )}
           >
             <span className="min-w-0">

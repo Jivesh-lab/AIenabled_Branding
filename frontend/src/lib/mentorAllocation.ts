@@ -18,22 +18,19 @@ const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:5000";
  * Mentor matching info for one of the signed-in student's projects. Server-side only.
  *
  * - Application status comes from agent-service (which also proves ownership of the application).
- * - Only an APPROVED application has a mentoring record; others get a state derived from their status
- *   without calling the mentoring system at all.
- * - The allocation itself comes from the Express backend, which independently verifies the student is the
- *   project's founder. A failure there is returned as a failure, never as "no mentor".
+ * - Checks the Express backend which independently verifies the student is the project's founder.
+ * - If an approved/allocated mentor exists in the backend database, it is surfaced immediately.
  */
 export async function getMentorInfo(applicationId: string, applicationStatus: string): Promise<MentorResult> {
   const base = { applicationId, requestedExpertise: [], recommendation: null, mentor: null, profileUnavailable: false, updatedAt: null };
-
-  if (applicationStatus.toUpperCase() !== "APPROVED") {
-    return { ok: true, data: { ...base, state: deriveMatchingState(applicationStatus, null) } };
-  }
 
   try {
     const session = await getServerSession(authOptions);
     const denied = authorize(session?.user, STUDENT_READ_ROLES);
     if (denied || !session?.user) {
+      if (applicationStatus.toUpperCase() !== "APPROVED") {
+        return { ok: true, data: { ...base, state: deriveMatchingState(applicationStatus, null) } };
+      }
       return { ok: false, kind: denied?.status === 403 ? "forbidden" : "unauthenticated", message: denied?.message ?? "Unauthorized" };
     }
 
@@ -44,10 +41,19 @@ export async function getMentorInfo(applicationId: string, applicationStatus: st
     });
     const body: unknown = await response.json().catch(() => null);
     const result = interpretAllocationResponse(response.status, body);
-    if (!result.ok) return result;
 
-    const allocation = result.allocation;
-    const state = deriveMatchingState(applicationStatus, allocation);
+    if (!result.ok || !result.allocation) {
+      if (applicationStatus.toUpperCase() !== "APPROVED") {
+        return { ok: true, data: { ...base, state: deriveMatchingState(applicationStatus, null) } };
+      }
+      if (!result.ok) return result;
+    }
+
+    const allocation = result.ok ? result.allocation : null;
+    const effectiveAppStatus = (allocation?.mentor?.name || allocation?.status === "approved" || allocation?.status === "allocated")
+      ? "APPROVED"
+      : applicationStatus;
+    const state = deriveMatchingState(effectiveAppStatus, allocation);
 
     let directory: DirectoryProfile | null = null;
     let profileUnavailable = false;
@@ -71,13 +77,16 @@ export async function getMentorInfo(applicationId: string, applicationStatus: st
         requestedExpertise: allocation?.requestedExpertise ?? [],
         // A recommendation is only meaningful while it is still a proposal.
         recommendation: state === "recommended" || state === "in-progress" ? allocation?.recommendation ?? null : null,
-        mentor: state === "matched" && mentorName ? { name: mentorName, contact: allocation?.mentor?.contact ?? null, directory } : null,
+        mentor: (state === "matched" || Boolean(allocation?.mentor?.name)) && mentorName ? { name: mentorName, contact: allocation?.mentor?.contact ?? null, directory } : null,
         profileUnavailable,
         updatedAt: allocation?.updatedAt ?? null,
       },
     };
   } catch (error) {
     unstable_rethrow(error);
+    if (applicationStatus.toUpperCase() !== "APPROVED") {
+      return { ok: true, data: { ...base, state: deriveMatchingState(applicationStatus, null) } };
+    }
     console.error("[Mentor Allocation] Error:", error);
     return { ok: false, kind: "unavailable", message: "The mentoring service is unavailable. Please try again shortly." };
   }

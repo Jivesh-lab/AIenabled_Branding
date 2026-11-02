@@ -39,6 +39,8 @@ def get_llm(temperature: float = 0.2) -> ChatOpenAI:
         openai_api_base=settings.openrouter_base_url,
         streaming=True,
         max_tokens=settings.max_tokens_per_run,
+        request_timeout=10,
+        max_retries=1,
         # OpenRouter passes these headers to the model provider
         default_headers={
             "HTTP-Referer": "https://aai-incubation.in",

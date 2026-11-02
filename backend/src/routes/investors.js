@@ -4,6 +4,7 @@ const User = require('../models/User');
 const StartupProfile = require('../models/StartupProfile');
 const InvestorWatchlist = require('../models/InvestorWatchlist');
 const InvestorIntroduction = require('../models/InvestorIntroduction');
+const InvestorPortfolio = require('../models/InvestorPortfolio');
 const { authenticate, requireRole } = require('../middleware/auth');
 const { logAuditTrail } = require('../middleware/auditLogger');
 const { sendMeetingScheduledEmails } = require('../services/emailService');
@@ -215,6 +216,8 @@ router.get('/startups', authenticate, requireActiveInvestor, async (req, res) =>
       // Restricted to verified investors:
       pitchDeckAvailable: isVerified ? Boolean(s.pitchDeckUrl) : false,
       pitchVideoAvailable: isVerified ? Boolean(s.pitchVideoUrl) : false,
+      pitchDeckUrl: isVerified ? (s.pitchDeckUrl || null) : null,
+      pitchVideoUrl: isVerified ? (s.pitchVideoUrl || null) : null,
       tractionSummary: isVerified ? s.tractionSummary : null,
     }));
 
@@ -501,7 +504,8 @@ router.post(
 router.get('/introductions', authenticate, requireActiveInvestor, async (req, res) => {
   try {
     const intros = await InvestorIntroduction.find({ investorId: req.user.id })
-      .populate('startupId', 'name sector stage')
+      .populate('startupId', 'name sector stage pitchDeckUrl')
+      .populate('founderId', 'name email')
       .sort({ createdAt: -1 })
       .lean();
 
@@ -516,6 +520,9 @@ router.get('/introductions', authenticate, requireActiveInvestor, async (req, re
       proposedTimes: item.proposedTimes,
       status: item.status,
       adminNotes: item.status === 'declined' ? item.adminNotes : null,
+      founderName: item.founderId?.name || 'Student Founder',
+      founderEmail: item.founderId?.email || null,
+      scheduledMeeting: item.scheduledMeeting || null,
       createdAt: item.createdAt,
     }));
 
@@ -545,7 +552,8 @@ router.get('/admin/introductions', authenticate, requireRole('admin'), async (re
 
     const intros = await InvestorIntroduction.find(filter)
       .populate('investorId', 'name email profile isInvestorVerified')
-      .populate('startupId', 'name sector stage')
+      .populate('startupId', 'name sector stage pitchDeckUrl')
+      .populate('founderId', 'name email')
       .populate('founderId', 'name email')
       .sort({ createdAt: -1 })
       .lean();
@@ -746,6 +754,272 @@ router.get('/founder/introductions', authenticate, async (req, res) => {
   } catch (err) {
     console.error('[FOUNDER INVESTOR API] Fetch introductions error:', err);
     return res.status(500).json({ success: false, message: 'Failed to fetch founder introductions.' });
+  }
+});
+
+// ===========================================================================
+// 7. INVESTOR PORTFOLIO & TRACTION TELEMETRY ENDPOINTS
+// ===========================================================================
+
+// GET /api/investors/portfolio
+// List authenticated investor's portfolio companies and aggregate statistics
+router.get('/portfolio', authenticate, requireActiveInvestor, async (req, res) => {
+  try {
+    const portfolio = await InvestorPortfolio.find({ investorId: req.user.id })
+      .populate('startupId', 'name tagline sector stage readinessScore pitchDeckUrl tractionSummary problem solution')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const totalInvested = portfolio.reduce((sum, item) => sum + (item.investmentAmount || 0), 0);
+    const totalValuation = portfolio.reduce((sum, item) => sum + (item.currentValuation || 0), 0);
+    const avgEquity = portfolio.length > 0
+      ? Number((portfolio.reduce((sum, item) => sum + (item.equityPercentage || 0), 0) / portfolio.length).toFixed(1))
+      : 0;
+    const activeVentures = portfolio.filter((item) => item.status === 'active' || item.status === 'term_sheet_signed').length;
+
+    return res.status(200).json({
+      success: true,
+      portfolio,
+      stats: {
+        totalInvested,
+        totalValuation,
+        avgEquity,
+        activeVentures,
+        totalHoldings: portfolio.length,
+      },
+    });
+  } catch (err) {
+    console.error('[INVESTOR API] Portfolio fetch error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to fetch investor portfolio.' });
+  }
+});
+
+// POST /api/investors/portfolio
+// Add or update an investment holding in authenticated investor's portfolio
+router.post(
+  '/portfolio',
+  authenticate,
+  requireActiveInvestor,
+  requireVerifiedInvestor,
+  [
+    body('startupId').isMongoId().withMessage('Valid startupId is required'),
+    body('round').optional().isString().trim(),
+    body('investmentAmount').isFloat({ min: 1000 }).withMessage('Investment amount must be at least 1000'),
+    body('equityPercentage').isFloat({ min: 0.1, max: 100 }).withMessage('Equity percentage must be between 0.1% and 100%'),
+    body('currentValuation').optional().isFloat({ min: 0 }),
+    body('status').optional().isIn(['active', 'term_sheet_signed', 'exit_profitable', 'written_off']),
+    body('governanceNotes').optional().isString().isLength({ max: 3000 }),
+  ],
+  async (req, res) => {
+    const validationError = handleValidationErrors(req, res);
+    if (validationError) return;
+
+    try {
+      const {
+        startupId,
+        round = 'Seed',
+        investmentAmount,
+        equityPercentage,
+        currentValuation,
+        status = 'active',
+        governanceNotes = '',
+      } = req.body;
+
+      const startup = await StartupProfile.findById(startupId);
+      if (!startup) {
+        return res.status(404).json({ success: false, message: 'Startup profile not found.' });
+      }
+
+      // Default valuation if not provided: calculate based on equity percentage
+      const computedValuation = currentValuation && Number(currentValuation) > 0
+        ? Number(currentValuation)
+        : Math.round((investmentAmount / (equityPercentage / 100)));
+
+      // Generate default sample monthly metrics if creating new
+      const defaultMetrics = [
+        {
+          month: '2026-08',
+          mrr: Math.round(investmentAmount * 0.04),
+          activeUsers: 140,
+          burnRate: Math.round(investmentAmount * 0.05),
+          runwayMonths: 18,
+          keyMilestone: 'Lab prototype & bench testing validation complete.',
+          trlLevel: 6,
+        },
+        {
+          month: '2026-09',
+          mrr: Math.round(investmentAmount * 0.06),
+          activeUsers: 280,
+          burnRate: Math.round(investmentAmount * 0.048),
+          runwayMonths: 17,
+          keyMilestone: 'Pilot deployment with 3 academic and corporate partners.',
+          trlLevel: 7,
+        },
+        {
+          month: '2026-10',
+          mrr: Math.round(investmentAmount * 0.085),
+          activeUsers: 450,
+          burnRate: Math.round(investmentAmount * 0.045),
+          runwayMonths: 16,
+          keyMilestone: 'Pre-commercial beta testing and patent claim filed.',
+          trlLevel: 7,
+        },
+      ];
+
+      const item = await InvestorPortfolio.findOneAndUpdate(
+        { investorId: req.user.id, startupId },
+        {
+          $set: {
+            startupName: startup.name,
+            sector: startup.sector,
+            stage: startup.stage,
+            round,
+            investmentAmount: Number(investmentAmount),
+            equityPercentage: Number(equityPercentage),
+            currentValuation: computedValuation,
+            status,
+            governanceNotes,
+          },
+          $setOnInsert: {
+            investmentDate: new Date(),
+            monthlyMetrics: defaultMetrics,
+          },
+        },
+        { upsert: true, returnDocument: 'after', runValidators: true }
+      );
+
+      await logAuditTrail({
+        userId: req.user.id,
+        email: req.investorUser.email,
+        role: req.user.role,
+        action: 'INVESTOR_RECORD_PORTFOLIO_HOLDING',
+        resource: `/api/investors/portfolio/${item._id}`,
+        workspace: 'investor',
+        details: { startupId, startupName: startup.name, round, investmentAmount, equityPercentage },
+        req,
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Portfolio holding saved successfully.',
+        holding: item,
+      });
+    } catch (err) {
+      console.error('[INVESTOR API] Portfolio record error:', err);
+      return res.status(500).json({ success: false, message: 'Failed to record portfolio investment.' });
+    }
+  }
+);
+
+// DELETE /api/investors/portfolio/:id
+// Remove portfolio holding
+router.delete('/portfolio/:id', authenticate, requireActiveInvestor, async (req, res) => {
+  try {
+    const deleted = await InvestorPortfolio.findOneAndDelete({
+      _id: req.params.id,
+      investorId: req.user.id,
+    });
+
+    if (!deleted) {
+      return res.status(404).json({ success: false, message: 'Portfolio holding not found.' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Portfolio holding successfully removed.',
+    });
+  } catch (err) {
+    console.error('[INVESTOR API] Portfolio delete error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to remove portfolio holding.' });
+  }
+});
+
+// GET /api/investors/traction
+// Aggregate operational & financial telemetry across portfolio and DBIT incubation benchmark
+router.get('/traction', authenticate, requireActiveInvestor, async (req, res) => {
+  try {
+    const portfolio = await InvestorPortfolio.find({ investorId: req.user.id })
+      .populate('startupId', 'name sector stage readinessScore')
+      .lean();
+
+    // Months timeline
+    const months = ['2026-06', '2026-07', '2026-08', '2026-09', '2026-10'];
+
+    // If investor has portfolio companies, aggregate their telemetry
+    let aggregateMrrTrend = months.map((m) => ({ month: m, totalMrr: 0, activeUsers: 0, averageBurn: 0 }));
+    let ventureTelemetry = [];
+
+    if (portfolio.length > 0) {
+      ventureTelemetry = portfolio.map((p) => ({
+        id: p._id,
+        startupId: p.startupId?._id || p.startupId,
+        startupName: p.startupName,
+        sector: p.sector,
+        stage: p.stage,
+        round: p.round,
+        investmentAmount: p.investmentAmount,
+        equityPercentage: p.equityPercentage,
+        currentValuation: p.currentValuation,
+        status: p.status,
+        monthlyMetrics: p.monthlyMetrics || [],
+        latestMetrics: p.monthlyMetrics && p.monthlyMetrics.length > 0
+          ? p.monthlyMetrics[p.monthlyMetrics.length - 1]
+          : { mrr: 0, activeUsers: 0, burnRate: 0, runwayMonths: 12, trlLevel: 6, keyMilestone: 'Early validation' },
+      }));
+
+      // Compute aggregate MRR
+      aggregateMrrTrend = months.map((m) => {
+        let totalMrr = 0;
+        let totalUsers = 0;
+        let totalBurn = 0;
+        let count = 0;
+        portfolio.forEach((p) => {
+          const match = (p.monthlyMetrics || []).find((met) => met.month === m);
+          if (match) {
+            totalMrr += match.mrr || 0;
+            totalUsers += match.activeUsers || 0;
+            totalBurn += match.burnRate || 0;
+            count++;
+          }
+        });
+        return {
+          month: m,
+          totalMrr,
+          activeUsers: totalUsers,
+          averageBurn: count > 0 ? Math.round(totalBurn / count) : 0,
+        };
+      });
+    }
+
+    // Cohort benchmark from all approved startups
+    const allApproved = await StartupProfile.find({ isApproved: true, status: 'active' })
+      .select('name sector stage readinessScore createdAt')
+      .lean();
+
+    const sectorDistribution = {};
+    allApproved.forEach((s) => {
+      sectorDistribution[s.sector] = (sectorDistribution[s.sector] || 0) + 1;
+    });
+
+    const avgReadiness = allApproved.length > 0
+      ? Math.round(allApproved.reduce((acc, s) => acc + (s.readinessScore || 0), 0) / allApproved.length)
+      : 0;
+
+    return res.status(200).json({
+      success: true,
+      hasPortfolio: portfolio.length > 0,
+      portfolioCount: portfolio.length,
+      aggregateMrrTrend,
+      ventureTelemetry,
+      cohortBenchmark: {
+        totalApproved: allApproved.length,
+        averageReadinessScore: avgReadiness,
+        sectorDistribution,
+      },
+    });
+  } catch (err) {
+    console.error('[INVESTOR API] Traction fetch error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to fetch traction telemetry.' });
   }
 });
 
