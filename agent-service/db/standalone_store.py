@@ -364,21 +364,27 @@ def standalone_get_applications(applicant_id: str) -> List[Dict[str, Any]]:
     ]
 
 
-def standalone_get_application_queue() -> List[Dict[str, Any]]:
+def standalone_get_application_queue(scope: str = "awaiting") -> List[Dict[str, Any]]:
+    """Applications for reviewers. scope: 'awaiting' (default), 'all', or one status (approved, rejected, ...)."""
     with get_connection() as conn:
         cursor = conn.cursor()
-        awaiting = ",".join("?" for _ in st.AWAITING_REVIEW)
+        statuses = _scope_statuses(scope)
+        where, params = "", ()
+        if statuses is not None:
+            where = f"WHERE a.status IN ({','.join('?' for _ in statuses)})"
+            params = tuple(statuses)
         cursor.execute(
             f"""
             SELECT
-                a.id as app_id, a.status as review_status, a.submitted_at, a.applicant_id,
+                a.id as app_id, a.status as review_status, a.submitted_at, a.updated_at, a.applicant_id,
+                a.reviewer_comments,
                 s.name as startup_name, s.sector as domain, s.stage as maturity
             FROM applications a
             JOIN startups s ON a.startup_id = s.id
-            WHERE a.status IN ({awaiting})
-            ORDER BY a.submitted_at ASC
+            {where}
+            ORDER BY COALESCE(a.updated_at, a.submitted_at) DESC
             """,
-            st.AWAITING_REVIEW,
+            params,
         )
         return [
             {
@@ -389,9 +395,23 @@ def standalone_get_application_queue() -> List[Dict[str, Any]]:
                 "maturity": str(r["maturity"]).upper(),
                 "applicantId": r["applicant_id"],
                 "submittedAt": r["submitted_at"],
+                "updatedAt": r["updated_at"],
+                "reviewerComments": r["reviewer_comments"],
             }
             for r in cursor.fetchall()
         ]
+
+
+def _scope_statuses(scope: str):
+    """Statuses for a queue scope; None means every submitted application (drafts are never reviewer-visible)."""
+    scope = (scope or "awaiting").lower()
+    if scope == "awaiting":
+        return list(st.AWAITING_REVIEW)
+    if scope == "all":
+        return [x for x in st.ALL_STATUSES if x != st.DRAFT]
+    if scope in st.ALL_STATUSES and scope != st.DRAFT:
+        return [scope]
+    raise HTTPException(status_code=400, detail="Unknown status filter")
 
 
 def standalone_applicant_id(application_id: str) -> Optional[str]:

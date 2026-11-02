@@ -96,7 +96,7 @@ async function onApproved(event) {
     return null;
   }
   const app = await py.getApplication(applicationId, py.agentActor('mentor-matching'));
-  const project = await ensureProject({ applicationId, startup: app.startup, applicantId: app.applicantId, form: app.formData || {} });
+  const project = await ensureProject({ applicationId, startup: app.startup, applicantId: app.applicantId, form: app.formData || {}, approvedBy: reviewer });
   const { job } = await jobs.enqueue({
     type: JOB_TYPE, agent: AGENT, dedupeKey: `${JOB_TYPE}:${project.id}`, correlationId: event.correlationId, triggerEvent: event.eventType,
     applicationId, projectId: project.id, subjectType: 'project', subjectId: project.id, data: { phase: 'start', index: 0, tried: [] },

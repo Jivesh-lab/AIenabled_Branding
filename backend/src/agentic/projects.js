@@ -17,11 +17,20 @@ function capitalize(value) {
   return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
 }
 
-async function pickCoordinator() {
-  const coordinators = await User.find({ role: 'faculty', facultyRole: 'coordinator', status: 'active', isSoftDeleted: { $ne: true } }).select('_id name email').lean();
-  if (coordinators.length) return coordinators[0];
-  const anyFaculty = await User.find({ role: 'faculty', status: 'active', isSoftDeleted: { $ne: true } }).select('_id name email').lean();
-  return anyFaculty[0] || null;
+/** The approving coordinator, else the active coordinator with the fewest projects (ties: oldest account), so work is shared out instead of always landing on one person. */
+async function pickCoordinator(approverId = null) {
+  // The coordinator who approved the application owns the project.
+  const approver = approverId ? await loadUser(approverId) : null;
+  if (approver && approver.role === 'faculty') {
+    const full = await User.findOne({ _id: approver._id, facultyRole: 'coordinator', status: 'active', isSoftDeleted: { $ne: true } }).select('_id name email createdAt').lean();
+    if (full) return full;
+  }
+  let pool = await User.find({ role: 'faculty', facultyRole: 'coordinator', status: 'active', isSoftDeleted: { $ne: true } }).select('_id name email createdAt').lean();
+  if (!pool.length) pool = await User.find({ role: 'faculty', status: 'active', isSoftDeleted: { $ne: true } }).select('_id name email createdAt').lean();
+  if (pool.length < 2) return pool[0] || null;
+  const counts = await FacultyProject.aggregate([{ $match: { coordinatorUserId: { $in: pool.map((c) => String(c._id)) } } }, { $group: { _id: '$coordinatorUserId', n: { $sum: 1 } } }]);
+  const load = Object.fromEntries(counts.map((c) => [c._id, c.n]));
+  return [...pool].sort((a, b) => (load[String(a._id)] || 0) - (load[String(b._id)] || 0) || new Date(a.createdAt) - new Date(b.createdAt))[0];
 }
 
 async function loadUser(id) {
@@ -30,12 +39,12 @@ async function loadUser(id) {
 }
 
 /** Create (once) the portfolio record for an approved application and link it to its owner and coordinator. */
-async function ensureProject({ applicationId, startup = {}, applicantId, form = {} }) {
+async function ensureProject({ applicationId, startup = {}, applicantId, form = {}, approvedBy = null }) {
   const existing = await FacultyProject.findOne({ id: String(applicationId) }).lean();
   if (existing && existing.ownerUserId) return existing;
 
   const owner = await loadUser(applicantId);
-  const coordinator = await pickCoordinator();
+  const coordinator = await pickCoordinator(approvedBy);
   const team = Array.isArray(form.teamMembers) && form.teamMembers.length
     ? form.teamMembers.map((m) => ({ name: m.name, rollNumber: m.rollNumber, email: m.email, role: m.role || 'Team member' }))
     : owner ? [{ name: cleanName(owner.name), email: owner.email, role: 'Lead' }] : [];

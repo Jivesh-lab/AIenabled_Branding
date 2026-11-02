@@ -8,6 +8,7 @@ from db.standalone_store import (
     standalone_submit_application,
     standalone_get_applications,
     standalone_get_application_queue,
+    _scope_statuses,
     standalone_get_application_details,
     standalone_applicant_id,
     standalone_decide_application,
@@ -402,13 +403,14 @@ async def get_applications(
 
 @router.get("/queue")
 async def get_application_queue(
+    scope: str = "awaiting",
     current_user: AuthenticatedUser = Depends(get_internal_service),
     pool=Depends(get_db)
 ):
     _require_reviewer(current_user)
 
     if not pool:
-        return {"queue": standalone_get_application_queue()}
+        return {"queue": standalone_get_application_queue(scope)}
 
     try:
         async with pool.acquire() as conn:
@@ -416,13 +418,14 @@ async def get_application_queue(
                 """
                 SELECT
                     a.id as app_id, a.status as review_status, a.submitted_at, a.applicant_id,
-                    s.name as startup_name, s.sector as domain, s.stage as maturity
+                    s.name as startup_name, s.sector as domain, s.stage as maturity,
+                    a.updated_at, a.reviewer_comments
                 FROM applications a
                 JOIN startups s ON a.startup_id = s.id
                 WHERE a.status = ANY($1::text[])
-                ORDER BY a.submitted_at ASC
+                ORDER BY COALESCE(a.updated_at, a.submitted_at) DESC
                 """,
-                list(st.AWAITING_REVIEW),
+                _scope_statuses(scope),
             )
         return {
             "queue": [
@@ -434,6 +437,8 @@ async def get_application_queue(
                     "maturity": str(r["maturity"]).upper(),
                     "applicantId": r["applicant_id"],
                     "submittedAt": str(r["submitted_at"].isoformat()) if r["submitted_at"] else None,
+                    "updatedAt": r["updated_at"].isoformat() if r["updated_at"] else None,
+                    "reviewerComments": r["reviewer_comments"],
                 }
                 for r in records
             ]

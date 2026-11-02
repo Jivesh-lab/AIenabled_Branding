@@ -7,6 +7,7 @@ import { AGENTIC, useAgentic } from "@/lib/agentic";
 
 interface Pipeline {
   applicationsAwaitingDecision: number;
+  applicationsByStatus?: Record<string, number> | null;
   introductionsAwaitingApproval: number;
   stuckWorkflows: number;
   jobsByState: Record<string, number>;
@@ -38,6 +39,19 @@ export default function AdminPipeline({ className }: { className?: string }) {
         <Stat label="Agent success rate" value={data ? pct(data.last30Days.successRate) : "-"} hint={data ? `${data.last30Days.actions} actions in 30 days` : undefined} />
         <Stat label="Escalation rate" value={data ? pct(data.last30Days.escalationRate) : "-"} hint={data ? `${data.last30Days.escalations} escalation${data.last30Days.escalations === 1 ? "" : "s"} in 30 days` : undefined} />
       </div>
+      {data?.applicationsByStatus && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-[12px]" aria-label="Applications by status">
+          <span className="font-medium text-muted-ink">Applications:</span>
+          {([["submitted", "Awaiting review", "pending"], ["approved", "Approved", "approved"], ["revision_requested", "Revision requested", "revision_requested"], ["rejected", "Rejected", "rejected"]] as const).map(([key, label, filter]) => {
+            const count = key === "submitted" ? (data.applicationsByStatus?.submitted ?? 0) + (data.applicationsByStatus?.under_review ?? 0) : data.applicationsByStatus?.[key] ?? 0;
+            return (
+              <Link key={key} href={`/workspace/admin/applications?status=${filter}`} className="rounded-full border border-line bg-white px-2.5 py-1 font-medium text-ink hover:border-brand/40 hover:text-brand">
+                {label} <span className="font-semibold">{count}</span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
       <p className="mt-2 text-[12px] text-muted-ink">
         Users, CSV uploads and approvals of new accounts now live under <Link href="/workspace/admin/users" className="font-medium text-brand hover:underline">User Management</Link>.
       </p>

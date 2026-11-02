@@ -17,7 +17,9 @@ export async function GET(req: NextRequest) {
 
     const token = await createInternalToken(session.user, ["review_applications"]);
 
-    const backendRes = await fetch(`${AGENT_SERVICE_URL}/api/applications/queue`, {
+    const scope = req.nextUrl.searchParams.get("scope") || "awaiting";
+    const backendRes = await fetch(`${AGENT_SERVICE_URL}/api/applications/queue?scope=${encodeURIComponent(scope)}`, {
+      cache: "no-store",
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`
