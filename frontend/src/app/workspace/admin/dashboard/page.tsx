@@ -7,7 +7,7 @@ import AdminPipeline from "@/components/agentic/AdminPipeline";
 import ApprovalsPanel from "@/components/agentic/ApprovalsPanel";
 import AgentActivityFeed from "@/components/agentic/AgentActivityFeed";
 import AttentionPanel from "@/components/agentic/AttentionPanel";
-import { Card } from "@/components/shared/Surface";
+import { Card, SectionHeading, SectionDivider, StatusBadge } from "@/components/shared/Surface";
 import {
   Users,
   UserCheck,
@@ -15,7 +15,10 @@ import {
   FileSpreadsheet,
   Megaphone,
   BarChart3,
+  CheckCircle2,
+  ArrowRight,
   ShieldAlert,
+  Loader2,
 } from "lucide-react";
 
 type StatsData = {
@@ -50,20 +53,12 @@ const INITIAL_STATS: StatsData = {
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<StatsData>(INITIAL_STATS);
   const [loading, setLoading] = useState(true);
-  const mentorCount = stats.roleBreakdown.mentor || 0;
-  const studentCount = stats.roleBreakdown.student || 0;
-  const facultyCount = stats.roleBreakdown.faculty || 0;
-  const investorCount = stats.roleBreakdown.investor || 0;
-
 
   useEffect(() => {
     async function fetchStats() {
       try {
         setLoading(true);
-        const res = await fetch(
-          `/api/backend/admin/stats`,
-          { credentials: "include" }
-        );
+        const res = await fetch(`/api/backend/admin/stats`, { credentials: "include" });
         if (res.ok) {
           const data = await res.json();
           if (data.stats) {
@@ -89,297 +84,206 @@ export default function AdminDashboardPage() {
     fetchStats();
   }, []);
 
+  const studentCount = stats.roleBreakdown?.student ?? 0;
+  const facultyCount = stats.roleBreakdown?.faculty ?? 0;
+  const mentorCount = stats.roleBreakdown?.mentor ?? 0;
+  const investorCount = stats.roleBreakdown?.investor ?? 0;
+
   return (
     <PageContainer
       title="Incubation Operations"
       description="What the agents have prepared for your decision, what they have done on their own, and what they could not resolve."
     >
       <div className="space-y-8">
+        <SectionDivider label="Agent pipeline" />
         <AdminPipeline />
+        <SectionDivider label="Approvals needed" />
         <ApprovalsPanel title="Approvals needed" types={["admission", "investor_intro"]} emptyMessage="Complete applications and investor introductions arrive here with the agent's assessment and evidence. You decide; the agents then carry the decision out." />
+        <SectionDivider label="Agent activity & attention" />
         <div className="grid gap-8 xl:grid-cols-2">
           <AgentActivityFeed title="Agent activity" limit={15} />
           <AttentionPanel title="Needs attention across the centre" />
         </div>
 
-        <details className="group rounded-xl border border-line bg-white shadow-sm">
+        <SectionDivider label="People & account management" />
+        <details className="group rounded-2xl border border-line bg-white shadow-sm">
           <summary className="cursor-pointer list-none px-5 py-4 text-[15px] font-semibold text-ink marker:hidden">
             People and account management <span className="ml-2 text-[12.5px] font-normal text-muted-ink">user accounts, vetting queue, CSV import (secondary)</span>
           </summary>
           <div className="space-y-6 border-t border-line p-5">
-        {/* Metric Cards Banner */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="p-4 border border-slate-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-slate-500 font-medium">Total Managed Accounts</p>
-                <p className="text-2xl font-bold text-slate-900 mt-1">
-                  {loading ? "—" : stats.totalUsers}
-                </p>
-                <p className="text-[11px] text-emerald-600 font-semibold mt-0.5">
-                  {loading
-                    ? "Loading metrics..."
-                    : stats.totalUsers === 0
-                    ? "No registered accounts yet"
-                    : `${stats.activeUsers} Active • ${stats.inactiveUsers} Inactive`}
-                </p>
-              </div>
-              <div className="flex size-10 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
-                <Users className="size-5" />
-              </div>
+            {/* Metric Cards Banner */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="p-5 border border-line bg-white shadow-xs">
+                <div className="flex items-start justify-between gap-3 pt-1">
+                  <div className="min-w-0">
+                    <p className="block truncate text-xs font-semibold uppercase tracking-wider text-muted-ink">Total Managed Accounts</p>
+                    <p className="mt-2 block text-[26px] lg:text-[32px] font-black tracking-tight tabular-nums text-ink">
+                      {loading ? "-" : stats.totalUsers}
+                    </p>
+                    <p className="mt-1 block text-[11px] font-medium uppercase tracking-[0.04em] text-muted-ink">
+                      {loading ? "Loading metrics..." : stats.totalUsers === 0 ? "No registered accounts yet" : `${stats.activeUsers} Active • ${stats.inactiveUsers} Inactive`}
+                    </p>
+                  </div>
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
+                    <Users className="size-5" />
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="p-5 border border-line bg-white shadow-xs">
+                <div className="flex items-start justify-between gap-3 pt-1">
+                  <div className="min-w-0">
+                    <p className="block truncate text-xs font-semibold uppercase tracking-wider text-muted-ink">Pending Registration Queue</p>
+                    <p className={`mt-2 block text-[26px] lg:text-[32px] font-black tracking-tight tabular-nums text-ink`}>{loading ? "-" : stats.pendingApprovalsCount}</p>
+                    <p className="mt-1 block text-[11px] font-medium uppercase tracking-[0.04em] text-muted-ink">
+                      {loading ? "Checking queue..." : stats.pendingApprovalsCount > 0 ? "Vetting Review Required" : "Queue Clear (0 Pending)"}
+                    </p>
+                  </div>
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-gold-soft text-brand-gold-ink">
+                    <UserCheck className="size-5" />
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="p-5 border border-line bg-white shadow-xs">
+                <div className="flex items-start justify-between gap-3 pt-1">
+                  <div className="min-w-0">
+                    <p className="block truncate text-xs font-semibold uppercase tracking-wider text-muted-ink">Mentor-to-Researcher Ratio</p>
+                    <p className="mt-2 block text-[26px] lg:text-[32px] font-black tracking-tight tabular-nums text-ink">
+                      {loading ? "-" : stats.mentorStudentRatio || "0:0"}
+                    </p>
+                    <p className="mt-1 block text-[11px] font-medium uppercase tracking-[0.04em] text-muted-ink">
+                      {loading ? "Calculating..." : `${mentorCount} Mentors • ${studentCount} Researchers`}
+                    </p>
+                  </div>
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
+                    <BarChart3 className="size-5" />
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="p-5 border border-line bg-white shadow-xs">
+                <div className="flex items-start justify-between gap-3 pt-1">
+                  <div className="min-w-0">
+                    <p className="block truncate text-xs font-semibold uppercase tracking-wider text-muted-ink">Flagged Moderation Items</p>
+                    <p className="mt-2 block text-[26px] lg:text-[32px] font-black tracking-tight tabular-nums text-ink">
+                      {loading ? "-" : stats.moderationItemsCount}
+                    </p>
+                    <p className="mt-1 block text-[11px] font-medium uppercase tracking-[0.04em] text-muted-ink">
+                      {loading ? "Checking flags..." : stats.moderationItemsCount === 0 ? "No Flagged Content" : "Action Required"}
+                    </p>
+                  </div>
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
+                    <ShieldAlert className="size-5" />
+                  </div>
+                </div>
+              </Card>
             </div>
+
+            {/* Quick Action Hub */}
+            <SectionDivider label="Operational actions" />
+            <Card className="p-6 rounded-2xl border border-line bg-canvas shadow-xs">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-brand-soft text-brand border border-brand/30 text-[11px] font-bold uppercase tracking-wider mb-2">
+                    Operational Actions
+                  </span>
+                  <h2 className="text-lg font-bold tracking-tight text-ink">Onboard & Manage Incubation Cohorts</h2>
+                  <p className="text-xs text-muted-ink mt-1 max-w-xl leading-relaxed">
+                    Create user accounts individually or in bulk via CSV upload, manage vetting queues, publish announcements, or launch workspace oversight mode.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <Link
+                    href="/workspace/admin/users?action=create"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-brand px-4 text-[13px] font-semibold text-white transition-colors hover:bg-brand-hover shadow-sm"
+                  >
+                    <UserPlus className="size-4" /> Add New User
+                  </Link>
+                  <Link
+                    href="/workspace/admin/users?action=bulk"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-line bg-white px-4 text-[13px] font-semibold text-ink transition-colors hover:border-brand/40 hover:text-brand"
+                  >
+                    <FileSpreadsheet className="size-4 text-brand" /> Bulk CSV Import
+                  </Link>
+                  <Link
+                    href="/workspace/admin/announcements"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-line bg-white px-4 text-[13px] font-semibold text-ink transition-colors hover:border-brand/40 hover:text-brand"
+                  >
+                    <Megaphone className="size-4 text-brand" /> Post Announcement
+                  </Link>
+                </div>
+              </div>
           </Card>
 
-          <Card className="p-4 border border-slate-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-slate-500 font-medium">Pending Registration Queue</p>
-                <p
-                  className={`text-2xl font-bold mt-1 ${
-                    stats.pendingApprovalsCount > 0 ? "text-amber-600" : "text-slate-900"
-                  }`}
-                >
-                  {loading ? "—" : stats.pendingApprovalsCount}
-                </p>
-                <p
-                  className={`text-[11px] font-medium mt-0.5 ${
-                    stats.pendingApprovalsCount > 0 ? "text-amber-600" : "text-emerald-600"
-                  }`}
-                >
-                  {loading
-                    ? "Checking queue..."
-                    : stats.pendingApprovalsCount > 0
-                    ? "Vetting Review Required"
-                    : "Queue Clear (0 Pending)"}
-                </p>
-              </div>
-              <div className="flex size-10 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
-                <UserCheck className="size-5" />
-              </div>
-            </div>
-          </Card>
+          {/* Pending Approvals Alert Banner */}
+            {loading ? null : stats.pendingApprovalsCount > 0 ? (
+              <Card className="rounded-2xl border border-brand-gold/30 bg-brand-gold-soft p-5 text-brand-gold-ink shadow-sm">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-gold text-white">
+                      <UserCheck className="size-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-brand-gold-ink">{stats.pendingApprovalsCount} Registration Application(s) Awaiting Review</h3>
+                      <p className="text-xs text-brand-gold-ink/80 mt-0.5">
+                        New Mentor and Industry Partner registrations require vetting before account activation.
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    href="/workspace/admin/approvals"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-brand-gold text-white text-xs font-semibold hover:bg-brand-gold-hover transition-colors shadow-sm shrink-0"
+                  >
+                    Review Queue <ArrowRight className="size-3.5" />
+                  </Link>
+                </div>
+              </Card>
+            ) : (
+              <Card className="rounded-2xl border border-brand-cyan/30 bg-brand-cyan-soft p-5 text-brand-cyan-ink shadow-sm">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-cyan text-white">
+                      <CheckCircle2 className="size-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-brand-cyan-ink">Registration Vetting Queue is Clear</h3>
+                      <p className="text-xs text-brand-cyan-ink/80 mt-0.5">
+                        All applicant registrations have been processed. No pending approval actions required.
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    href="/workspace/admin/approvals"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-brand-cyan/30 bg-white text-brand-cyan-ink text-xs font-semibold hover:bg-brand-cyan/50 transition-colors shadow-sm shrink-0"
+                  >
+                    View Queue
+                  </Link>
+                </div>
+              </Card>
+            )}
 
-          <Card className="p-4 border border-slate-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-slate-500 font-medium">Mentor-to-Researcher Ratio</p>
-                <p className="text-2xl font-bold text-slate-900 mt-1">
-                  {loading ? "—" : stats.mentorStudentRatio || "0:0"}
-                </p>
-                <p className="text-[11px] text-blue-600 font-semibold mt-0.5">
-                  {loading
-                    ? "Calculating..."
-                    : `${mentorCount} Mentors • ${studentCount} Researchers`}
-                </p>
-              </div>
-              <div className="flex size-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
-                <BarChart3 className="size-5" />
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-4 border border-slate-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-slate-500 font-medium">Flagged Moderation Items</p>
-                <p className="text-2xl font-bold text-slate-900 mt-1">
-                  {loading ? "—" : stats.moderationItemsCount}
-                </p>
-                <p className="text-[11px] text-slate-500 font-medium mt-0.5">
-                  {loading
-                    ? "Checking flags..."
-                    : stats.moderationItemsCount === 0
-                    ? "No Flagged Content"
-                    : "Action Required"}
-                </p>
-              </div>
-              <div className="flex size-10 items-center justify-center rounded-lg bg-purple-50 text-purple-600">
-                <ShieldAlert className="size-5" />
-              </div>
-            </div>
-          </Card>
-        </div>
-
-        {/* Quick Action Hub */}
-        <div className="rounded-xl border border-indigo-100 bg-gradient-to-r from-indigo-900 to-slate-900 text-white p-6 shadow-md">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-500/30 text-indigo-200 text-xs font-semibold uppercase tracking-wider mb-2 border border-indigo-400/30">
-                Operational Actions
-              </span>
-              <h2 className="text-xl font-bold tracking-tight">Onboard & Manage Incubation Cohorts</h2>
-              <p className="text-xs text-slate-300 mt-1 max-w-xl leading-relaxed">
-                Create user accounts individually or in bulk via CSV upload, manage vetting queues, publish announcements, or launch workspace oversight mode.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2.5">
-              <Link
-                href="/workspace/admin/users?action=create"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-semibold shadow transition-colors"
-              >
-                <UserPlus className="size-4" /> Add New User
-              </Link>
-              <Link
-                href="/workspace/admin/users?action=bulk"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-semibold transition-colors"
-              >
-                <FileSpreadsheet className="size-4 text-emerald-400" /> Bulk CSV Import
-              </Link>
-              <Link
-                href="/workspace/admin/announcements"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-semibold transition-colors"
-              >
-                <Megaphone className="size-4 text-amber-400" /> Post Announcement
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        {/* Pending Approvals Alert Banner */}
-        {loading ? null : stats.pendingApprovalsCount > 0 ? (
-          <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-4 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="flex size-9 items-center justify-center rounded-lg bg-amber-100 text-amber-800">
-                <UserCheck className="size-5" />
-              </div>
-              <div>
-                <h3 className="text-[14px] font-semibold text-amber-950">
-                  {stats.pendingApprovalsCount} Registration Applications Awaiting Review
-                </h3>
-                <p className="text-[13px] text-amber-900 mt-0.5 max-w-2xl">
-                  New mentor and industry partner credentials require centre vetting before workspace access is granted.
-                </p>
+            {/* Role Breakdown Distribution Cards */}
+            <SectionDivider label="Ecosystem stakeholder distribution" />
+            <div className="space-y-4">
+              <SectionHeading title="Ecosystem stakeholder distribution" />
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {[
+                  { role: "Researcher", key: "student", count: studentCount, accent: "brand" },
+                  { role: "Faculty", key: "faculty", count: facultyCount, accent: "brand" },
+                  { role: "Mentor", key: "mentor", count: mentorCount, accent: "brand-cyan" },
+                  { role: "Investor", key: "investor", count: investorCount, accent: "brand-gold" },
+                ].map((item) => (
+                  <div key={item.key} className={`rounded-2xl border border-line bg-white p-5 shadow-xs`}>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-ink">{item.role}</p>
+                    <p className="text-[26px] font-black tracking-tight tabular-nums text-ink mt-1">
+                      {loading ? "-" : item.count}
+                    </p>
+                  </div>
+                ))}
               </div>
             </div>
-            <Link
-              href="/workspace/admin/approvals"
-              className="inline-flex h-9 shrink-0 items-center justify-center rounded-md bg-amber-800 px-4 text-[13px] font-medium text-white transition-colors hover:bg-amber-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50"
-            >
-              Open vetting queue
-            </Link>
-          </div>
-        ) : null}
-
-        {/* Operational Metric Strip */}
-        <div className="grid grid-cols-2 divide-y divide-line rounded-lg border border-line bg-white sm:grid-cols-4 sm:divide-x sm:divide-y-0">
-          <div className="p-4 sm:p-5">
-            <div className="flex items-center justify-between text-muted-ink">
-              <span className="text-[13px] font-medium">Managed Accounts</span>
-              <Users className="size-4 text-slate-400" />
-            </div>
-            <p className="mt-2 text-[26px] font-semibold tracking-tight text-ink tabular-nums">
-              {loading ? "—" : stats.totalUsers}
-            </p>
-            <p className="text-[12px] text-emerald-700 mt-0.5">
-              {loading ? "Loading..." : `${stats.activeUsers} active, ${stats.inactiveUsers} inactive`}
-            </p>
-          </div>
-
-          <div className="p-4 sm:p-5">
-            <div className="flex items-center justify-between text-amber-800">
-              <span className="text-[13px] font-medium">Vetting Queue</span>
-              <UserCheck className="size-4 text-amber-600" />
-            </div>
-            <p className="mt-2 text-[26px] font-semibold tracking-tight text-amber-800 tabular-nums">
-              {loading ? "—" : stats.pendingApprovalsCount}
-            </p>
-            <p className="text-[12px] text-amber-700 mt-0.5">
-              {stats.pendingApprovalsCount > 0 ? "Awaiting credential check" : "Queue clear"}
-            </p>
-          </div>
-
-          <div className="p-4 sm:p-5">
-            <div className="flex items-center justify-between text-slate-700">
-              <span className="text-[13px] font-medium">Advisory Ratio</span>
-              <BarChart3 className="size-4 text-slate-400" />
-            </div>
-            <p className="mt-2 text-[26px] font-semibold tracking-tight text-ink tabular-nums">
-              {loading ? "—" : stats.mentorStudentRatio || "0:0"}
-            </p>
-            <p className="text-[12px] text-slate-500 mt-0.5">
-              {loading ? "Calculating..." : `${stats.roleBreakdown.mentor || 0} mentors for ${stats.roleBreakdown.student || 0} students`}
-            </p>
-          </div>
-
-          <div className="p-4 sm:p-5">
-            <div className="flex items-center justify-between text-slate-700">
-              <span className="text-[13px] font-medium">Flagged Items</span>
-              <ShieldAlert className="size-4 text-slate-400" />
-            </div>
-            <p className="mt-2 text-[26px] font-semibold tracking-tight text-ink tabular-nums">
-              {loading ? "—" : stats.moderationItemsCount}
-            </p>
-            <p className="text-[12px] text-slate-500 mt-0.5">Reported items for audit</p>
-          </div>
-        </div>
-
-        {/* Operational Hub & Management Actions */}
-        <div className="rounded-lg border border-line bg-white p-5 sm:p-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-line/60">
-            <div>
-              <h2 className="text-[16px] font-semibold text-ink">Cohort Management & User Provisioning</h2>
-              <p className="text-[13px] text-muted-ink mt-0.5 max-w-xl">
-                Provision accounts, import cohort batches, broadcast centre announcements, or audit platform access logs.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <Link
-                href="/workspace/admin/users?action=create"
-                className="inline-flex h-9 items-center gap-1.5 rounded-md bg-brand px-3.5 text-[13px] font-medium text-white transition-colors hover:bg-brand-hover"
-              >
-                <UserPlus className="size-3.5" />
-                Add User
-              </Link>
-              <Link
-                href="/workspace/admin/users?action=bulk"
-                className="inline-flex h-9 items-center gap-1.5 rounded-md border border-line bg-white px-3.5 text-[13px] font-medium text-ink transition-colors hover:bg-slate-50"
-              >
-                <FileSpreadsheet className="size-3.5 text-slate-400" />
-                Import Batch CSV
-              </Link>
-              <Link
-                href="/workspace/admin/announcements"
-                className="inline-flex h-9 items-center gap-1.5 rounded-md border border-line bg-white px-3.5 text-[13px] font-medium text-ink transition-colors hover:bg-slate-50"
-              >
-                <Megaphone className="size-3.5 text-slate-400" />
-                Post Announcement
-              </Link>
-            </div>
-          </div>
-
-          {/* Stakeholder Cohort Ledger */}
-          <div className="pt-4">
-            <h3 className="text-[13px] font-semibold text-ink mb-3">Stakeholder Distribution</h3>
-            <div className="grid grid-cols-2 divide-y divide-line rounded-md border border-line bg-[#FAFBFB] sm:grid-cols-4 sm:divide-x sm:divide-y-0">
-              <div className="p-3.5 text-center">
-                <span className="text-[12px] font-medium text-muted-ink">Students</span>
-                <p className="text-[20px] font-semibold text-ink mt-1 tabular-nums">
-                  {loading ? "—" : stats.roleBreakdown.student ?? 0}
-                </p>
-              </div>
-              <div className="p-3.5 text-center">
-                <span className="text-[12px] font-medium text-muted-ink">Faculty Guides</span>
-                <p className="text-[20px] font-semibold text-ink mt-1 tabular-nums">
-                  {loading ? "—" : stats.roleBreakdown.faculty ?? 0}
-                </p>
-              </div>
-              <div className="p-3.5 text-center">
-                <span className="text-[12px] font-medium text-muted-ink">Industry Mentors</span>
-                <p className="text-[20px] font-semibold text-ink mt-1 tabular-nums">
-                  {loading ? "—" : stats.roleBreakdown.mentor ?? 0}
-                </p>
-              </div>
-              <div className="p-3.5 text-center">
-                <span className="text-[12px] font-medium text-muted-ink">Capital Partners</span>
-                <p className="text-[20px] font-semibold text-ink mt-1 tabular-nums">
-                  {loading ? "—" : stats.roleBreakdown.investor ?? 0}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
           </div>
         </details>
       </div>

@@ -29,6 +29,8 @@ const models = {
   CalendarConnection: require('../../models/CalendarConnection'),
   InvestorIntroduction: require('../../models/InvestorIntroduction'),
   DomainEvent: require('../../models/DomainEvent'),
+  AuthTicket: require('../../models/AuthTicket'),
+  AuditLog: require('../../models/AuditLog'),
 };
 
 const mem = install(Object.values(models), { readOnly: ['ActionLog'] });

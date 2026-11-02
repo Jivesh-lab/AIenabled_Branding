@@ -9,6 +9,7 @@ import {
   CalendarDaysIcon,
   FolderIcon,
   MapIcon,
+  UserGroupIcon,
   Squares2X2Icon,
 } from "@heroicons/react/24/outline";
 
@@ -29,6 +30,7 @@ const STUDENT_SECTIONS: NavSection[] = [
     items: [
       { label: "Journey Timeline", icon: MapIcon, href: "/workspace/student/journey" },
       { label: "Meetings", icon: CalendarDaysIcon, href: "/workspace/student/meetings" },
+      { label: "My Teams", icon: UserGroupIcon, href: "/workspace/student/team" },
     ],
   },
 ];

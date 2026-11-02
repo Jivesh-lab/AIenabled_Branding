@@ -10,6 +10,7 @@ const StartupProfile = require('../models/StartupProfile');
 const MentorAllocation = require('../models/MentorAllocation');
 const FacultyProject = require('../models/FacultyProject');
 const User = require('../models/User');
+const TeamMembership = require('../models/TeamMembership');
 const studentRouter = require('./student');
 
 const OWNER = '650000000000000000000004';
@@ -39,6 +40,11 @@ function resetDb(overrides = {}) {
     ...overrides,
   };
 }
+StartupProfile.find = (q) => {
+  db.queries.push(q);
+  return query(db.profiles.filter((p) => String(p.founderId) === String(q.founderId)), db.failProfile);
+};
+TeamMembership.find = (q) => query((db.memberships || []).filter((m) => m.userId === q.userId && m.status === q.status), db.failProfile);
 StartupProfile.findOne = (q) => {
   db.queries.push(q);
   const hit = db.profiles.find((p) => p.applicationId === q.applicationId && String(p.founderId) === String(q.founderId));
@@ -109,6 +115,17 @@ test('ownership: only the founder on the StartupProfile can read; others get an 
   assert.strictEqual((await get(url('bad id!'), tokenFor(OWNER, 'student'))).status, 404);
   // The ownership lookup is always scoped by the caller's own id.
   assert.ok(db.queries.every((q) => q.founderId === OWNER || q.founderId === STRANGER));
+});
+
+test('team: an ACCEPTED teammate can read the allocation; a pending one gets the same 404', async () => {
+  const MATE = '650000000000000000000006';
+  const PENDING = '650000000000000000000007';
+  resetDb({
+    allocations: [allocation({ status: 'approved', allocatedMentorName: 'Dr. K. R. Raman' })],
+    memberships: [{ userId: MATE, projectId: APP_ID, applicationId: APP_ID, status: 'ACCEPTED' }],
+  });
+  assert.strictEqual((await get(url(), tokenFor(MATE, 'student'))).status, 200);
+  assert.strictEqual((await get(url(), tokenFor(PENDING, 'student'))).status, 404);
 });
 
 test('no mentor request yet: 200 with allocation null (distinct from "not yours")', async () => {

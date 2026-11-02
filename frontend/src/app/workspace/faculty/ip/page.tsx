@@ -138,11 +138,11 @@ export default function FacultyIPPage() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           {[
             { label: "Total IP Assets", value: stats.total, icon: Shield, color: "bg-brand/10 text-brand" },
-            { label: "Granted / Registered", value: stats.granted, icon: CheckCircle2, color: "bg-emerald-50 text-emerald-700" },
-            { label: "Filed / Pending", value: stats.pending, icon: Clock, color: "bg-amber-50 text-amber-700" },
-            { label: "Drafts in Progress", value: stats.draft, icon: FileText, color: "bg-slate-50 text-slate-600" },
+            { label: "Granted / Registered", value: stats.granted, icon: CheckCircle2, color: "bg-brand/10 text-brand" },
+            { label: "Filed / Pending", value: stats.pending, icon: Clock, color: "bg-brand/10 text-brand" },
+            { label: "Drafts in Progress", value: stats.draft, icon: FileText, color: "bg-brand/10 text-brand" },
           ].map((s) => (
-            <MetricCard key={s.label} label={s.label} value={loading ? "—" : s.value} icon={s.icon} tone={s.color.includes("danger") ? "danger" : s.color.includes("amber") ? "attention" : "default"} loading={loading} />
+            <MetricCard key={s.label} label={s.label} value={loading ? "-" : s.value} icon={s.icon} tone={s.color.includes("danger") ? "danger" : s.color.includes("amber") ? "attention" : "default"} loading={loading} />
           ))}
         </div>
 

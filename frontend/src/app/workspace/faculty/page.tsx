@@ -26,11 +26,6 @@ import {
   createFacultyMeeting,
   respondSupportRequest,
   broadcastFacultyAnnouncement,
-  createFacultyTask,
-  updateFacultyTaskStatus,
-  updateMeetingNotes,
-  decideProjectReview,
-  assignProjectVolunteer,
 } from "@/services/facultyDataService";
 import {
   LayoutDashboard,
@@ -93,8 +88,6 @@ export default function FacultyManagementPage() {
   const [domainFilter, setDomainFilter] = useState("All");
   const [stageFilter, setStageFilter] = useState("All");
   const [mentorStatusFilter, setMentorStatusFilter] = useState("All");
-  const [taskStatusFilter, setTaskStatusFilter] = useState("All");
-  const [notificationFilter, setNotificationFilter] = useState<"all" | "unread">("all");
 
   // Dialog & Detail Modals
   const [selectedProject, setSelectedProject] = useState<IncubationProject | null>(null);
@@ -112,31 +105,6 @@ export default function FacultyManagementPage() {
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
   const [announcementTitle, setAnnouncementTitle] = useState("");
   const [announcementContent, setAnnouncementContent] = useState("");
-
-  // Additional Interactive Modals for Volunteer & Coordinator Workflows
-  const [showNominateModal, setShowNominateModal] = useState<MentorAllocationRequest | null>(null);
-  const [nominateMentorName, setNominateMentorName] = useState("");
-  const [nominateMentorOrg, setNominateMentorOrg] = useState("");
-
-  const [showAssignVolunteerModal, setShowAssignVolunteerModal] = useState(false);
-  const [assignVolunteerProjId, setAssignVolunteerProjId] = useState("");
-  const [assignVolunteerName, setAssignVolunteerName] = useState("Prof. Ananya Sen");
-
-  const [showMeetingNotesModal, setShowMeetingNotesModal] = useState<FacultyMeeting | null>(null);
-  const [meetingNotesText, setMeetingNotesText] = useState("");
-  const [meetingAttendanceVerified, setMeetingAttendanceVerified] = useState(true);
-  const [preselectedMeetingProjectId, setPreselectedMeetingProjectId] = useState<string | null>(null);
-
-  // Dynamic filter options derived from live database records
-  const domainOptions = useMemo(() => {
-    const list = Array.from(new Set(projects.map((p) => p.domain).filter(Boolean)));
-    return ["All", ...list];
-  }, [projects]);
-
-  const stageOptions = useMemo(() => {
-    const list = Array.from(new Set(projects.map((p) => p.stage).filter(Boolean)));
-    return ["All", ...list];
-  }, [projects]);
 
   // Role toggle feedback
   const handleRoleChange = (role: FacultySubRole) => {
@@ -472,171 +440,6 @@ export default function FacultyManagementPage() {
       description: `Saved in MongoDB & calendar invite dispatched for ${date} at ${startTime}.`,
     });
     setShowScheduleMeetingModal(false);
-    setPreselectedMeetingProjectId(null);
-  };
-
-  // ---------------------------------------------------------------------------
-  // Save Review Meeting Notes (Persists to MongoDB)
-  // ---------------------------------------------------------------------------
-  const handleSaveMeetingNotes = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!showMeetingNotesModal) return;
-
-    await updateMeetingNotes(
-      showMeetingNotesModal.id,
-      meetingNotesText.trim(),
-      meetingAttendanceVerified
-    );
-
-    setMeetings((prev) =>
-      prev.map((m) =>
-        m.id === showMeetingNotesModal.id
-          ? {
-              ...m,
-              notes: meetingNotesText.trim(),
-              attendanceLogged: meetingAttendanceVerified,
-              invitationStatus: "Confirmed",
-            }
-          : m
-      )
-    );
-
-    toast.success("Review Notes Recorded", {
-      description: "Meeting records and attendee verification saved to MongoDB.",
-    });
-    setShowMeetingNotesModal(null);
-    setMeetingNotesText("");
-  };
-
-  // ---------------------------------------------------------------------------
-  // Volunteer Reassignment Workflow (Coordinator Scope - Persists to MongoDB)
-  // ---------------------------------------------------------------------------
-  const handleAssignVolunteer = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!assignVolunteerProjId) {
-      toast.error("Please select a project to assign.");
-      return;
-    }
-
-    const updated = await assignProjectVolunteer(assignVolunteerProjId, assignVolunteerName);
-    if (updated) {
-      setProjects((prev) =>
-        prev.map((p) =>
-          p.id === assignVolunteerProjId
-            ? { ...p, assignedVolunteerName: assignVolunteerName }
-            : p
-        )
-      );
-      toast.success("Volunteer Assigned Successfully", {
-        description: `Project updated with supervising advisor ${assignVolunteerName}.`,
-      });
-    } else {
-      setProjects((prev) =>
-        prev.map((p) =>
-          p.id === assignVolunteerProjId
-            ? { ...p, assignedVolunteerName: assignVolunteerName }
-            : p
-        )
-      );
-      toast.success("Volunteer assigned to project.");
-    }
-    setShowAssignVolunteerModal(false);
-  };
-
-  // ---------------------------------------------------------------------------
-  // Direct Project Stage Decision (Coordinator Scope - Persists to MongoDB & SQLite)
-  // ---------------------------------------------------------------------------
-  const handleDirectProjectDecision = async (projectId: string, decision: "approved" | "rejected") => {
-    if (activeRole !== "coordinator") {
-      toast.error("Access Denied", {
-        description: "Only Faculty Coordinators possess authority to directly decide project stages.",
-      });
-      return;
-    }
-
-    const updated = await decideProjectReview(projectId, decision);
-    if (updated) {
-      setProjects((prev) =>
-        prev.map((p) => (p.id === projectId ? { ...p, ...updated } : p))
-      );
-      if (selectedProject?.id === projectId) {
-        setSelectedProject((prev) => (prev ? { ...prev, ...updated } : null));
-      }
-      toast.success(`Project ${decision === "approved" ? "Approved & Advanced" : "Flagged At Risk"}`, {
-        description: "Synchronized with MongoDB database and application lifecycle.",
-      });
-    } else {
-      setProjects((prev) =>
-        prev.map((p) =>
-          p.id === projectId
-            ? {
-                ...p,
-                stage: decision === "approved" ? "Prototype" : p.stage,
-                progress: decision === "approved" ? 75 : p.progress,
-                health: decision === "approved" ? "On Track" : "At Risk",
-              }
-            : p
-        )
-      );
-      toast.success("Project updated.");
-    }
-  };
-
-  // ---------------------------------------------------------------------------
-  // Task Management (Persists to MongoDB)
-  // ---------------------------------------------------------------------------
-  const handleCreateTask = async (
-    title: string,
-    projectId: string,
-    assignedTo: string,
-    dueDate: string,
-    priority: "High" | "Medium" | "Low"
-  ) => {
-    const proj = projects.find((p) => p.id === projectId);
-    const created = await createFacultyTask({
-      title,
-      projectId,
-      projectTitle: proj?.title || "Incubation Project",
-      assignedTo,
-      assignedRole: "volunteer",
-      dueDate,
-      priority,
-      status: "Pending",
-      description: "Supervised milestone task assigned via Faculty Workspace.",
-    });
-
-    if (created) {
-      setTasks((prev) => [created, ...prev]);
-      toast.success("Task Assigned Successfully", {
-        description: `Saved to MongoDB for '${proj?.title || "project"}'.`,
-      });
-    } else {
-      const newTask: FacultyTask = {
-        id: `task-${Date.now()}`,
-        title,
-        projectId,
-        projectTitle: proj?.title || "Project",
-        assignedTo,
-        assignedRole: "volunteer",
-        dueDate,
-        priority,
-        status: "Pending",
-        description: "Supervised milestone task assigned via Faculty Workspace.",
-      };
-      setTasks((prev) => [newTask, ...prev]);
-      toast.success("Task assigned successfully.");
-    }
-    setShowCreateTaskModal(false);
-  };
-
-  const handleCompleteTask = async (taskId: string) => {
-    await updateFacultyTaskStatus(taskId, "Completed");
-    setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, status: "Completed" } : t))
-    );
-    toast.success("Task Completed", {
-      description: "Updated in MongoDB task records.",
-    });
   };
 
   return (
@@ -770,9 +573,9 @@ export default function FacultyManagementPage() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 lg:gap-4">
               {[
                 { label: "Assigned Projects", val: metrics.activeProjects, sub: "Supervised R&D", icon: FolderGit2, color: "bg-brand/10 text-brand" },
-                { label: "Researchers Supported", val: metrics.totalStudents, sub: "Across 4 teams", icon: Users2, color: "bg-emerald-50 text-emerald-700" },
-                { label: "Pending Mentors", val: metrics.pendingMentorReqs, sub: "Awaiting decision", icon: Sparkles, color: "bg-amber-50 text-amber-700" },
-                { label: "Upcoming Meetings", val: metrics.upcomingMeets, sub: "Milestone reviews", icon: CalendarDays, color: "bg-indigo-50 text-indigo-700" },
+                { label: "Researchers Supported", val: metrics.totalStudents, sub: "Across 4 teams", icon: Users2, color: "bg-brand/10 text-brand" },
+                { label: "Pending Mentors", val: metrics.pendingMentorReqs, sub: "Awaiting decision", icon: Sparkles, color: "bg-brand/10 text-brand" },
+                { label: "Upcoming Meetings", val: metrics.upcomingMeets, sub: "Milestone reviews", icon: CalendarDays, color: "bg-brand/10 text-brand" },
                 { label: "Overdue Milestones", val: metrics.overdueMilestones, sub: "Requires attention", icon: AlertTriangle, color: "bg-red-50 text-danger" },
                 { label: "Tasks In Action", val: metrics.pendingTasks, sub: "Active items", icon: CheckSquare, color: "bg-slate-50 text-slate-700" },
               ].map((kpi) => (
@@ -784,7 +587,7 @@ export default function FacultyManagementPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Left 2 cols: Priority Actions & Incubation Portfolio */}
               <div className="lg:col-span-2 space-y-4">
-                <Card className="p-5 border border-amber-200 bg-amber-50/30">
+                <Card className="p-5 border border-brand/30 bg-brand-soft/30">
                   <div className="flex items-start gap-3">
                     <AlertTriangle className="size-5 text-amber-700 shrink-0 mt-0.5" />
                     <div className="flex-1">
@@ -805,7 +608,7 @@ export default function FacultyManagementPage() {
                             </button>
                             <button
                               onClick={() => setShowAnnouncementModal(true)}
-                              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-amber-300 text-amber-900 hover:bg-amber-50 transition-colors"
+                              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-brand/30 text-brand hover:bg-brand/10 transition-colors"
                             >
                               Publish Announcement
                             </button>
@@ -820,7 +623,7 @@ export default function FacultyManagementPage() {
                             </button>
                             <button
                               onClick={() => setShowNewMentorRequestModal(true)}
-                              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-amber-300 text-amber-900 hover:bg-amber-50 transition-colors"
+                              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-brand/30 text-brand hover:bg-brand/10 transition-colors"
                             >
                               Submit Mentor Request
                             </button>
@@ -950,23 +753,15 @@ export default function FacultyManagementPage() {
           <div className="space-y-6 animate-in fade-in duration-200">
             {/* Permission banner if viewing in volunteer mode */}
             {activeRole !== "coordinator" && (
-              <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-start gap-3">
-                  <Lock className="size-4.5 text-amber-700 shrink-0 mt-0.5" />
-                  <div className="text-xs">
-                    <p className="font-bold">Viewing in Read-Only Volunteer Mode</p>
-                    <p className="mt-0.5 text-amber-800">
-                      Coordinator governance actions (final mentor approvals, volunteer reassignments, and announcements) require
-                      the Faculty Coordinator role.
-                    </p>
-                  </div>
+               <div className="p-4 rounded-xl bg-brand-soft border border-brand/30 text-brand-deep flex items-start gap-3">
+                <Lock className="size-4.5 text-amber-700 shrink-0 mt-0.5" />
+                <div className="text-xs">
+                  <p className="font-bold">Viewing in Read-Only Volunteer Mode</p>
+                  <p className="mt-0.5 text-amber-800">
+                    Coordinator governance actions (final mentor approvals, volunteer reassignments, and announcements) require
+                    the Faculty Coordinator role. Use the top switch to toggle into Coordinator Mode.
+                  </p>
                 </div>
-                <button
-                  onClick={() => handleRoleChange("coordinator")}
-                  className="px-3.5 py-1.5 rounded-lg bg-amber-700 hover:bg-amber-800 text-white text-xs font-bold shrink-0 transition-colors shadow-xs"
-                >
-                  Switch to Coordinator Mode
-                </button>
               </div>
             )}
 
@@ -1043,7 +838,7 @@ export default function FacultyManagementPage() {
                         ))}
                       </div>
                       {req.recommendedMentorName && (
-                        <div className="mt-2 text-[11px] text-emerald-800 bg-emerald-50/60 p-2 rounded-lg border border-emerald-100 flex items-center gap-1.5">
+                         <div className="mt-2 text-[11px] text-brand-deep bg-brand-soft/60 p-2 rounded-lg border border-brand/30 flex items-center gap-1.5">
                           <Sparkles className="size-3.5 text-emerald-600" />
                           <span>
                             Recommended by Volunteer <strong>{req.recommendedByVolunteerName}</strong>: {req.recommendedMentorName}{" "}
@@ -1132,14 +927,10 @@ export default function FacultyManagementPage() {
                       <span>Status: {fac.status}</span>
                       <button
                         disabled={activeRole !== "coordinator"}
-                        onClick={() => {
-                          setAssignVolunteerName(fac.name);
-                          if (projects.length > 0) setAssignVolunteerProjId(projects[0].id);
-                          setShowAssignVolunteerModal(true);
-                        }}
+                        onClick={() => toast.info(`Reassigning modal for ${fac.name} ready for backend linkage.`)}
                         className="text-brand font-bold hover:underline disabled:opacity-40"
                       >
-                        Assign to Project
+                        Adjust Assignment
                       </button>
                     </div>
                   </div>
@@ -1154,26 +945,6 @@ export default function FacultyManagementPage() {
         {/* ========================================================================= */}
         {!loading && activeTab === "volunteer" && (
           <div className="space-y-6 animate-in fade-in duration-200">
-            {activeRole === "coordinator" && (
-              <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-start gap-2.5">
-                  <UserCheck className="size-4 text-brand shrink-0 mt-0.5" />
-                  <div className="text-xs">
-                    <p className="font-bold">Faculty Volunteer Advisory Workspace</p>
-                    <p className="mt-0.5 text-blue-800/80">
-                      You are viewing in Coordinator Mode. You can log advisory guidance and nominate mentors here, or switch to Volunteer Mode.
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => handleRoleChange("volunteer")}
-                  className="px-3.5 py-1.5 rounded-lg bg-brand hover:bg-brand-hover text-white text-xs font-bold shrink-0 transition-colors shadow-xs"
-                >
-                  Switch to Volunteer Mode
-                </button>
-              </div>
-            )}
-
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h2 className="text-base font-bold text-ink">Faculty Volunteer Advisory Desk</h2>
@@ -1274,13 +1045,14 @@ export default function FacultyManagementPage() {
                       </div>
                       <button
                         onClick={() => {
-                          setShowNominateModal(r);
-                          setNominateMentorName(r.recommendedMentorName || "");
-                          setNominateMentorOrg(r.recommendedMentorOrg || "");
+                          const mentor = prompt("Enter suggested mentor name (e.g. Dr. Sunita Kapoor):", "Dr. Rajesh Varma");
+                          if (mentor) {
+                            handleVolunteerRecommendMentor(r.id, mentor, "Industry Partner Advisory");
+                          }
                         }}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand text-white text-xs font-bold hover:bg-brand-hover transition-colors shrink-0"
                       >
-                        <Sparkles className="size-3.5" /> Nominate Mentor
+                        <Sparkles className="size-3.5" /> Recommend Mentor
                       </button>
                     </div>
                   ))}
@@ -1313,11 +1085,11 @@ export default function FacultyManagementPage() {
                   onChange={(e) => setDomainFilter(e.target.value)}
                   className="px-2.5 py-1.5 text-xs border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/30 bg-white"
                 >
-                  {domainOptions.map((d) => (
-                    <option key={d} value={d}>
-                      {d === "All" ? "All Domains" : d}
-                    </option>
-                  ))}
+                  <option value="All">All Domains</option>
+                  <option value="AgriTech / ML">AgriTech / ML</option>
+                  <option value="GreenTech / Materials">GreenTech / Materials</option>
+                  <option value="IoT / Environment">IoT / Environment</option>
+                  <option value="HealthTech / Blockchain">HealthTech / Blockchain</option>
                 </select>
 
                 <select
@@ -1325,11 +1097,11 @@ export default function FacultyManagementPage() {
                   onChange={(e) => setStageFilter(e.target.value)}
                   className="px-2.5 py-1.5 text-xs border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/30 bg-white"
                 >
-                  {stageOptions.map((s) => (
-                    <option key={s} value={s}>
-                      {s === "All" ? "All Stages" : s}
-                    </option>
-                  ))}
+                  <option value="All">All Stages</option>
+                  <option value="Ideation">Ideation</option>
+                  <option value="Research">Research</option>
+                  <option value="Prototype">Prototype</option>
+                  <option value="Validation">Validation</option>
                 </select>
               </div>
 
@@ -1397,10 +1169,6 @@ export default function FacultyManagementPage() {
                         <div className="flex items-center justify-between text-muted-ink">
                           <span>Team Size:</span>
                           <strong className="text-ink">{proj.teamMembers.length} Students</strong>
-                        </div>
-                        <div className="flex items-center justify-between text-muted-ink">
-                          <span>Allocated Mentor:</span>
-                          <strong className="text-emerald-700">{proj.allocatedMentorName || "Pending Allocation"}</strong>
                         </div>
                         <div className="flex items-center justify-between text-muted-ink">
                           <span>Assigned Volunteer:</span>
@@ -1502,7 +1270,7 @@ export default function FacultyManagementPage() {
                         </div>
 
                         {req.recommendedMentorName && (
-                          <div className="p-3 rounded-lg bg-emerald-50/60 border border-emerald-100 text-xs text-emerald-950 mt-2">
+                             <div className="p-3 rounded-lg bg-brand-soft/60 border border-brand/30 text-xs text-brand-deep">
                             <p className="font-bold flex items-center gap-1.5">
                               <Sparkles className="size-3.5 text-emerald-600" />
                               Nominated Mentor: {req.recommendedMentorName} ({req.recommendedMentorOrg || "Industry Lead"})
@@ -1539,9 +1307,8 @@ export default function FacultyManagementPage() {
                               <div className="text-right">
                                 <button
                                   onClick={() => {
-                                    setShowNominateModal(req);
-                                    setNominateMentorName(req.recommendedMentorName || "");
-                                    setNominateMentorOrg(req.recommendedMentorOrg || "");
+                                    const mentor = prompt("Enter suggested mentor name:", "Dr. Rajesh Varma");
+                                    if (mentor) handleVolunteerRecommendMentor(req.id, mentor, "Industry Partner");
                                   }}
                                   className="px-3 py-1.5 rounded-lg bg-brand text-white text-xs font-bold hover:bg-brand-hover transition-colors"
                                 >
@@ -1552,7 +1319,7 @@ export default function FacultyManagementPage() {
                             )}
                           </>
                         ) : (
-                          <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg">
+                          <span className="text-xs font-semibold text-brand bg-brand-soft px-2.5 py-1 rounded-lg">
                             Decision Finalized
                           </span>
                         )}
@@ -1585,7 +1352,7 @@ export default function FacultyManagementPage() {
             </div>
 
             {/* Provider Integration Notice */}
-            <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-950 text-xs flex items-start gap-2.5">
+                            <div className="p-3.5 rounded-xl bg-brand-soft border border-brand/30 text-brand-deep text-xs flex items-start gap-2.5">
               <Calendar className="size-4 text-brand shrink-0 mt-0.5" />
               <div>
                 <p className="font-bold">OAuth Calendar & Room Dispatch Integration Ready</p>
@@ -1628,9 +1395,13 @@ export default function FacultyManagementPage() {
                     <div className="flex items-center gap-2 shrink-0">
                       <button
                         onClick={() => {
-                          setShowMeetingNotesModal(m);
-                          setMeetingNotesText(m.notes || "");
-                          setMeetingAttendanceVerified(m.attendanceLogged !== false);
+                          const note = prompt("Record review notes / action items:", m.notes || "Prototype passed benchmark criteria.");
+                          if (note) {
+                            setMeetings((prev) =>
+                              prev.map((item) => (item.id === m.id ? { ...item, notes: note, attendanceLogged: true } : item))
+                            );
+                            toast.success("Meeting Notes & Attendance Saved");
+                          }
                         }}
                         className="px-3 py-1.5 rounded-lg border border-line hover:border-brand/40 text-ink text-xs font-bold transition-colors"
                       >
@@ -1664,28 +1435,9 @@ export default function FacultyManagementPage() {
               </button>
             </div>
 
-            {/* Task Filter Tabs */}
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {["All", "Pending", "In Progress", "Completed"].map((st) => (
-                <button
-                  key={st}
-                  onClick={() => setTaskStatusFilter(st)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
-                    taskStatusFilter === st
-                      ? "bg-brand text-white border-brand"
-                      : "bg-white text-muted-ink border-line hover:border-brand/40"
-                  }`}
-                >
-                  {st}
-                </button>
-              ))}
-            </div>
-
             {/* Task Cards */}
             <div className="space-y-3">
-              {tasks
-                .filter((t) => taskStatusFilter === "All" || t.status === taskStatusFilter)
-                .map((t) => (
+              {tasks.map((t) => (
                 <Card key={t.id} className="p-4 border border-line flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 mb-1">
@@ -1720,7 +1472,12 @@ export default function FacultyManagementPage() {
                   <div className="shrink-0 flex items-center gap-2">
                     {t.status !== "Completed" && (
                       <button
-                        onClick={() => handleCompleteTask(t.id)}
+                        onClick={() => {
+                          setTasks((prev) =>
+                            prev.map((item) => (item.id === t.id ? { ...item, status: "Completed" } : item))
+                          );
+                          toast.success(`Task '${t.title}' marked as completed.`);
+                        }}
                         className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors"
                       >
                         Mark Done
@@ -1738,83 +1495,46 @@ export default function FacultyManagementPage() {
         {/* ========================================================================= */}
         {!loading && activeTab === "notifications" && (
           <div className="space-y-6 animate-in fade-in duration-200">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-base font-bold text-ink">Faculty Notification Center</h2>
                 <p className="text-xs text-muted-ink">Alerts, milestone updates, and mentor request transitions</p>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="flex items-center bg-canvas p-1 rounded-lg border border-line text-xs font-semibold">
-                  <button
-                    onClick={() => setNotificationFilter("all")}
-                    className={`px-2.5 py-1 rounded-md transition-colors ${
-                      notificationFilter === "all" ? "bg-white text-ink shadow-2xs font-bold" : "text-muted-ink hover:text-ink"
-                    }`}
-                  >
-                    All ({notifications.length})
-                  </button>
-                  <button
-                    onClick={() => setNotificationFilter("unread")}
-                    className={`px-2.5 py-1 rounded-md transition-colors ${
-                      notificationFilter === "unread" ? "bg-white text-brand shadow-2xs font-bold" : "text-muted-ink hover:text-ink"
-                    }`}
-                  >
-                    Unread ({notifications.filter((n) => !n.read).length})
-                  </button>
-                </div>
-                <button
-                  onClick={() => {
-                    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-                    toast.success("All notifications marked as read.");
-                  }}
-                  className="text-xs font-bold text-brand hover:underline px-2 py-1"
-                >
-                  Mark All Read
-                </button>
-              </div>
+              <button
+                onClick={() => {
+                  setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+                  toast.success("All notifications marked as read.");
+                }}
+                className="text-xs font-bold text-brand hover:underline"
+              >
+                Mark All Read
+              </button>
             </div>
 
             <div className="space-y-2.5">
-              {notifications
-                .filter((n) => (notificationFilter === "unread" ? !n.read : true))
-                .map((n) => (
-                  <Card
-                    key={n.id}
-                    onClick={() => {
-                      if (!n.read) {
-                        setNotifications((prev) =>
-                          prev.map((item) => (item.id === n.id ? { ...item, read: true } : item))
-                        );
-                        toast.success("Notification marked as read");
-                      }
-                    }}
-                    className={`p-4 border transition-all cursor-pointer ${
-                      n.read ? "border-line bg-white" : "border-brand/40 bg-brand/5 shadow-2xs hover:bg-brand/10"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-start gap-3">
-                        <div
-                          className={`size-2 rounded-full mt-1.5 shrink-0 ${
-                            n.priority === "urgent" ? "bg-danger" : "bg-brand"
-                          }`}
-                        />
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="text-xs font-bold text-ink">{n.title}</h4>
-                            {!n.read && (
-                              <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-brand text-white uppercase">
-                                New
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs text-muted-ink mt-0.5 leading-relaxed">{n.message}</p>
-                        </div>
+              {notifications.map((n) => (
+                <Card
+                  key={n.id}
+                  className={`p-4 border transition-all ${
+                    n.read ? "border-line bg-white" : "border-brand/30 bg-brand/5 shadow-2xs"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <div
+                        className={`size-2 rounded-full mt-1.5 shrink-0 ${
+                          n.priority === "urgent" ? "bg-danger" : "bg-brand"
+                        }`}
+                      />
+                      <div>
+                        <h4 className="text-xs font-bold text-ink">{n.title}</h4>
+                        <p className="text-xs text-muted-ink mt-0.5 leading-relaxed">{n.message}</p>
                       </div>
-                      <span className="text-[11px] text-muted-ink shrink-0">{n.timestamp}</span>
                     </div>
-                  </Card>
-                ))}
+                    <span className="text-[11px] text-muted-ink shrink-0">{n.timestamp}</span>
+                  </div>
+                </Card>
+              ))}
             </div>
           </div>
         )}
@@ -1866,16 +1586,8 @@ export default function FacultyManagementPage() {
                     <strong className="text-ink">{selectedProject.leadStudent} ({selectedProject.rollNumber})</strong>
                   </div>
                   <div>
-                    <span className="text-muted-ink block text-[11px]">Allocated Mentor</span>
-                    <strong className="text-emerald-700">{selectedProject.allocatedMentorName || "Pending Allocation"}</strong>
-                  </div>
-                  <div>
                     <span className="text-muted-ink block text-[11px]">Assigned Volunteer</span>
                     <strong className="text-brand">{selectedProject.assignedVolunteerName || "Unassigned"}</strong>
-                  </div>
-                  <div>
-                    <span className="text-muted-ink block text-[11px]">Cohort Health</span>
-                    <strong className="text-ink">{selectedProject.health}</strong>
                   </div>
                   <div>
                     <span className="text-muted-ink block text-[11px]">Next Milestone</span>
@@ -1900,45 +1612,7 @@ export default function FacultyManagementPage() {
                 </div>
               </div>
 
-              <div className="px-6 py-4 border-t border-line bg-canvas/40 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      setPreselectedMeetingProjectId(selectedProject.id);
-                      setSelectedProject(null);
-                      setShowScheduleMeetingModal(true);
-                    }}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-line bg-white hover:bg-canvas text-xs font-bold text-ink transition-colors"
-                  >
-                    <CalendarDays className="size-3.5 text-brand" /> Schedule Review
-                  </button>
-
-                  {activeRole === "coordinator" && (
-                    <button
-                      onClick={() => {
-                        setAssignVolunteerProjId(selectedProject.id);
-                        if (selectedProject.assignedVolunteerName) {
-                          setAssignVolunteerName(selectedProject.assignedVolunteerName);
-                        }
-                        setSelectedProject(null);
-                        setShowAssignVolunteerModal(true);
-                      }}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-line bg-white hover:bg-canvas text-xs font-bold text-ink transition-colors"
-                    >
-                      <Users2 className="size-3.5 text-brand" /> Assign Volunteer
-                    </button>
-                  )}
-
-                  {activeRole === "coordinator" && selectedProject.stage !== "Prototype" && (
-                    <button
-                      onClick={() => handleDirectProjectDecision(selectedProject.id, "approved")}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-xs font-bold text-white transition-colors"
-                    >
-                      <CheckCircle2 className="size-3.5" /> Advance to Prototype
-                    </button>
-                  )}
-                </div>
-
+              <div className="px-6 py-4 border-t border-line bg-canvas/40 flex justify-end">
                 <button
                   onClick={() => setSelectedProject(null)}
                   className="px-4 py-2 text-xs font-bold text-muted-ink border border-line rounded-lg hover:bg-white transition-colors"
@@ -2211,7 +1885,6 @@ export default function FacultyManagementPage() {
                   <label className="block font-bold text-ink mb-1">Target Project *</label>
                   <select
                     id="mProj"
-                    defaultValue={preselectedMeetingProjectId || (projects[0]?.id || "")}
                     className="w-full px-3 py-2 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/30 bg-white"
                   >
                     {projects.map((p) => (
@@ -2476,7 +2149,22 @@ export default function FacultyManagementPage() {
                         return;
                       }
 
-                      handleCreateTask(title.trim(), projId, owner || "Faculty Volunteer", due, prio);
+                      const proj = projects.find((p) => p.id === projId);
+                      const newTask: FacultyTask = {
+                        id: `task-${Date.now()}`,
+                        title: title.trim(),
+                        projectId: projId,
+                        projectTitle: proj?.title || "Project",
+                        assignedTo: owner,
+                        assignedRole: "volunteer",
+                        dueDate: due,
+                        priority: prio,
+                        status: "Pending",
+                        description: "Task logged via Faculty Management module.",
+                      };
+                      setTasks([newTask, ...tasks]);
+                      toast.success("Task assigned successfully.");
+                      setShowCreateTaskModal(false);
                     }}
                     className="px-4 py-2 font-bold bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors shadow-xs"
                   >
@@ -2484,253 +2172,6 @@ export default function FacultyManagementPage() {
                   </button>
                 </div>
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* ========================================================================= */}
-        {/* MODAL 8: NOMINATE MENTOR MODAL (VOLUNTEER)                               */}
-        {/* ========================================================================= */}
-        {showNominateModal && (
-          <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4"
-            onClick={() => setShowNominateModal(null)}
-          >
-            <div
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-lg border border-line overflow-hidden animate-in fade-in zoom-in-95 duration-150"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="px-6 py-5 border-b border-line flex items-center justify-between bg-canvas/30">
-                <h3 className="text-sm font-bold text-ink flex items-center gap-2">
-                  <Sparkles className="size-4 text-brand" /> Nominate Industry Mentor
-                </h3>
-                <button onClick={() => setShowNominateModal(null)}>
-                  <X className="size-4 text-muted-ink" />
-                </button>
-              </div>
-
-              <div className="p-6 space-y-4 text-xs">
-                <div>
-                  <p className="text-muted-ink">Target Incubation Project:</p>
-                  <p className="font-bold text-ink text-sm mt-0.5">{showNominateModal.projectTitle}</p>
-                  <p className="text-[11px] text-muted-ink mt-0.5">
-                    Lead: {showNominateModal.studentName} ({showNominateModal.studentRollNo})
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-muted-ink font-semibold mb-1">Requested Skills:</p>
-                  <div className="flex flex-wrap gap-1">
-                    {showNominateModal.requestedExpertise.map((exp) => (
-                      <span key={exp} className="px-2 py-0.5 rounded text-[10px] font-bold bg-canvas border border-line text-ink">
-                        {exp}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block font-bold text-ink mb-1.5">Nominated Mentor Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={nominateMentorName}
-                    onChange={(e) => setNominateMentorName(e.target.value)}
-                    placeholder="e.g. Vikramaditya Rao, Dr. Sunita Kapoor, Dr. Vikram Malhotra"
-                    className="w-full px-3 py-2 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/30 bg-white"
-                  />
-                  <div className="mt-1.5 flex flex-wrap gap-1 text-[10px] text-muted-ink">
-                    <span>Quick Suggest:</span>
-                    {["Vikramaditya Rao", "Dr. Sunita Kapoor", "Dr. Vikram Malhotra", "Sanjay Singhal"].map((nm) => (
-                      <button
-                        key={nm}
-                        type="button"
-                        onClick={() => {
-                          setNominateMentorName(nm);
-                          if (!nominateMentorOrg) setNominateMentorOrg("DBIT Industry Mentor Network");
-                        }}
-                        className="text-brand font-semibold hover:underline"
-                      >
-                        {nm} ·
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block font-bold text-ink mb-1.5">Mentor Affiliation / Organization</label>
-                  <input
-                    type="text"
-                    value={nominateMentorOrg}
-                    onChange={(e) => setNominateMentorOrg(e.target.value)}
-                    placeholder="e.g. DeepTech Venture Studio, Tata Consultancy, Bosch IoT"
-                    className="w-full px-3 py-2 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/30 bg-white"
-                  />
-                </div>
-
-                <div className="flex justify-end gap-2 pt-2 border-t border-line">
-                  <button
-                    type="button"
-                    onClick={() => setShowNominateModal(null)}
-                    className="px-4 py-2 font-semibold text-muted-ink border border-line rounded-lg hover:bg-canvas"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleVolunteerRecommendMentor(showNominateModal.id, nominateMentorName, nominateMentorOrg)}
-                    className="px-4 py-2 font-bold bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors shadow-xs"
-                  >
-                    Submit Nomination
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ========================================================================= */}
-        {/* MODAL 9: ASSIGN VOLUNTEER MODAL (COORDINATOR)                            */}
-        {/* ========================================================================= */}
-        {showAssignVolunteerModal && (
-          <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4"
-            onClick={() => setShowAssignVolunteerModal(false)}
-          >
-            <div
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-lg border border-line overflow-hidden animate-in fade-in zoom-in-95 duration-150"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="px-6 py-5 border-b border-line flex items-center justify-between bg-canvas/30">
-                <h3 className="text-sm font-bold text-ink flex items-center gap-2">
-                  <Users2 className="size-4 text-brand" /> Assign Supervising Volunteer
-                </h3>
-                <button onClick={() => setShowAssignVolunteerModal(false)}>
-                  <X className="size-4 text-muted-ink" />
-                </button>
-              </div>
-
-              <form onSubmit={handleAssignVolunteer} className="p-6 space-y-4 text-xs">
-                <div>
-                  <label className="block font-bold text-ink mb-1.5">Select Incubation Project *</label>
-                  <select
-                    value={assignVolunteerProjId}
-                    onChange={(e) => setAssignVolunteerProjId(e.target.value)}
-                    className="w-full px-3 py-2 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/30 bg-white"
-                  >
-                    {projects.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.title} (Current: {p.assignedVolunteerName || "Unassigned"})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block font-bold text-ink mb-1.5">Supervising Faculty Volunteer *</label>
-                  <select
-                    value={assignVolunteerName}
-                    onChange={(e) => setAssignVolunteerName(e.target.value)}
-                    className="w-full px-3 py-2 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/30 bg-white"
-                  >
-                    <option value="Prof. Ananya Sen">Prof. Ananya Sen (Computer Science & AI)</option>
-                    <option value="Prof. Rajiv Menon">Prof. Rajiv Menon (Electronics & IoT)</option>
-                    <option value="Dr. Vikram Malhotra">Dr. Vikram Malhotra (AgriTech & ML)</option>
-                    <option value="Prof. Sunita Patil">Prof. Sunita Patil (Chemical & Materials)</option>
-                  </select>
-                </div>
-
-                <div className="flex justify-end gap-2 pt-2 border-t border-line">
-                  <button
-                    type="button"
-                    onClick={() => setShowAssignVolunteerModal(false)}
-                    className="px-4 py-2 font-semibold text-muted-ink border border-line rounded-lg hover:bg-canvas"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 font-bold bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors shadow-xs"
-                  >
-                    Confirm Assignment
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* ========================================================================= */}
-        {/* MODAL 10: MEETING NOTES & ATTENDANCE MODAL                               */}
-        {/* ========================================================================= */}
-        {showMeetingNotesModal && (
-          <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4"
-            onClick={() => setShowMeetingNotesModal(null)}
-          >
-            <div
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-lg border border-line overflow-hidden animate-in fade-in zoom-in-95 duration-150"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="px-6 py-5 border-b border-line flex items-center justify-between bg-canvas/30">
-                <h3 className="text-sm font-bold text-ink flex items-center gap-2">
-                  <FileText className="size-4 text-brand" /> Record Review Notes & Attendance
-                </h3>
-                <button onClick={() => setShowMeetingNotesModal(null)}>
-                  <X className="size-4 text-muted-ink" />
-                </button>
-              </div>
-
-              <form onSubmit={handleSaveMeetingNotes} className="p-6 space-y-4 text-xs">
-                <div>
-                  <p className="text-muted-ink">Meeting Session:</p>
-                  <p className="font-bold text-ink text-sm mt-0.5">{showMeetingNotesModal.title}</p>
-                  <p className="text-[11px] text-muted-ink mt-0.5">
-                    {showMeetingNotesModal.projectTitle} · {showMeetingNotesModal.date} ({showMeetingNotesModal.startTime})
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block font-bold text-ink mb-1.5">Official Meeting Notes & Action Items *</label>
-                  <textarea
-                    rows={4}
-                    required
-                    value={meetingNotesText}
-                    onChange={(e) => setMeetingNotesText(e.target.value)}
-                    placeholder="Record discussion summary, milestone decisions, and assigned follow-up deliverables..."
-                    className="w-full px-3 py-2 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/30 resize-none bg-white"
-                  />
-                </div>
-
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-canvas border border-line">
-                  <input
-                    type="checkbox"
-                    id="attendanceVerified"
-                    checked={meetingAttendanceVerified}
-                    onChange={(e) => setMeetingAttendanceVerified(e.target.checked)}
-                    className="size-4 rounded border-line text-brand focus:ring-brand/30"
-                  />
-                  <label htmlFor="attendanceVerified" className="font-semibold text-ink cursor-pointer">
-                    Verify Attendee Attendance (Logged in Institutional Record)
-                  </label>
-                </div>
-
-                <div className="flex justify-end gap-2 pt-2 border-t border-line">
-                  <button
-                    type="button"
-                    onClick={() => setShowMeetingNotesModal(null)}
-                    className="px-4 py-2 font-semibold text-muted-ink border border-line rounded-lg hover:bg-canvas"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 font-bold bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors shadow-xs"
-                  >
-                    Save Notes to MongoDB
-                  </button>
-                </div>
-              </form>
             </div>
           </div>
         )}

@@ -25,7 +25,7 @@ const TRL_LEVELS = [
       "Have you identified and documented the fundamental scientific principles underlying your technology?",
       "Is there peer-reviewed literature supporting the feasibility of your concept?",
     ],
-    color: "bg-red-100 text-red-800 border-red-200",
+    color: "bg-brand-soft text-brand border-brand/30",
   },
   {
     level: 2,
@@ -36,7 +36,7 @@ const TRL_LEVELS = [
       "Have you formulated a specific application for the basic principles observed?",
       "Can you describe how the technology could solve a real-world problem?",
     ],
-    color: "bg-orange-100 text-orange-800 border-orange-200",
+    color: "bg-brand-soft text-brand border-brand/30",
   },
   {
     level: 3,
@@ -47,7 +47,7 @@ const TRL_LEVELS = [
       "Have you conducted experiments that validate the technology concept?",
       "Do you have laboratory measurements supporting your analytical models?",
     ],
-    color: "bg-yellow-100 text-yellow-800 border-yellow-200",
+    color: "bg-brand-soft text-brand border-brand/30",
   },
   {
     level: 4,
@@ -58,7 +58,7 @@ const TRL_LEVELS = [
       "Have you integrated basic components of the technology into a working laboratory model?",
       "Have you benchmarked your prototype against existing solutions or baseline metrics?",
     ],
-    color: "bg-lime-100 text-lime-800 border-lime-200",
+    color: "bg-brand-soft text-brand border-brand/30",
   },
   {
     level: 5,
@@ -69,7 +69,7 @@ const TRL_LEVELS = [
       "Has your technology been tested in a simulated or representative environment?",
       "Have you identified and resolved key technical challenges at this stage?",
     ],
-    color: "bg-green-100 text-green-800 border-green-200",
+    color: "bg-brand-soft text-brand border-brand/30",
   },
   {
     level: 6,
@@ -80,7 +80,7 @@ const TRL_LEVELS = [
       "Have you demonstrated a near-final prototype in a relevant operating environment?",
       "Have you received feedback from potential end-users or industry partners?",
     ],
-    color: "bg-teal-100 text-teal-800 border-teal-200",
+    color: "bg-brand-soft text-brand border-brand/30",
   },
   {
     level: 7,
@@ -113,7 +113,7 @@ const TRL_LEVELS = [
       "Is the technology commercially deployed and generating value?",
       "Have you validated the technology through successful operational missions or customer deployments?",
     ],
-    color: "bg-indigo-100 text-indigo-800 border-indigo-200",
+    color: "bg-brand-soft text-brand border-brand/30",
   },
 ];
 

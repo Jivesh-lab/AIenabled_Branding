@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const jwt = require('jsonwebtoken');
+const identity = require('../services/googleIdentity');
 const h = require('./testing/harness');
 const { models } = h;
 const email = require('./tools/email');
@@ -26,7 +27,7 @@ function clearEnv() {
   google.setFetch((...a) => fetch(...a));
 }
 
-test.beforeEach(() => { h.resetAll(); clearEnv(); });
+test.beforeEach(() => { h.resetAll(); clearEnv(); identity.resetClientFactory(); });
 test.after(clearEnv);
 
 test('email, sandbox: without SMTP the message is recorded as simulated and nothing is sent', async () => {
@@ -100,34 +101,109 @@ test('notify: only active accounts receive notices', async () => {
 // --------------------------------------------------------------------------
 // Google Calendar
 // --------------------------------------------------------------------------
-test('google: not configured -> a clear, friendly error and no connection URL', () => {
-  assert.throws(() => google.authUrl('u1'), (e) => e.code === 'GOOGLE_NOT_CONFIGURED' && /not configured/i.test(e.message));
+test('google: not configured -> a clear, friendly error and no connection URL', async () => {
+  await assert.rejects(() => google.authUrl('u1'), (e) => e.code === 'GOOGLE_NOT_CONFIGURED' && /not configured/i.test(e.message));
 });
 
-test('google: the connect URL carries a signed, expiring state; the callback stores ENCRYPTED tokens against that user only', async () => {
+test('google: the connect URL asks only for calendar.events (offline), with a signed single-use state', async () => {
   configureGoogle();
-  const url = new URL(google.authUrl('user-42'));
+  const url = new URL(await google.authUrl('user-42'));
   assert.strictEqual(url.hostname, 'accounts.google.com');
   assert.strictEqual(url.searchParams.get('client_id'), 'cid');
-  assert.match(url.searchParams.get('scope'), /calendar\.events/);
+  const scopes = url.searchParams.get('scope').split(' ');
+  assert.ok(scopes.includes('https://www.googleapis.com/auth/calendar.events'));
+  assert.ok(!scopes.some((s) => /calendar$|calendar\.readonly|freebusy/.test(s)), 'no broader calendar scope than needed');
   assert.strictEqual(url.searchParams.get('access_type'), 'offline');
-  const state = url.searchParams.get('state');
-  assert.strictEqual(jwt.verify(state, process.env.JWT_SECRET).sub, 'user-42');
+  assert.strictEqual(jwt.verify(url.searchParams.get('state'), process.env.JWT_SECRET).sub, 'user-42');
+});
 
-  google.setFetch(async (u) => {
-    if (u.includes('oauth2.googleapis.com/token')) return { ok: true, json: async () => ({ access_token: 'ya29.access', refresh_token: '1//refresh', expires_in: 3600, scope: 'calendar' }) };
-    return { ok: true, json: async () => ({ email: 'asha@gmail.com' }) };
-  });
+function fakeGoogle({ scope = 'openid email https://www.googleapis.com/auth/calendar.events', sub = 'sub-1', email = 'asha@gmail.com', refresh = '1//refresh', failExchange = false } = {}) {
+  const { OAuth2Client } = require('google-auth-library');
+  identity.setClientFactory(() => ({
+    generateAuthUrl: (options) => new OAuth2Client({ clientId: 'cid', clientSecret: 'csecret', redirectUri: process.env.GOOGLE_REDIRECT_URI }).generateAuthUrl(options),
+    getToken: async () => {
+      if (failExchange) throw new Error('invalid_grant');
+      return { tokens: { access_token: 'ya29.access', refresh_token: refresh, expiry_date: Date.now() + 3600e3, scope, id_token: 'id.token' } };
+    },
+    verifyIdToken: async () => ({ getPayload: () => ({ sub, email, email_verified: true, name: 'Asha' }) }),
+  }));
+}
+
+test('google: the callback stores ENCRYPTED tokens against the user who started the flow, once', async () => {
+  configureGoogle();
+  fakeGoogle();
+  const state = new URL(await google.authUrl('user-42')).searchParams.get('state');
   const result = await google.handleCallback({ code: 'auth-code', state });
   assert.deepStrictEqual(result, { userId: 'user-42', accountEmail: 'asha@gmail.com' });
   const [conn] = rows(models.CalendarConnection);
   assert.strictEqual(conn.userId, 'user-42');
+  assert.strictEqual(conn.accountSub, 'sub-1');
+  assert.strictEqual(conn.isPrimary, true);
   assert.ok(!conn.accessTokenEnc.includes('ya29') && !conn.refreshTokenEnc.includes('refresh'), 'tokens are encrypted at rest');
   assert.strictEqual(decrypt(conn.refreshTokenEnc), '1//refresh');
+  await assert.rejects(() => google.handleCallback({ code: 'auth-code', state }), (e) => e.code === 'STATE_INVALID', 'a replayed state is refused');
+});
 
-  await assert.rejects(() => google.handleCallback({ code: 'x', state: 'forged.state.value' }), /expired|invalid/i);
-  const other = jwt.sign({ sub: 'u', purpose: 'something-else' }, process.env.JWT_SECRET);
-  await assert.rejects(() => google.handleCallback({ code: 'x', state: other }), /Invalid connection request/);
+test('google: forged, mismatched and wrong-purpose states are refused', async () => {
+  configureGoogle();
+  fakeGoogle();
+  await assert.rejects(() => google.handleCallback({ code: 'x', state: 'forged.state.value' }), (e) => e.code === 'STATE_INVALID');
+  const wrongPurpose = jwt.sign({ sub: 'u', purpose: 'google-signin' }, process.env.JWT_SECRET);
+  await assert.rejects(() => google.handleCallback({ code: 'x', state: wrongPurpose }), (e) => e.code === 'STATE_INVALID');
+  const noNonce = jwt.sign({ sub: 'u', purpose: 'google-calendar', t: 'never-issued' }, process.env.JWT_SECRET);
+  await assert.rejects(() => google.handleCallback({ code: 'x', state: noNonce }), (e) => e.code === 'STATE_INVALID');
+  assert.strictEqual(rows(models.CalendarConnection).length, 0);
+});
+
+test('google: a state issued for one user cannot connect a calendar for another', async () => {
+  configureGoogle();
+  fakeGoogle();
+  const state = new URL(await google.authUrl('user-A')).searchParams.get('state');
+  const forged = jwt.sign({ ...jwt.decode(state), sub: 'user-B' }, process.env.JWT_SECRET);
+  await assert.rejects(() => google.handleCallback({ code: 'x', state: forged }), (e) => e.code === 'STATE_INVALID');
+  assert.strictEqual(rows(models.CalendarConnection).length, 0);
+});
+
+test('google: if the person unticks the calendar permission, nothing is connected and they are told why', async () => {
+  configureGoogle();
+  fakeGoogle({ scope: 'openid email' });
+  const state = new URL(await google.authUrl('user-42')).searchParams.get('state');
+  await assert.rejects(() => google.handleCallback({ code: 'x', state }), (e) => e.code === 'PERMISSION_DENIED' && /tick the calendar permission/.test(e.message));
+  assert.strictEqual(rows(models.CalendarConnection).length, 0);
+});
+
+test('google: a code Google rejects fails cleanly', async () => {
+  configureGoogle();
+  fakeGoogle({ failExchange: true });
+  const state = new URL(await google.authUrl('user-42')).searchParams.get('state');
+  await assert.rejects(() => google.handleCallback({ code: 'bad', state }), (e) => e.code === 'GOOGLE_CODE_REJECTED');
+});
+
+test('google: one person can connect two Google accounts; each is its own connection and only the owner sees them', async () => {
+  configureGoogle();
+  fakeGoogle({ sub: 'sub-1', email: 'work@gmail.com' });
+  await google.handleCallback({ code: 'c1', state: new URL(await google.authUrl('user-42')).searchParams.get('state') });
+  fakeGoogle({ sub: 'sub-2', email: 'personal@gmail.com', refresh: '1//refresh-2' });
+  await google.handleCallback({ code: 'c2', state: new URL(await google.authUrl('user-42')).searchParams.get('state') });
+  fakeGoogle({ sub: 'sub-9', email: 'other@gmail.com' });
+  await google.handleCallback({ code: 'c3', state: new URL(await google.authUrl('user-77')).searchParams.get('state') });
+
+  const mine = await google.listConnections('user-42');
+  assert.deepStrictEqual(mine.map((c) => c.accountEmail).sort(), ['personal@gmail.com', 'work@gmail.com']);
+  assert.strictEqual(mine.filter((c) => c.isPrimary).length, 1);
+  assert.ok(!JSON.stringify(mine).includes('Enc'), 'no token fields are ever returned');
+  assert.deepStrictEqual((await google.listConnections('user-77')).map((c) => c.accountEmail), ['other@gmail.com']);
+
+  // Disconnecting someone else's connection by id does nothing.
+  const theirs = (await google.listConnections('user-77'))[0].id;
+  assert.strictEqual(await google.disconnect('user-42', theirs), 0);
+  assert.strictEqual((await google.listConnections('user-77')).length, 1);
+  // Disconnecting the primary promotes the other one.
+  const primary = mine.find((c) => c.isPrimary).id;
+  assert.strictEqual(await google.disconnect('user-42', primary), 1);
+  const left = await google.listConnections('user-42');
+  assert.strictEqual(left.length, 1);
+  assert.strictEqual(left[0].isPrimary, true);
 });
 
 test('google: an expired access token is refreshed; a revoked grant marks the connection for reconnecting', async () => {

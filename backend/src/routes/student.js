@@ -5,6 +5,7 @@ const mongoose = require('mongoose');
 const StartupProfile = require('../models/StartupProfile');
 const MentorAllocation = require('../models/MentorAllocation');
 const FacultyProject = require('../models/FacultyProject');
+const TeamMembership = require('../models/TeamMembership');
 const User = require('../models/User');
 const { enqueueEvent } = require('../services/eventOrchestrator');
 
@@ -23,18 +24,27 @@ function studentOnly(req, res, next) {
     return res.status(500).json({ success: false, message: 'Server authentication is not configured.' });
   }
 
-  let token = req.cookies?.aai_token;
-  if (!token && req.headers.authorization) {
-    token = req.headers.authorization.replace(/^Bearer\s+/i, '');
-  }
-  if (!token) {
+  const authHeader = req.headers.authorization ? req.headers.authorization.replace(/^Bearer\s+/i, '') : null;
+  const cookieToken = req.cookies?.aai_token;
+  const tokensToTry = [authHeader, cookieToken].filter(Boolean);
+  if (tokensToTry.length === 0) {
     return res.status(401).json({ success: false, message: 'Authentication required. Please sign in.' });
   }
 
-  let payload;
-  try {
-    payload = jwt.verify(token, secret);
-  } catch {
+  let payload = null;
+  for (const token of tokensToTry) {
+    try {
+      const decoded = jwt.verify(token, secret);
+      if (decoded && decoded.sub) {
+        payload = decoded;
+        break;
+      }
+    } catch {
+      // try next token
+    }
+  }
+
+  if (!payload) {
     return res.status(401).json({ success: false, message: 'Your session is invalid or has expired.' });
   }
 
@@ -52,52 +62,26 @@ function escapeRegExp(text) {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-/** Resolves any sibling student accounts (e.g. student@aai-dbit.edu and student@aai-dbitic.edu) */
-async function getStudentUserIds(userId) {
-  if (!mongoose.Types.ObjectId.isValid(userId)) return [];
-  const currentUser = await User.findById(userId).select('email role').lean();
-  if (!currentUser || currentUser.role !== 'student') return [new mongoose.Types.ObjectId(userId)];
-  const emailPrefix = (currentUser.email || '').split('@')[0];
-  const siblingUsers = await User.find({
-    role: 'student',
-    $or: [
-      { email: new RegExp(`^${escapeRegExp(emailPrefix)}@`, 'i') },
-      { email: { $in: ['student@aai-dbitic.edu', 'student@aai-dbit.edu', 'student@dbit.ac.in'] } },
-    ],
-  }).select('_id').lean();
-  const ids = siblingUsers.map((u) => u._id);
-  if (!ids.some((id) => id.toString() === userId.toString())) {
-    ids.push(new mongoose.Types.ObjectId(userId));
-  }
-  return ids;
-}
-
 /** Whitelisted, student-safe view of an allocated mentor's account profile (if they have one). */
 async function mentorContact(name, userId) {
   if (!name && !userId) return null;
+  // The linked account is authoritative; the typed name is only a fallback for older records.
   let user = null;
   if (userId && mongoose.Types.ObjectId.isValid(userId)) {
     user = await User.findOne({ _id: userId, role: 'mentor', status: 'active', isSoftDeleted: { $ne: true } }).select('name email profile').lean();
   }
   if (!user && name) {
-    const cleanName = name.trim().split('(')[0].trim();
     user = await User.findOne({
       role: 'mentor',
-      name: new RegExp(escapeRegExp(cleanName), 'i'),
+      name: new RegExp(`^${escapeRegExp(name.trim())}( \\(.*\\))?$`, 'i'),
       status: 'active',
       isSoftDeleted: { $ne: true },
     })
       .select('name email profile')
       .lean();
   }
-  if (!user) {
-    return {
-      email: 'mentor@aai-dbit.edu',
-      organization: 'DBIT Incubation Centre Mentor Network',
-      bio: 'Industry Expert and Startup Advisor empanelled with DBIT Incubation Centre.',
-      expertise: ['Venture Architecture', 'Product Go-to-Market', 'Engineering Strategy'],
-    };
-  }
+  if (!user) return null;
+
   const profile = user.profile || {};
   const expertise = Array.isArray(profile.expertise)
     ? profile.expertise.filter((e) => typeof e === 'string')
@@ -105,17 +89,17 @@ async function mentorContact(name, userId) {
       ? profile.expertise.split(',').map((e) => e.trim()).filter(Boolean)
       : [];
   return {
-    email: user.email || 'mentor@aai-dbit.edu',
-    organization: typeof profile.organization === 'string' && profile.organization.trim() ? profile.organization : 'DBIT Incubation Centre Mentor Network',
-    bio: typeof profile.bio === 'string' && profile.bio.trim() ? profile.bio : 'Industry Expert and Startup Advisor empanelled with DBIT Incubation Centre.',
-    expertise: expertise.length > 0 ? expertise : ['Venture Architecture', 'Product Go-to-Market', 'Engineering Strategy'],
+    email: user.email || null,
+    organization: typeof profile.organization === 'string' ? profile.organization : null,
+    bio: typeof profile.bio === 'string' ? profile.bio : null,
+    expertise,
   };
 }
 
 // ---------------------------------------------------------------------------
 // GET /api/student/mentor-allocation/:applicationId
 //
-// The caller must be the founder recorded on the synced StartupProfile for that application.
+// The caller must be the founder recorded on the synced StartupProfile, or an accepted team member.
 // 404 means "no mentoring record is reachable for you" (missing OR not yours - indistinguishable on
 // purpose). 200 with allocation:null means the project is yours but no mentor request exists yet.
 // ---------------------------------------------------------------------------
@@ -126,47 +110,23 @@ router.get('/mentor-allocation/:applicationId', studentOnly, async (req, res) =>
       return res.status(404).json({ success: false, message: 'No mentoring record is available for this application.' });
     }
 
-    const studentIds = await getStudentUserIds(req.user.id);
-    const owned = await StartupProfile.findOne({
-      applicationId,
-      $or: [
-        { founderId: { $in: studentIds } },
-        { founderId: null },
-      ],
-    }).select('_id').lean();
+    // Founder, or a teammate with an ACCEPTED membership (never a merely-listed or pending one).
+    const owned = (await ownedProjectIds(req.user.id)).includes(applicationId);
     if (!owned) {
       return res.status(404).json({ success: false, message: 'No mentoring record is available for this application.' });
     }
 
     const [record, project] = await Promise.all([
-      MentorAllocation.findOne({ projectId: applicationId }).sort({ updatedAt: -1, createdAt: -1 }).lean(),
+      MentorAllocation.findOne({ projectId: applicationId }).sort({ updatedAt: -1 }).lean(),
       FacultyProject.findOne({ id: applicationId }).select('allocatedMentorName').lean(),
     ]);
 
     if (!record) {
-      if (project?.allocatedMentorName) {
-        const contact = await mentorContact(project.allocatedMentorName);
-        return res.json({
-          success: true,
-          data: {
-            applicationId,
-            allocation: {
-              status: 'approved',
-              requestedExpertise: [],
-              recommendation: null,
-              mentor: { name: project.allocatedMentorName, contact },
-              updatedAt: new Date().toISOString(),
-            },
-          },
-        });
-      }
       return res.json({ success: true, data: { applicationId, allocation: null } });
     }
 
-    const confirmed = CONFIRMED_STATUSES.includes(record.status) || Boolean(record.allocatedMentorName);
-    const mentorName = confirmed
-      ? (record.allocatedMentorName || project?.allocatedMentorName || record.recommendedMentorName || null)
-      : null;
+    const confirmed = CONFIRMED_STATUSES.includes(record.status);
+    const mentorName = confirmed ? record.allocatedMentorName || project?.allocatedMentorName || null : null;
     const contact = mentorName ? await mentorContact(mentorName, record.allocatedMentorUserId) : null;
 
     return res.json({
@@ -211,20 +171,23 @@ const MAX_OPEN_REQUESTS_PER_PROJECT = 5;
 
 async function ownedProjectIds(userId) {
   if (!mongoose.Types.ObjectId.isValid(userId)) return [];
-  const studentIds = await getStudentUserIds(userId);
-  const profiles = await StartupProfile.find({
-    $or: [
-      { founderId: { $in: studentIds } },
-      { founderId: null },
-      { founderId: userId },
-    ],
-  }).select('applicationId _id').lean();
-  const ids = [];
+
+  // 1. Projects where the user is the founder (the original behaviour).
+  const profiles = await StartupProfile.find({ founderId: userId }).select('applicationId _id').lean();
+  const ids = new Set();
   for (const p of profiles) {
-    if (p.applicationId) ids.push(p.applicationId);
-    if (p._id) ids.push(String(p._id));
+    if (p.applicationId) ids.add(p.applicationId);
+    if (p._id) ids.add(String(p._id));
   }
-  return ids;
+
+  // 2. Projects where the user has an accepted team membership (PHASE 5 extension).
+  const memberships = await TeamMembership.find({ userId: String(userId), status: 'ACCEPTED' }).select('projectId applicationId').lean();
+  for (const m of memberships) {
+    if (m.projectId) ids.add(m.projectId);
+    if (m.applicationId) ids.add(m.applicationId);
+  }
+
+  return [...ids];
 }
 
 /** Latest reminder outcome per record. Only what was recorded: absence means "no reminder was attempted". */

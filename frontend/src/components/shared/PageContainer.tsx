@@ -1,6 +1,11 @@
 /**
- * PageContainer — Deliberate incubation studio layout frame.
- * Single horizontal alignment across Student, Mentor, Investor, and Admin roles.
+ * PageContainer
+ * The single horizontal alignment system for every authenticated page.
+ *
+ * All role pages must render content inside this component so titles, sections,
+ * cards, tables and forms share one content grid.
+ *
+ * Spacing: generous premium padding. Width: fluid, capped at 1440px.
  */
 import { cn } from "@/lib/utils";
 
@@ -16,17 +21,13 @@ export default function PageContainer({
   className?: string;
 }) {
   return (
-    <div className={cn("mx-auto w-full max-w-[1440px] px-6 pt-2 pb-6 lg:px-8 lg:pt-2.5 lg:pb-8 space-y-6", className)}>
+    <div className={cn("mx-auto w-full max-w-[1440px] px-6 pt-4 pb-10 lg:px-8 lg:pt-6 lg:pb-12 space-y-8", className)}>
       {title && (
-        <div className="space-y-1 pb-2 border-b border-line/60 max-w-2xl">
-          <h1 className="text-[20px] sm:text-[22px] font-semibold leading-tight tracking-tight text-ink">
+        <div className="space-y-1">
+          <h1 className="text-[24px] lg:text-[30px] font-black leading-tight tracking-tight text-ink">
             {title}
           </h1>
-          {description && (
-            <p className="text-[13px] leading-relaxed text-muted-ink">
-              {description}
-            </p>
-          )}
+          {description && <p className="mt-1 text-[14px] text-muted-ink max-w-2xl">{description}</p>}
         </div>
       )}
       {children}

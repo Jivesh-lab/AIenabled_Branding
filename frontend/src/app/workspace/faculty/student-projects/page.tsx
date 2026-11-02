@@ -85,8 +85,8 @@ export default function FacultyStudentProjectsPage() {
           {[
             { label: "Total Projects", value: projects.length, icon: GraduationCap, color: "bg-brand/10 text-brand" },
             { label: "On Track", value: projects.filter((p) => p.health === "On Track").length, icon: TrendingUp, color: "bg-brand-cyan/10 text-brand-cyan-ink" },
-            { label: "Needs Attention", value: projects.filter((p) => p.health === "Needs Attention").length, icon: AlertTriangle, color: "bg-amber-50 text-amber-700" },
-            { label: "At Risk", value: projects.filter((p) => p.health === "At Risk").length, icon: AlertCircle, color: "bg-emerald-50 text-emerald-700" },
+            { label: "Needs Attention", value: projects.filter((p) => p.health === "Needs Attention").length, icon: AlertTriangle, color: "bg-brand/10 text-brand" },
+            { label: "At Risk", value: projects.filter((p) => p.health === "At Risk").length, icon: AlertCircle, color: "bg-brand/10 text-brand" },
           ].map((s) => (
             <MetricCard key={s.label} label={s.label} value={s.value} icon={s.icon} tone={s.color.includes("danger") ? "danger" : s.color.includes("amber") ? "attention" : "default"} loading={loading} />
           ))}

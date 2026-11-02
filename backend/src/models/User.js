@@ -20,9 +20,29 @@ const userSchema = new mongoose.Schema(
       trim: true,
       match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email address'],
     },
+    // Google-only accounts have no password; they cannot sign in with one.
     passwordHash: {
       type: String,
-      required: [true, 'Password is required'],
+      default: null,
+      required: [function requiresPassword() { return this.passwordLoginEnabled !== false; }, 'Password is required'],
+    },
+    passwordLoginEnabled: {
+      type: Boolean,
+      default: true,
+    },
+    // Google identity: the verified OpenID Connect `sub`, the stable identifier (never the e-mail address).
+    googleSub: {
+      type: String,
+      default: undefined,
+      index: { unique: true, partialFilterExpression: { googleSub: { $type: 'string' } } },
+    },
+    authProviders: {
+      type: [String],
+      default: ['password'],
+    },
+    avatarUrl: {
+      type: String,
+      default: null,
     },
     role: {
       type: String,

@@ -24,8 +24,10 @@ from agents.monitoring_agent import evaluate_startup_health
 from api.auth import AuthenticatedUser, get_internal_service
 from core import application_status as st
 from core import milestones as ms
+from core.team_access import has_accepted_membership
 from db.postgres import get_db
 from db.standalone_store import (
+    standalone_application_stub,
     standalone_create_milestone,
     standalone_list_milestones,
     standalone_owned_application,
@@ -86,6 +88,26 @@ async def _owned(pool, application_id: str, user: AuthenticatedUser) -> Dict[str
     return {"startup_id": str(record["startup_id"]), "status": record["status"]}
 
 
+async def _readable(pool, application_id: str, user: AuthenticatedUser) -> Dict[str, Any]:
+    """Like _owned, but an accepted team member may also read (writes keep using _owned: founder only)."""
+    try:
+        return await _owned(pool, application_id, user)
+    except HTTPException as exc:
+        if exc.status_code != 403 or user.role != "student":
+            raise
+    if not await has_accepted_membership(user.id, application_id):
+        raise HTTPException(status_code=403, detail="You do not own this application")
+    if not pool:
+        stub = standalone_application_stub(application_id)
+    else:
+        async with pool.acquire() as conn:
+            record = await conn.fetchrow("SELECT startup_id, status FROM applications WHERE id = $1", application_id)
+        stub = {"startup_id": str(record["startup_id"]), "status": record["status"]} if record else None
+    if not stub:
+        raise HTTPException(status_code=404, detail="Application not found")
+    return {**stub, "member_only": True}
+
+
 async def _rows(pool, startup_id: str) -> list:
     if not pool:
         return standalone_list_milestones(startup_id)
@@ -108,13 +130,13 @@ async def list_milestones(
     pool=Depends(get_db),
 ):
     _require(current_user, "view_applications")
-    owned = await _owned(pool, application_id, current_user)
+    owned = await _readable(pool, application_id, current_user)
     rows = await _rows(pool, owned["startup_id"])
     today = ms.today_ist()
     return {
         "milestones": [ms.milestone_view(r, today, current_user.id) for r in rows],
         "summary": ms.summarise(rows, today),
-        "canEdit": owned["status"] == st.APPROVED,
+        "canEdit": owned["status"] == st.APPROVED and not owned.get("member_only"),
     }
 
 
@@ -240,7 +262,7 @@ async def project_monitoring(
     if payload.tasksCompleted is not None and (payload.tasksTotal is None or payload.tasksCompleted > payload.tasksTotal):
         raise HTTPException(status_code=422, detail="tasksCompleted cannot exceed tasksTotal")
 
-    owned = await _owned(pool, application_id, current_user)
+    owned = await _readable(pool, application_id, current_user)
     rows = await _rows(pool, owned["startup_id"])
     today = ms.today_ist()
     summary = ms.summarise(rows, today)

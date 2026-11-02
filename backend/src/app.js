@@ -3,6 +3,7 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const connectDB = require('./config/db');
 const authRouter = require('./routes/auth');
+const googleAuthRouter = require('./routes/googleAuth');
 const auditRouter = require('./routes/audit');
 const adminRouter = require('./routes/admin');
 const investorsRouter = require('./routes/investors');
@@ -12,6 +13,7 @@ const notificationsRouter = require('./routes/notifications');
 const superAdminRouter = require('./routes/superAdmin');
 const agenticRouter = require('./routes/agentic');
 const integrationsRouter = require('./routes/integrations');
+const teamRouter = require('./routes/team');
 
 const app = express();
 
@@ -53,6 +55,7 @@ app.use(cookieParser()); // Parse Cookie header → req.cookies
 // ---------------------------------------------------------------------------
 // Routes
 // ---------------------------------------------------------------------------
+app.use('/api/auth/google', googleAuthRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/audit', auditRouter);
 app.use('/api/admin', adminRouter);
@@ -63,6 +66,7 @@ app.use('/api/notifications', notificationsRouter);
 app.use('/api/super-admin', superAdminRouter);
 app.use('/api/agentic', agenticRouter);
 app.use('/api/integrations', integrationsRouter);
+app.use('/api/team', teamRouter);
 
 // Health check
 app.get('/api/health', (_request, response) => {
