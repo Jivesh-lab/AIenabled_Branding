@@ -14,6 +14,8 @@
  * Needs MONGO_URI and DEMO_USER_PASSWORD in backend/.env (or the environment). Run `npm run seed:all` first so
  * a faculty coordinator and an admin exist.
  */
+const dns = require('dns');
+try { dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']); } catch {}
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../../.env') });
 const mongoose = require('mongoose');

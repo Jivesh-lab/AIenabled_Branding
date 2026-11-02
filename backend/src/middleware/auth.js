@@ -16,13 +16,11 @@ function devFallbackEnabled() {
 }
 
 async function authenticate(req, res, next) {
-  let token = req.cookies?.aai_token;
+  const authHeader = req.headers.authorization ? req.headers.authorization.replace(/^Bearer\s+/i, '') : null;
+  const cookieToken = req.cookies?.aai_token;
+  const tokensToTry = [authHeader, cookieToken].filter(Boolean);
 
-  if (!token && req.headers.authorization) {
-    token = req.headers.authorization.replace(/^Bearer\s+/i, '');
-  }
-
-  if (token) {
+  for (const token of tokensToTry) {
     try {
       const payload = jwt.verify(token, process.env.JWT_SECRET);
       
@@ -55,7 +53,14 @@ async function authenticate(req, res, next) {
         }
       }
 
-      req.user = { id: payload.sub, role: payload.role };
+      req.user = {
+        id: payload.sub,
+        role: payload.role,
+        ...(payload.name ? { name: payload.name } : {}),
+        ...(payload.email ? { email: payload.email } : {}),
+        ...(payload.status ? { status: payload.status } : {}),
+        ...(payload.isInvestorVerified !== undefined ? { isInvestorVerified: Boolean(payload.isInvestorVerified) } : {}),
+      };
       return next();
     } catch {
       // Invalid token, fall through to dev fallback / 401

@@ -7,6 +7,7 @@ const { getConfig } = require('./config');
 const monitoringAgent = require('./agents/monitoringAgent');
 const investorAgent = require('./agents/investorAgent');
 const { record } = require('./actionLog');
+const calendarSync = require('../services/calendarSync');
 
 /**
  * One worker tick for the agents. It is called by the existing event poller (services/eventOrchestrator),
@@ -24,15 +25,20 @@ async function heartbeat(patch) {
 }
 
 async function markStarted() {
+  // The calendar index changed from one connection per user to one per Google account; drop the old index.
+  await require('../models/CalendarConnection').syncIndexes().catch((error) => console.warn('[AGENTS] calendar index sync skipped:', error.message));
+  // Ensure TeamMembership unique indexes are in place from the first run.
+  await require('../models/TeamMembership').syncIndexes().catch((error) => console.warn('[AGENTS] TeamMembership index sync skipped:', error.message));
   await heartbeat({ startedAt: new Date() });
 }
 
 async function tick({ now = new Date(), log = console, force = false } = {}) {
   const began = Date.now();
-  const out = { recovered: 0, jobs: { ran: 0, failed: 0 }, sweep: null, error: null };
+  const out = { recovered: 0, jobs: { ran: 0, failed: 0 }, watchesRenewed: 0, sweep: null, error: null };
   try {
     out.recovered = await jobs.recoverInterrupted(now);
     out.jobs = await jobs.runDueJobs({ now });
+    out.watchesRenewed = await calendarSync.renewDueWatches();
     const cfg = getConfig();
     if (force || now.getTime() - lastSweepAt >= cfg.sweepMs) {
       lastSweepAt = now.getTime();

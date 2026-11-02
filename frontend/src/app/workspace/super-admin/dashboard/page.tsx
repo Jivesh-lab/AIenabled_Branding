@@ -4,6 +4,7 @@ import AgentHealthPanel from "@/components/agentic/AgentHealthPanel";
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import PageContainer from "@/components/shared/PageContainer";
+import { Card, SectionHeading, SectionDivider } from "@/components/shared/Surface";
 import {
   Shield,
   Users,
@@ -77,18 +78,18 @@ const TABS = [
 type TabId = (typeof TABS)[number]["id"];
 
 const ROLE_COLORS: Record<string, string> = {
-  student: "bg-blue-100 text-blue-800",
-  faculty: "bg-purple-100 text-purple-800",
-  mentor: "bg-emerald-100 text-emerald-800",
-  investor: "bg-cyan-100 text-cyan-800",
-  admin: "bg-orange-100 text-orange-800",
-  super_admin: "bg-red-100 text-red-800",
+  student: "bg-brand-soft text-brand font-semibold",
+  faculty: "bg-brand-soft text-brand font-semibold",
+  mentor: "bg-brand-soft text-brand font-semibold",
+  investor: "bg-brand-cyan-soft text-brand-cyan-ink font-semibold",
+  admin: "bg-brand-soft text-brand font-semibold",
+  super_admin: "bg-brand-soft text-brand font-semibold",
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  active: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  inactive: "bg-slate-100 text-slate-600 border-slate-200",
-  pending: "bg-amber-50 text-amber-700 border-amber-200",
+  active: "bg-brand-cyan-soft text-brand-cyan-ink border-brand-cyan/20",
+  inactive: "bg-canvas border-line text-muted-ink",
+  pending: "bg-brand-gold-soft text-brand-gold-ink border-brand-gold/20",
   rejected: "bg-red-50 text-red-700 border-red-200",
 };
 
@@ -98,9 +99,9 @@ const WORKSPACES = [
     role: "student",
     path: "/workspace/student/dashboard",
     icon: GraduationCap,
-    color: "from-blue-500/10 to-indigo-500/10 border-blue-200",
-    iconColor: "text-blue-600",
-    badgeColor: "bg-blue-100 text-blue-800",
+    color: "bg-brand-soft border-brand/30",
+    iconColor: "text-brand",
+    badgeColor: "bg-brand-soft text-brand font-semibold",
     description: "Inspect researcher project submissions, milestone trackers, meeting requests, and team profiles.",
   },
   {
@@ -108,9 +109,9 @@ const WORKSPACES = [
     role: "faculty",
     path: "/workspace/faculty/dashboard",
     icon: Award,
-    color: "from-purple-500/10 to-pink-500/10 border-purple-200",
-    iconColor: "text-purple-600",
-    badgeColor: "bg-purple-100 text-purple-800",
+    color: "bg-brand-soft border-brand/30",
+    iconColor: "text-brand",
+    badgeColor: "bg-brand-soft text-brand font-semibold",
     description: "Inspect project evaluations, academic research supervision, grade rubric assignments, and approvals.",
   },
   {
@@ -118,9 +119,9 @@ const WORKSPACES = [
     role: "mentor",
     path: "/workspace/mentor/dashboard",
     icon: Briefcase,
-    color: "from-emerald-500/10 to-teal-500/10 border-emerald-200",
-    iconColor: "text-emerald-600",
-    badgeColor: "bg-emerald-100 text-emerald-800",
+    color: "bg-brand-cyan-soft border-brand-cyan/30",
+    iconColor: "text-brand-cyan-ink",
+    badgeColor: "bg-brand-cyan-soft text-brand-cyan-ink font-semibold",
     description: "Inspect assigned mentorship sessions, feedback logs, availability calendar, and guidance history.",
   },
   {
@@ -128,9 +129,9 @@ const WORKSPACES = [
     role: "investor",
     path: "/workspace/investor/dashboard",
     icon: TrendingUp,
-    color: "from-cyan-500/10 to-blue-500/10 border-cyan-200",
-    iconColor: "text-cyan-600",
-    badgeColor: "bg-cyan-100 text-cyan-800",
+    color: "bg-brand-soft border-brand/30",
+    iconColor: "text-brand",
+    badgeColor: "bg-brand-soft text-brand font-semibold",
     description: "Inspect deal flow pipeline, venture evaluation decks, funding rounds, cap tables, and pitch requests.",
   },
   {
@@ -138,9 +139,9 @@ const WORKSPACES = [
     role: "admin",
     path: "/workspace/admin/dashboard",
     icon: Building2,
-    color: "from-orange-500/10 to-amber-500/10 border-orange-200",
-    iconColor: "text-orange-600",
-    badgeColor: "bg-orange-100 text-orange-800",
+    color: "bg-brand-soft border-brand/30",
+    iconColor: "text-brand",
+    badgeColor: "bg-brand-soft text-brand font-semibold",
     description: "Inspect admin control panel: cohort management, user approvals, announcement board, and moderation.",
   },
 ];
@@ -163,11 +164,11 @@ function StatCard({
   color: string;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm flex items-center justify-between gap-3">
+    <div className="rounded-xl border border-line bg-white p-4 shadow-sm flex items-center justify-between gap-3">
       <div>
-        <p className="text-xs text-slate-500 font-medium">{label}</p>
-        <p className="text-2xl font-bold text-slate-900 mt-1">{value}</p>
-        {sub && <p className="text-[11px] font-semibold mt-0.5 text-slate-500">{sub}</p>}
+        <p className="text-xs text-muted-ink font-medium">{label}</p>
+        <p className="text-2xl font-bold text-ink mt-1">{value}</p>
+        {sub && <p className="text-[11px] font-semibold mt-0.5 text-muted-ink">{sub}</p>}
       </div>
       <div className={`flex size-10 items-center justify-center rounded-lg ${color}`}>
         <Icon className="size-5" />
@@ -183,15 +184,14 @@ function OverviewTab({ stats, loading }: { stats: SystemStats | null; loading: b
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-pulse">
         {[...Array(8)].map((_, i) => (
-          <div key={i} className="h-24 rounded-xl bg-slate-100 border border-slate-200" />
-        ))}
-      </div>
+          <div key={i} className="h-24 rounded-xl bg-canvas border border-line" />
+        ))}      </div>
     );
   }
 
   if (!stats) {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center text-sm text-red-700">
+      <div className="rounded-xl border border-brand/30 bg-brand-soft p-6 text-center text-sm text-brand">
         <AlertCircle className="size-5 mx-auto mb-2" />
         Failed to load system stats. Backend may be unavailable.
       </div>
@@ -203,49 +203,51 @@ function OverviewTab({ stats, loading }: { stats: SystemStats | null; loading: b
   return (
     <div className="space-y-6">
       {/* Primary KPIs */}
+      <SectionDivider label="At a Glance" />
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           label="Total Users"
           value={stats.totalUsers}
           sub={`${stats.activeUsers} active`}
           icon={Users}
-          color="bg-blue-50 text-blue-600"
+          color="bg-brand-soft text-brand"
         />
         <StatCard
           label="Pending Approvals"
           value={stats.pendingApprovalsCount}
           sub="Awaiting review"
           icon={UserCheck}
-          color="bg-amber-50 text-amber-600"
+          color="bg-brand-gold-soft text-brand-gold-ink"
         />
         <StatCard
           label="Moderation Queue"
           value={stats.moderationItemsCount}
           sub="Items flagged"
           icon={AlertCircle}
-          color="bg-red-50 text-red-600"
+          color="bg-brand-soft text-brand"
         />
         <StatCard
           label="Mentor:Researcher Ratio"
           value={stats.mentorStudentRatio}
           sub="Current cohort"
           icon={Activity}
-          color="bg-emerald-50 text-emerald-600"
+          color="bg-brand-cyan-soft text-brand-cyan-ink"
         />
       </div>
 
       {/* Role breakdown */}
+      <SectionDivider label="Users by Role" />
       <div>
-        <h3 className="text-sm font-bold text-slate-700 mb-3">Users by Role</h3>
+        <h3 className="text-sm font-bold text-muted-ink mb-3">Users by Role</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {["student", "faculty", "mentor", "investor", "admin", "super_admin"].map((role) => (
             <div
               key={role}
-              className="rounded-xl border border-slate-200 bg-white p-4 text-center shadow-sm"
+              className="rounded-xl border border-line bg-white p-4 text-center shadow-sm"
             >
-              <p className="text-2xl font-bold text-slate-900">{roleStat(role)}</p>
+              <p className="text-2xl font-bold text-ink">{roleStat(role)}</p>
               <span
-                className={`mt-1.5 inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${ROLE_COLORS[role] || "bg-slate-100 text-slate-700"}`}
+                className={`mt-1.5 inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${ROLE_COLORS[role] || "bg-brand-soft text-brand"}`}
               >
                 {role.replace("_", " ")}
               </span>
@@ -255,26 +257,27 @@ function OverviewTab({ stats, loading }: { stats: SystemStats | null; loading: b
       </div>
 
       {/* Security status */}
+      <SectionDivider label="Security & Governance" />
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 flex items-center gap-3">
-          <ShieldCheck className="size-5 text-emerald-600" />
+        <div className="rounded-xl border border-brand-cyan/20 bg-brand-cyan-soft p-4 flex items-center gap-3">
+          <ShieldCheck className="size-5 text-brand-cyan-ink" />
           <div>
-            <p className="text-xs text-emerald-700 font-semibold">2FA Enforcement</p>
-            <p className="text-sm font-bold text-emerald-900">TOTP Active (RFC 6238)</p>
+            <p className="text-xs text-brand-cyan-ink font-semibold">2FA Enforcement</p>
+            <p className="text-sm font-bold text-brand-cyan-ink">TOTP Active (RFC 6238)</p>
           </div>
         </div>
-        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 flex items-center gap-3">
-          <Lock className="size-5 text-blue-600" />
+        <div className="rounded-xl border border-brand/30 bg-brand-soft p-4 flex items-center gap-3">
+          <Lock className="size-5 text-brand" />
           <div>
-            <p className="text-xs text-blue-700 font-semibold">Super Admin Access</p>
-            <p className="text-sm font-bold text-blue-900">CLI Seed Only (No Signup)</p>
+            <p className="text-xs text-brand font-semibold">Super Admin Access</p>
+            <p className="text-sm font-bold text-brand-deep">CLI Seed Only (No Signup)</p>
           </div>
         </div>
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 flex items-center gap-3">
-          <FileText className="size-5 text-amber-600" />
+        <div className="rounded-xl border border-brand-gold/20 bg-brand-gold-soft p-4 flex items-center gap-3">
+          <FileText className="size-5 text-brand-gold-ink" />
           <div>
-            <p className="text-xs text-amber-700 font-semibold">Audit Trail</p>
-            <p className="text-sm font-bold text-amber-900">MongoDB AuditLog Active</p>
+            <p className="text-xs text-brand-gold-ink font-semibold">Audit Trail</p>
+            <p className="text-sm font-bold text-brand-gold-ink">MongoDB AuditLog Active</p>
           </div>
         </div>
       </div>
@@ -371,13 +374,13 @@ function UserManagementTab() {
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
         <div className="relative flex-1 w-full">
-          <Search className="absolute left-3 top-2.5 size-4 text-slate-400" />
+          <Search className="absolute left-3 top-2.5 size-4 text-muted-ink" />
           <input
             type="text"
             placeholder="Search by name or email..."
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+            className="w-full pl-9 pr-3 py-2 text-xs border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/40"
           />
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -387,8 +390,8 @@ function UserManagementTab() {
               onClick={() => { setRoleFilter(r); setPage(1); }}
               className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors border ${
                 roleFilter === r
-                  ? "bg-slate-900 text-white border-slate-900"
-                  : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                  ? "bg-brand-deep text-white border-brand"
+                  : "bg-white text-muted-ink border-line hover:bg-canvas"
               }`}
             >
               {r === "all" ? "All Roles" : r}
@@ -402,8 +405,8 @@ function UserManagementTab() {
               onClick={() => { setStatusFilter(s); setPage(1); }}
               className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors border ${
                 statusFilter === s
-                  ? "bg-slate-900 text-white border-slate-900"
-                  : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                  ? "bg-brand-deep text-white border-brand"
+                  : "bg-white text-muted-ink border-line hover:bg-canvas"
               }`}
             >
               {s === "all" ? "All Status" : s}
@@ -412,7 +415,7 @@ function UserManagementTab() {
         </div>
         <button
           onClick={fetchUsers}
-          className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-slate-200 text-xs text-slate-600 hover:bg-slate-50 transition-colors"
+          className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-line text-xs text-muted-ink hover:bg-canvas transition-colors"
         >
           <RefreshCw className={`size-3.5 ${loading ? "animate-spin" : ""}`} />
           Refresh
@@ -420,10 +423,10 @@ function UserManagementTab() {
       </div>
 
       {/* Table */}
-      <div className="rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+      <div className="rounded-xl border border-line overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500 font-semibold border-b border-slate-200">
+            <thead className="bg-canvas text-[11px] uppercase tracking-wider text-muted-ink font-semibold border-b border-line">
               <tr>
                 <th className="px-4 py-3">Name / Email</th>
                 <th className="px-4 py-3">Role</th>
@@ -432,32 +435,32 @@ function UserManagementTab() {
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 bg-white">
+            <tbody className="divide-y divide-line bg-white">
               {loading ? (
                 [...Array(5)].map((_, i) => (
                   <tr key={i} className="animate-pulse">
-                    <td className="px-4 py-3"><div className="h-3 w-40 rounded bg-slate-100" /></td>
-                    <td className="px-4 py-3"><div className="h-3 w-16 rounded bg-slate-100" /></td>
-                    <td className="px-4 py-3"><div className="h-3 w-14 rounded bg-slate-100" /></td>
-                    <td className="px-4 py-3"><div className="h-3 w-20 rounded bg-slate-100" /></td>
-                    <td className="px-4 py-3"><div className="h-3 w-24 rounded bg-slate-100 ml-auto" /></td>
+                    <td className="px-4 py-3"><div className="h-3 w-40 rounded bg-canvas" /></td>
+                    <td className="px-4 py-3"><div className="h-3 w-16 rounded bg-canvas" /></td>
+                    <td className="px-4 py-3"><div className="h-3 w-14 rounded bg-canvas" /></td>
+                    <td className="px-4 py-3"><div className="h-3 w-20 rounded bg-canvas" /></td>
+                    <td className="px-4 py-3"><div className="h-3 w-24 rounded bg-canvas ml-auto" /></td>
                   </tr>
                 ))
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
+                  <td colSpan={5} className="px-4 py-8 text-center text-muted-ink">
                     No users found matching your filters.
                   </td>
                 </tr>
               ) : (
                 users.map((u) => (
-                  <tr key={u._id} className="hover:bg-slate-50/70 transition-colors">
+                  <tr key={u._id} className="hover:bg-canvas/70 transition-colors">
                     <td className="px-4 py-3">
-                      <p className="font-semibold text-slate-900">{u.name}</p>
-                      <p className="text-[11px] text-slate-500 font-mono">{u.email}</p>
+                      <p className="font-semibold text-ink">{u.name}</p>
+                      <p className="text-[11px] text-muted-ink font-mono">{u.email}</p>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${ROLE_COLORS[u.role] || "bg-slate-100 text-slate-700"}`}>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${ROLE_COLORS[u.role] || "bg-canvas text-muted-ink"}`}>
                         {u.role.replace("_", " ")}
                       </span>
                     </td>
@@ -466,22 +469,22 @@ function UserManagementTab() {
                         {u.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-slate-500 text-[11px]">
-                      {u.createdAt ? new Date(u.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" }) : "—"}
+                    <td className="px-4 py-3 text-muted-ink text-[11px]">
+                      {u.createdAt ? new Date(u.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" }) : "-"}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5 justify-end">
                         <button
                           title="Reset Password"
                           onClick={() => { setActionTarget(u); setActionType("reset"); setActionValue(""); setActionMsg(null); }}
-                          className="p-1.5 rounded-lg border border-slate-200 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700 transition-colors text-slate-500"
+                          className="p-1.5 rounded-lg border border-line hover:bg-brand/10 hover:border-brand/30 hover:text-brand transition-colors text-muted-ink"
                         >
                           <Key className="size-3.5" />
                         </button>
                         <button
                           title="Change Role"
                           onClick={() => { setActionTarget(u); setActionType("role"); setActionValue(u.role); setActionMsg(null); }}
-                          className="p-1.5 rounded-lg border border-slate-200 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition-colors text-slate-500"
+                          className="p-1.5 rounded-lg border border-line hover:bg-brand/10 hover:border-brand/30 hover:text-brand transition-colors text-muted-ink"
                         >
                           <UserCog className="size-3.5" />
                         </button>
@@ -489,7 +492,7 @@ function UserManagementTab() {
                           <button
                             title="Deactivate"
                             onClick={() => { setActionTarget(u); setActionType("deactivate"); setActionValue(""); setActionMsg(null); }}
-                            className="p-1.5 rounded-lg border border-slate-200 hover:bg-red-50 hover:border-red-300 hover:text-red-700 transition-colors text-slate-500"
+                            className="p-1.5 rounded-lg border border-line hover:bg-red-50 hover:border-red-300 hover:text-red-700 transition-colors text-muted-ink"
                           >
                             <Trash2 className="size-3.5" />
                           </button>
@@ -505,11 +508,11 @@ function UserManagementTab() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 bg-slate-50 text-xs text-slate-500">
+          <div className="flex items-center justify-between px-4 py-3 border-t border-line bg-canvas text-xs text-muted-ink">
             <span>Page {page} of {totalPages}</span>
             <div className="flex gap-2">
-              <button disabled={page <= 1} onClick={() => setPage(p => p - 1)} className="px-3 py-1 rounded border border-slate-200 hover:bg-white disabled:opacity-40 transition-colors">← Prev</button>
-              <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} className="px-3 py-1 rounded border border-slate-200 hover:bg-white disabled:opacity-40 transition-colors">Next →</button>
+              <button disabled={page <= 1} onClick={() => setPage(p => p - 1)} className="px-3 py-1 rounded border border-line hover:bg-white disabled:opacity-40 transition-colors">← Prev</button>
+              <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} className="px-3 py-1 rounded border border-line hover:bg-white disabled:opacity-40 transition-colors">Next →</button>
             </div>
           </div>
         )}
@@ -518,25 +521,25 @@ function UserManagementTab() {
       {/* Action Modal */}
       {actionTarget && actionType && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-2xl p-6 space-y-4">
+          <div className="w-full max-w-md rounded-2xl border border-line bg-white shadow-2xl p-6 space-y-4">
             <div className="flex items-start justify-between">
               <div>
-                <h3 className="font-bold text-slate-900 text-sm">
+                <h3 className="font-bold text-ink text-sm">
                   {actionType === "reset" && "Reset Password"}
                   {actionType === "role" && "Change Role"}
                   {actionType === "deactivate" && "Deactivate Account"}
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-muted-ink mt-0.5">
                   {actionTarget.name} · {actionTarget.email}
                 </p>
               </div>
-              <button onClick={() => { setActionTarget(null); setActionType(null); }} className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
+              <button onClick={() => { setActionTarget(null); setActionType(null); }} className="p-1 rounded-lg hover:bg-canvas text-muted-ink hover:text-muted-ink transition-colors">
                 <X className="size-4" />
               </button>
             </div>
 
             {actionMsg && (
-              <div className={`rounded-lg px-3 py-2 text-xs font-medium flex items-center gap-2 ${actionMsg.type === "ok" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
+              <div className={`rounded-lg px-3 py-2 text-xs font-medium flex items-center gap-2 ${actionMsg.type === "ok" ? "bg-brand-cyan-soft text-brand-cyan-ink border border-brand-cyan/20" : "bg-brand-gold-soft text-brand-gold-ink border border-brand-gold/20"}`}>
                 {actionMsg.type === "ok" ? <Check className="size-3.5" /> : <AlertCircle className="size-3.5" />}
                 {actionMsg.text}
               </div>
@@ -544,25 +547,25 @@ function UserManagementTab() {
 
             {actionType === "reset" && (
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-slate-700">New Password (leave blank to auto-generate)</label>
+                <label className="text-xs font-semibold text-muted-ink">New Password (leave blank to auto-generate)</label>
                 <input
                   type="text"
                   value={actionValue}
                   onChange={(e) => setActionValue(e.target.value)}
                   placeholder="Auto-generate if empty"
-                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  className="w-full px-3 py-2 text-xs border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/40"
                 />
-                <p className="text-[11px] text-slate-400">User will be required to change their password on next login.</p>
+                <p className="text-[11px] text-muted-ink">User will be required to change their password on next login.</p>
               </div>
             )}
 
             {actionType === "role" && (
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-slate-700">New Role</label>
+                <label className="text-xs font-semibold text-muted-ink">New Role</label>
                 <select
                   value={actionValue}
                   onChange={(e) => setActionValue(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  className="w-full px-3 py-2 text-xs border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/40"
                 >
                   {["student", "faculty", "mentor", "investor", "admin"].map((r) => (
                     <option key={r} value={r}>{r}</option>
@@ -572,7 +575,7 @@ function UserManagementTab() {
             )}
 
             {actionType === "deactivate" && (
-              <p className="text-xs text-red-600 bg-red-50 rounded-lg p-3 border border-red-100">
+              <p className="text-xs text-brand-gold-ink bg-brand-gold-soft rounded-lg p-3 border border-brand-gold/20">
                 This will set the user&apos;s account status to <strong>inactive</strong>. They will be unable to log in until reactivated.
               </p>
             )}
@@ -580,14 +583,14 @@ function UserManagementTab() {
             <div className="flex justify-end gap-2 pt-1">
               <button
                 onClick={() => { setActionTarget(null); setActionType(null); }}
-                className="px-3.5 py-2 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
+                className="px-3.5 py-2 rounded-lg border border-line text-xs font-semibold text-muted-ink hover:bg-canvas transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={submitAction}
                 disabled={submitting}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-slate-900 text-xs font-semibold text-white hover:bg-slate-700 transition-colors disabled:opacity-60"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-brand-deep text-xs font-semibold text-white hover:bg-brand-deep transition-colors disabled:opacity-60"
               >
                 {submitting ? <RefreshCw className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
                 Confirm
@@ -608,19 +611,19 @@ function AgentsTab() {
   return (
     <div className="space-y-8">
       <AgentHealthPanel />
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-line pb-4">
         <div>
-          <h2 className="text-base font-bold text-slate-900">Manual override: per-agent controls</h2>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <h2 className="text-base font-bold text-ink">Manual override: per-agent controls</h2>
+          <p className="text-xs text-muted-ink mt-0.5">
             The agents run on their own. These screens exist for inspection, replaying a failed step and forcing a run when you need to (Run now - override).
           </p>
         </div>
 
-        <div className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 p-1">
+        <div className="flex items-center gap-1.5 rounded-lg border border-line bg-canvas p-1">
           <button
             onClick={() => setSubAgent("mentor-matching")}
             className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
-              subAgent === "mentor-matching" ? "bg-white text-slate-900 shadow-xs" : "text-slate-600 hover:text-slate-900"
+              subAgent === "mentor-matching" ? "bg-white text-ink shadow-xs" : "text-muted-ink hover:text-ink"
             }`}
           >
             <Sparkles className="size-3.5 text-brand" />
@@ -629,19 +632,19 @@ function AgentsTab() {
           <button
             onClick={() => setSubAgent("workflow")}
             className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
-              subAgent === "workflow" ? "bg-white text-slate-900 shadow-xs" : "text-slate-600 hover:text-slate-900"
+              subAgent === "workflow" ? "bg-white text-ink shadow-xs" : "text-muted-ink hover:text-ink"
             }`}
           >
-            <Zap className="size-3.5 text-indigo-600" />
+            <Zap className="size-3.5 text-brand" />
             Workflow Automation
           </button>
           <button
             onClick={() => setSubAgent("monitoring")}
             className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
-              subAgent === "monitoring" ? "bg-white text-slate-900 shadow-xs" : "text-slate-600 hover:text-slate-900"
+              subAgent === "monitoring" ? "bg-white text-ink shadow-xs" : "text-muted-ink hover:text-ink"
             }`}
           >
-            <Activity className="size-3.5 text-emerald-600" />
+            <Activity className="size-3.5 text-brand-cyan-ink" />
             Startup Monitoring
           </button>
         </div>
@@ -661,12 +664,12 @@ function WorkspaceInspectorTab() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-sm font-bold text-slate-900">System Workspace Inspection Switcher</h2>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <h2 className="text-sm font-bold text-ink">System Workspace Inspection Switcher</h2>
+          <p className="text-xs text-muted-ink mt-0.5">
             Instantly navigate into any role workspace below without needing separate credentials.
           </p>
         </div>
-        <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-medium">
+        <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-cyan-soft text-brand-cyan-ink border border-brand-cyan/20 text-xs font-medium">
           <ShieldCheck className="size-3.5" /> Full Access Unlocked
         </span>
       </div>
@@ -677,29 +680,29 @@ function WorkspaceInspectorTab() {
           return (
             <div
               key={ws.role}
-              className={`rounded-xl border bg-gradient-to-br ${ws.color} p-5 flex flex-col justify-between hover:shadow-md transition-all duration-200 group`}
+              className={`rounded-xl border ${ws.color} p-5 flex flex-col justify-between hover:shadow-md transition-all duration-200 group`}
             >
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <div className="flex size-10 items-center justify-center rounded-lg bg-white shadow-sm border border-slate-100">
+                  <div className="flex size-10 items-center justify-center rounded-lg bg-white shadow-sm border border-line">
                     <IconComponent className={`size-5 ${ws.iconColor}`} />
                   </div>
                   <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${ws.badgeColor}`}>
                     {ws.role.toUpperCase()}
                   </span>
                 </div>
-                <h3 className="text-base font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                <h3 className="text-base font-bold text-ink group-hover:text-brand transition-colors">
                   {ws.title}
                 </h3>
-                <p className="mt-1 text-xs text-slate-600 leading-relaxed">{ws.description}</p>
+                <p className="mt-1 text-xs text-muted-ink leading-relaxed">{ws.description}</p>
               </div>
-              <div className="mt-5 pt-3 border-t border-slate-200/60 flex items-center justify-between">
-                <span className="text-[11px] text-slate-500 font-medium flex items-center gap-1">
+              <div className="mt-5 pt-3 border-t border-line/60 flex items-center justify-between">
+                <span className="text-[11px] text-muted-ink font-medium flex items-center gap-1">
                   <Eye className="size-3" /> Read / Inspect Mode
                 </span>
                 <Link
                   href={ws.path}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-blue-600 transition-colors shadow-sm"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-deep text-white text-xs font-semibold hover:bg-brand-hover transition-colors shadow-sm"
                 >
                   Inspect View <ArrowRight className="size-3.5" />
                 </Link>
@@ -711,8 +714,6 @@ function WorkspaceInspectorTab() {
     </div>
   );
 }
-
-// ─── Broadcast Tab ─────────────────────────────────────────────────────────────
 
 function BroadcastTab() {
   const [title, setTitle] = useState("");
@@ -765,12 +766,12 @@ function BroadcastTab() {
   return (
     <div className="space-y-6">
       {/* Compose form */}
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
-        <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-          <Megaphone className="size-5 text-indigo-600" />
+      <div className="rounded-xl border border-line bg-white p-6 shadow-sm space-y-4">
+        <div className="flex items-center gap-2 pb-3 border-b border-line">
+          <Megaphone className="size-5 text-brand" />
           <div>
-            <h2 className="text-sm font-bold text-slate-900">Broadcast Announcement</h2>
-            <p className="text-xs text-slate-500">Send a system-wide message to one or more role groups.</p>
+            <h2 className="text-sm font-bold text-ink">Broadcast Announcement</h2>
+            <p className="text-xs text-muted-ink">Send a system-wide message to one or more role groups.</p>
           </div>
         </div>
 
@@ -783,11 +784,11 @@ function BroadcastTab() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-700">Target Audience</label>
+            <label className="text-xs font-semibold text-muted-ink">Target Audience</label>
             <select
               value={targetRole}
               onChange={(e) => setTargetRole(e.target.value)}
-              className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300"
+              className="w-full px-3 py-2 text-xs border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/40"
             >
               <option value="all">All Users (System-wide)</option>
               <option value="student">Researchers Only</option>
@@ -798,11 +799,11 @@ function BroadcastTab() {
             </select>
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-700">Priority Level</label>
+            <label className="text-xs font-semibold text-muted-ink">Priority Level</label>
             <select
               value={priority}
               onChange={(e) => setPriority(e.target.value)}
-              className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300"
+              className="w-full px-3 py-2 text-xs border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/40"
             >
               <option value="normal">Normal</option>
               <option value="high">High</option>
@@ -812,24 +813,24 @@ function BroadcastTab() {
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-slate-700">Announcement Title</label>
+          <label className="text-xs font-semibold text-muted-ink">Announcement Title</label>
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g. System Maintenance on 15 Nov 2026"
-            className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300"
+            className="w-full px-3 py-2 text-xs border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/40"
           />
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-slate-700">Message Body</label>
+          <label className="text-xs font-semibold text-muted-ink">Message Body</label>
           <textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
             rows={4}
             placeholder="Write your announcement here..."
-            className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 resize-none"
+            className="w-full px-3 py-2 text-xs border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/40 resize-none"
           />
         </div>
 
@@ -837,7 +838,7 @@ function BroadcastTab() {
           <button
             onClick={handlePublish}
             disabled={submitting}
-            className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-indigo-600 text-xs font-semibold text-white hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-60"
+            className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-brand text-xs font-semibold text-white hover:bg-brand-hover transition-colors shadow-sm disabled:opacity-60"
           >
             {submitting ? <RefreshCw className="size-3.5 animate-spin" /> : <Bell className="size-3.5" />}
             Publish Announcement
@@ -846,27 +847,27 @@ function BroadcastTab() {
       </div>
 
       {/* Recent announcements */}
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-3">
-        <h3 className="text-sm font-bold text-slate-900 pb-2 border-b border-slate-100">Recent Announcements</h3>
+      <div className="rounded-xl border border-line bg-white p-6 shadow-sm space-y-3">
+        <h3 className="text-sm font-bold text-ink pb-2 border-b border-line">Recent Announcements</h3>
         {loadingList ? (
           <div className="space-y-2 animate-pulse">
-            {[...Array(3)].map((_, i) => <div key={i} className="h-12 rounded-lg bg-slate-100" />)}
+            {[...Array(3)].map((_, i) => <div key={i} className="h-12 rounded-lg bg-canvas" />)}
           </div>
         ) : announcements.length === 0 ? (
-          <p className="text-xs text-slate-400 py-4 text-center">No announcements published yet.</p>
+          <p className="text-xs text-muted-ink py-4 text-center">No announcements published yet.</p>
         ) : (
           announcements.slice(0, 10).map((a) => (
-            <div key={a._id} className="flex items-start justify-between gap-3 px-3 py-2.5 rounded-lg border border-slate-100 hover:bg-slate-50 transition-colors">
+            <div key={a._id} className="flex items-start justify-between gap-3 px-3 py-2.5 rounded-lg border border-line hover:bg-canvas transition-colors">
               <div>
-                <p className="text-xs font-semibold text-slate-900">{a.title}</p>
-                <p className="text-[11px] text-slate-500 mt-0.5">
+                <p className="text-xs font-semibold text-ink">{a.title}</p>
+                <p className="text-[11px] text-muted-ink mt-0.5">
                   Target: <span className="font-medium capitalize">{a.targetRole}</span> · {new Date(a.createdAt).toLocaleDateString("en-IN")}
                 </p>
               </div>
               <span className={`shrink-0 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${
-                a.priority === "urgent" ? "bg-red-50 text-red-700 border-red-200" :
-                a.priority === "high" ? "bg-amber-50 text-amber-700 border-amber-200" :
-                "bg-slate-100 text-slate-600 border-slate-200"
+                a.priority === "urgent" ? "bg-brand-gold-soft text-brand-gold-ink border border-brand-gold/20" :
+                a.priority === "high" ? "bg-brand-gold-soft text-brand-gold-ink border border-brand-gold/20" :
+                "bg-canvas text-muted-ink border-line"
               }`}>
                 {a.priority}
               </span>
@@ -913,11 +914,11 @@ function SuperAdminDashboardContent() {
   return (
     <PageContainer
       title="Super Admin Control Center"
-      description="Full system access portal — user management, workspace inspection, broadcast, audit trail, and security governance."
+      description="Full system access portal - user management, workspace inspection, broadcast, audit trail, and security governance."
     >
       <div className="space-y-5">
         {/* Tab navigation */}
-        <div className="flex items-center gap-1 overflow-x-auto border-b border-slate-200 pb-0 -mb-px">
+        <div className="flex items-center gap-1 overflow-x-auto border-b border-line pb-0 -mb-px">
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -927,8 +928,8 @@ function SuperAdminDashboardContent() {
                 onClick={() => handleTabSelect(tab.id)}
                 className={`inline-flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold whitespace-nowrap border-b-2 transition-colors ${
                   isActive
-                    ? "border-slate-900 text-slate-900"
-                    : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                    ? "border-brand text-brand-deep"
+                    : "border-transparent text-muted-ink hover:text-brand hover:border-brand/40"
                 }`}
               >
                 <Icon className="size-3.5" />
@@ -937,8 +938,6 @@ function SuperAdminDashboardContent() {
             );
           })}
         </div>
-
-        {/* Tab content */}
         {activeTab === "overview" && <OverviewTab stats={stats} loading={statsLoading} />}
         {activeTab === "agents" && <AgentsTab />}
         {activeTab === "users" && <UserManagementTab />}
@@ -953,7 +952,7 @@ function SuperAdminDashboardContent() {
 
 export default function SuperAdminDashboardPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-xs text-slate-400">Loading Super Admin Control Center...</div>}>
+    <Suspense fallback={<div className="p-8 text-center text-xs text-muted-ink">Loading Super Admin Control Center...</div>}>
       <SuperAdminDashboardContent />
     </Suspense>
   );

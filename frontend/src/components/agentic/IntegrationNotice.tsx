@@ -10,8 +10,8 @@ export interface IntegrationStatus {
   email: { configured: boolean; mode: "live" | "sandbox"; missing?: string[] };
   calendar: { configured: boolean; mode: "live" | "sandbox"; missing?: string[] };
   llm: { configured: boolean; mode: "live" | "rules_only"; missing?: string[] };
-  agentService?: { reachable: boolean };
-  you?: { googleCalendar: { connected: boolean; needsReconnect?: boolean; accountEmail?: string } };
+  agentService?: { reachable: boolean; linked?: boolean };
+  you?: { googleCalendar: { connected: boolean; needsReconnect?: boolean; accountEmail?: string; accounts?: number } };
 }
 
 const SEEN = "dbit.integration.notices";
@@ -44,6 +44,7 @@ export default function IntegrationNotice() {
     if (calendar) {
       if (calendar === "connected") toast.success("Google Calendar connected. Meetings the agents arrange will now appear on your calendar.");
       else if (calendar === "cancelled") toast.info("Google Calendar was not connected. You can try again from your profile menu.");
+      else if (calendar === "permission") toast.warning("Calendar access was not granted, so nothing was connected. You can try again from your profile menu and tick the calendar permission.");
       else toast.error("We could not connect Google Calendar. Please try again from your profile menu.");
       params.delete("calendar");
       const query = params.toString();
@@ -62,6 +63,7 @@ export default function IntegrationNotice() {
         }
         if (!admin) return;
         const notes: string[] = [];
+        if (status.agentService && status.agentService.linked === false) notes.push("The link between the application service and the agents is not configured (add INTERNAL_JWT_SECRET), so agents will not see new applications.");
         if (status.email.mode === "sandbox") notes.push(`Email is in sandbox mode, so nothing is actually emailed${status.email.missing?.length ? ` (add ${status.email.missing.join(", ")})` : ""}.`);
         if (status.calendar.mode === "sandbox") notes.push(`Google Calendar is not connected to this server${status.calendar.missing?.length ? ` (add ${status.calendar.missing.join(", ")})` : ""}; meetings are recorded without calendar invitations.`);
         if (!status.llm.configured) notes.push("The AI model key is missing (add LLM_API_KEY); assessments use rule-based checks only.");

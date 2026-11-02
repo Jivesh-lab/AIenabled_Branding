@@ -394,8 +394,21 @@ def test_detail_includes_persisted_status_history_without_actor_ids():
 
 
 # ── Mentor directory lookup (Phase 4) ────────────────────────────────────────
+# The sample directory is demo-only: these tests switch demo mode on, and one test proves it is off by default.
 
-def test_mentor_lookup_returns_public_profile_only():
+@pytest.fixture
+def demo_directory(monkeypatch):
+    import api.mentors as mentors_api
+    monkeypatch.setattr(mentors_api, "_demo_enabled", lambda: True)
+
+
+def test_mentor_directory_is_off_unless_demo_mode_is_on():
+    r = client.get("/api/mentors/lookup", params={"name": "dr. k. r. raman"}, headers=auth())
+    assert r.status_code == 404
+    assert "switched off" in r.json()["detail"]
+
+
+def test_mentor_lookup_returns_public_profile_only(demo_directory):
     r = client.get("/api/mentors/lookup", params={"name": "dr. k. r. raman"}, headers=auth())
     assert r.status_code == 200
     body = r.json()
@@ -403,11 +416,11 @@ def test_mentor_lookup_returns_public_profile_only():
     assert "max_capacity" not in body and "current_active_projects" not in body  # internal load stays internal
 
 
-def test_mentor_lookup_unknown_name_is_404_not_a_fabricated_profile():
+def test_mentor_lookup_unknown_name_is_404_not_a_fabricated_profile(demo_directory):
     assert client.get("/api/mentors/lookup", params={"name": "Nobody Atall"}, headers=auth()).status_code == 404
 
 
-def test_mentor_lookup_requires_a_valid_token_and_permission():
+def test_mentor_lookup_requires_a_valid_token_and_permission(demo_directory):
     assert client.get("/api/mentors/lookup", params={"name": "Dr. K. R. Raman"}).status_code == 401
     no_perm = auth(permissions=["submit_application"])
     assert client.get("/api/mentors/lookup", params={"name": "Dr. K. R. Raman"}, headers=no_perm).status_code == 403

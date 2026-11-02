@@ -239,10 +239,10 @@ export default function FacultyVolunteerPage() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 lg:gap-4">
           {[
             { label: "Assigned Teams", val: metrics.assignedTeams, sub: "Researcher Projects", icon: FolderGit2, color: "bg-brand/10 text-brand" },
-            { label: "Open Inquiries", val: metrics.openInquiries, sub: "Researcher Questions", icon: MessageSquare, color: "bg-amber-50 text-amber-700" },
-            { label: "Mentor Nominations", val: metrics.pendingMentorReviews, sub: "Under Review", icon: Sparkles, color: "bg-emerald-50 text-emerald-700" },
-            { label: "Pending Tasks", val: metrics.pendingTasks, sub: "Checklist Items", icon: CheckSquare, color: "bg-indigo-50 text-indigo-700" },
-            { label: "Upcoming Reviews", val: metrics.upcomingMeets, sub: "With Researchers", icon: CalendarDays, color: "bg-slate-50 text-slate-700" },
+            { label: "Open Inquiries", val: metrics.openInquiries, sub: "Researcher Questions", icon: MessageSquare, color: "bg-brand/10 text-brand" },
+            { label: "Mentor Nominations", val: metrics.pendingMentorReviews, sub: "Under Review", icon: Sparkles, color: "bg-brand/10 text-brand" },
+            { label: "Pending Tasks", val: metrics.pendingTasks, sub: "Checklist Items", icon: CheckSquare, color: "bg-brand/10 text-brand" },
+            { label: "Upcoming Reviews", val: metrics.upcomingMeets, sub: "With Researchers", icon: CalendarDays, color: "bg-brand/10 text-brand" },
           ].map((kpi) => (
             <MetricCard key={kpi.label} label={kpi.label} value={kpi.val} sub={kpi.sub} icon={kpi.icon} tone={kpi.color.includes("danger") ? "danger" : kpi.color.includes("amber") ? "attention" : "default"} loading={loading} />
           ))}

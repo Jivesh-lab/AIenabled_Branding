@@ -337,7 +337,7 @@ export default function AdminIntroductionsPage() {
                         <p className="text-[11px] font-semibold text-slate-600 mb-1">Proposed Meeting Windows:</p>
                         <div className="flex flex-wrap gap-1.5">
                           {item.proposedTimes.map((time, idx) => (
-                            <span key={idx} className="text-[11px] bg-purple-50 text-purple-700 border border-purple-100 px-2 py-0.5 rounded">
+                            <span key={idx} className="text-[11px] bg-brand-soft text-brand border border-brand/30 px-2 py-0.5 rounded">
                               {time}
                             </span>
                           ))}

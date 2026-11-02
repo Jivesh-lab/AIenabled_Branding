@@ -28,7 +28,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   ArrowRightOnRectangleIcon,
   Bars3Icon,
-  BellIcon,
   ChevronDownIcon,
   CalendarDaysIcon,
   Cog6ToothIcon,
@@ -51,7 +50,6 @@ export interface NavbarUser {
 interface DashboardNavbarProps {
   workspaceLabel?: string;
   user: NavbarUser;
-  notificationCount?: number;
   /** Opens the mobile navigation drawer. */
   onMenuClick?: () => void;
   allowedRole?: string;
@@ -305,7 +303,6 @@ function ProfileSkeleton() {
 export default function DashboardNavbar({
   workspaceLabel,
   user,
-  notificationCount = 0,
   onMenuClick,
   allowedRole,
   onSearch,

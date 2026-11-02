@@ -770,9 +770,9 @@ export default function FacultyManagementPage() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 lg:gap-4">
               {[
                 { label: "Assigned Projects", val: metrics.activeProjects, sub: "Supervised R&D", icon: FolderGit2, color: "bg-brand/10 text-brand" },
-                { label: "Researchers Supported", val: metrics.totalStudents, sub: "Across 4 teams", icon: Users2, color: "bg-emerald-50 text-emerald-700" },
-                { label: "Pending Mentors", val: metrics.pendingMentorReqs, sub: "Awaiting decision", icon: Sparkles, color: "bg-amber-50 text-amber-700" },
-                { label: "Upcoming Meetings", val: metrics.upcomingMeets, sub: "Milestone reviews", icon: CalendarDays, color: "bg-indigo-50 text-indigo-700" },
+                { label: "Researchers Supported", val: metrics.totalStudents, sub: "Across 4 teams", icon: Users2, color: "bg-brand/10 text-brand" },
+                { label: "Pending Mentors", val: metrics.pendingMentorReqs, sub: "Awaiting decision", icon: Sparkles, color: "bg-brand/10 text-brand" },
+                { label: "Upcoming Meetings", val: metrics.upcomingMeets, sub: "Milestone reviews", icon: CalendarDays, color: "bg-brand/10 text-brand" },
                 { label: "Overdue Milestones", val: metrics.overdueMilestones, sub: "Requires attention", icon: AlertTriangle, color: "bg-red-50 text-danger" },
                 { label: "Tasks In Action", val: metrics.pendingTasks, sub: "Active items", icon: CheckSquare, color: "bg-slate-50 text-slate-700" },
               ].map((kpi) => (
@@ -784,7 +784,7 @@ export default function FacultyManagementPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Left 2 cols: Priority Actions & Incubation Portfolio */}
               <div className="lg:col-span-2 space-y-4">
-                <Card className="p-5 border border-amber-200 bg-amber-50/30">
+                <Card className="p-5 border border-brand/30 bg-brand-soft/30">
                   <div className="flex items-start gap-3">
                     <AlertTriangle className="size-5 text-amber-700 shrink-0 mt-0.5" />
                     <div className="flex-1">
@@ -805,7 +805,7 @@ export default function FacultyManagementPage() {
                             </button>
                             <button
                               onClick={() => setShowAnnouncementModal(true)}
-                              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-amber-300 text-amber-900 hover:bg-amber-50 transition-colors"
+                              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-brand/30 text-brand hover:bg-brand/10 transition-colors"
                             >
                               Publish Announcement
                             </button>
@@ -820,7 +820,7 @@ export default function FacultyManagementPage() {
                             </button>
                             <button
                               onClick={() => setShowNewMentorRequestModal(true)}
-                              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-amber-300 text-amber-900 hover:bg-amber-50 transition-colors"
+                              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-brand/30 text-brand hover:bg-brand/10 transition-colors"
                             >
                               Submit Mentor Request
                             </button>
@@ -950,20 +950,20 @@ export default function FacultyManagementPage() {
           <div className="space-y-6 animate-in fade-in duration-200">
             {/* Permission banner if viewing in volunteer mode */}
             {activeRole !== "coordinator" && (
-              <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="p-4 rounded-xl bg-brand-soft border border-brand/30 text-brand-deep flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-start gap-3">
                   <Lock className="size-4.5 text-amber-700 shrink-0 mt-0.5" />
                   <div className="text-xs">
                     <p className="font-bold">Viewing in Read-Only Volunteer Mode</p>
-                    <p className="mt-0.5 text-amber-800">
+                    <p className="mt-0.5 text-brand-deep/80">
                       Coordinator governance actions (final mentor approvals, volunteer reassignments, and announcements) require
-                      the Faculty Coordinator role.
+                      the Faculty Coordinator role. Use the top switch to toggle into Coordinator Mode.
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={() => handleRoleChange("coordinator")}
-                  className="px-3.5 py-1.5 rounded-lg bg-amber-700 hover:bg-amber-800 text-white text-xs font-bold shrink-0 transition-colors shadow-xs"
+                  className="px-3.5 py-1.5 rounded-lg bg-brand hover:bg-brand-hover text-white text-xs font-bold shrink-0 transition-colors shadow-xs"
                 >
                   Switch to Coordinator Mode
                 </button>
@@ -1043,7 +1043,7 @@ export default function FacultyManagementPage() {
                         ))}
                       </div>
                       {req.recommendedMentorName && (
-                        <div className="mt-2 text-[11px] text-emerald-800 bg-emerald-50/60 p-2 rounded-lg border border-emerald-100 flex items-center gap-1.5">
+                         <div className="mt-2 text-[11px] text-brand-deep bg-brand-soft/60 p-2 rounded-lg border border-brand/30 flex items-center gap-1.5">
                           <Sparkles className="size-3.5 text-emerald-600" />
                           <span>
                             Recommended by Volunteer <strong>{req.recommendedByVolunteerName}</strong>: {req.recommendedMentorName}{" "}
@@ -1502,7 +1502,7 @@ export default function FacultyManagementPage() {
                         </div>
 
                         {req.recommendedMentorName && (
-                          <div className="p-3 rounded-lg bg-emerald-50/60 border border-emerald-100 text-xs text-emerald-950 mt-2">
+                             <div className="p-3 rounded-lg bg-brand-soft/60 border border-brand/30 text-xs text-brand-deep">
                             <p className="font-bold flex items-center gap-1.5">
                               <Sparkles className="size-3.5 text-emerald-600" />
                               Nominated Mentor: {req.recommendedMentorName} ({req.recommendedMentorOrg || "Industry Lead"})
@@ -1552,7 +1552,7 @@ export default function FacultyManagementPage() {
                             )}
                           </>
                         ) : (
-                          <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg">
+                          <span className="text-xs font-semibold text-brand bg-brand-soft px-2.5 py-1 rounded-lg">
                             Decision Finalized
                           </span>
                         )}
@@ -1585,7 +1585,7 @@ export default function FacultyManagementPage() {
             </div>
 
             {/* Provider Integration Notice */}
-            <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-950 text-xs flex items-start gap-2.5">
+                            <div className="p-3.5 rounded-xl bg-brand-soft border border-brand/30 text-brand-deep text-xs flex items-start gap-2.5">
               <Calendar className="size-4 text-brand shrink-0 mt-0.5" />
               <div>
                 <p className="font-bold">OAuth Calendar & Room Dispatch Integration Ready</p>

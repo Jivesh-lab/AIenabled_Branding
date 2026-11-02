@@ -1,7 +1,8 @@
 const FacultyMeeting = require('../../models/FacultyMeeting');
+const User = require('../../models/User');
+const { fits } = require('./workingHours');
 const { runAction } = require('../actionLog');
 const { getConfig, googleReady, demoModeForced } = require('../config');
-const { localParts } = require('../time');
 const google = require('./google');
 
 const STEP_MS = 30 * 60 * 1000;
@@ -52,16 +53,16 @@ async function findCommonSlots({ userIds, durationMinutes, from = new Date(), co
     if (googleChecked) consulted.push(String(userId));
   }
 
+  // Everyone's own working hours apply; a person with none set uses the centre default.
+  const profiles = (await User.find({ _id: { $in: userIds.map(String) } }).select('_id profile').lean()).map((u) => u.profile || {});
+  while (profiles.length < userIds.length) profiles.push({});
+
   const slots = [];
   const start = Math.ceil(earliest.getTime() / STEP_MS) * STEP_MS;
   for (let t = start; t + duration <= latest.getTime() && slots.length < count; t += STEP_MS) {
     const begin = new Date(t);
     const end = new Date(t + duration);
-    const a = localParts(begin);
-    const b = localParts(new Date(end.getTime() - 1));
-    const weekday = a.dow >= 1 && a.dow <= 5;
-    const withinHours = a.hour >= cfg.workStartHour && (b.hour < cfg.workEndHour || (b.hour === cfg.workEndHour && b.minute === 0)) && a.day === b.day;
-    if (weekday && withinHours && !overlaps(begin, end, busy)) slots.push({ startUtc: begin, endUtc: end });
+    if (profiles.every((profile) => fits(profile, begin, end)) && !overlaps(begin, end, busy)) slots.push({ startUtc: begin, endUtc: end });
   }
   return { slots, googleConsulted: consulted };
 }

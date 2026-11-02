@@ -156,6 +156,9 @@ function startEventOrchestrator(env = process.env, log = console) {
   // On by default: the agents work without anyone logged in. Set EVENT_ORCHESTRATOR_ENABLED=false to pause them.
   if (env.EVENT_ORCHESTRATOR_ENABLED === 'false') return null;
   const pollMs = Math.max(1000, Number(env.EVENT_ORCHESTRATOR_POLL_MS || DEFAULT_POLL_MS));
+  if (!env.INTERNAL_JWT_SECRET) {
+    log.warn('[AGENTS] INTERNAL_JWT_SECRET is not set: the agents cannot receive application events from the application service and cannot call it. Set the same value in backend/.env, agent-service/.env and frontend/.env.local.');
+  }
   let running = false;
   const tick = async () => {
     if (running) return;

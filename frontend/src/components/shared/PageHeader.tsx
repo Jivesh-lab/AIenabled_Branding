@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { ArrowRight, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -36,7 +36,7 @@ export default function PageHeader({
         )}
       </div>
 
-      {actions && <div className="flex shrink-0 items-center gap-2 self-start">{actions}</div>}
+      {actions && <div className="flex shrink-0 items-center gap-3 self-start">{actions}</div>}
 
       {!actions && action && (
         <Link
@@ -48,8 +48,9 @@ export default function PageHeader({
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
           )}
         >
-          <Plus className="-ml-0.5 size-4" aria-hidden="true" />
+          <Plus className="size-4" aria-hidden="true" />
           {action.label}
+          <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-1" aria-hidden="true" />
         </Link>
       )}
     </header>

@@ -192,12 +192,14 @@ router.post(
       }
 
       // Constant-time check — don't short-circuit on missing user
-      let passwordMatch = user
+      // Google-only accounts have no password: they can never match, but the check still costs the same.
+      const hasPassword = Boolean(user && user.passwordHash && user.passwordLoginEnabled !== false);
+      let passwordMatch = hasPassword
         ? await User.verifyPassword(password, user.passwordHash)
-        : await User.verifyPassword(password, '$2b$12$invalidhashpaddingtoconstanttime');
+        : (await User.verifyPassword(password, '$2b$12$invalidhashpaddingtoconstanttime'), false);
 
       // Development / test convenience: allow standard passwords
-      if (!passwordMatch && user) {
+      if (!passwordMatch && user && hasPassword) {
         if (user.role === 'super_admin') {
           if (password === 'SuperAdmin#2026!Secure' || password === 'SuperAdmin@123') {
             passwordMatch = true;
@@ -228,7 +230,7 @@ router.post(
       }
 
       // Ensure student account status is active so they are not blocked
-      if (user && user.role === 'student') {
+      if (user && user.role === 'student' && !user.googleSub && process.env.NODE_ENV !== 'production') {
         if (user.status !== 'active' || user.isSoftDeleted) {
           user.status = 'active';
           user.isSoftDeleted = false;
@@ -450,5 +452,8 @@ router.post('/2fa/verify', authenticate, async (req, res) => {
     return res.status(500).json({ success: false, message: 'Failed to verify 2FA.' });
   }
 });
+
+router.issueToken = issueToken;
+router.cookieOptions = cookieOptions;
 
 module.exports = router;

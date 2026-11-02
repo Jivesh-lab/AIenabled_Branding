@@ -94,7 +94,10 @@ async function ensureSeedData() {
 // In DBIT Incubation Centre, faculty coordinators govern the cohort portfolio,
 // and volunteers advise assigned and cohort projects.
 async function scopeFor(user) {
-  return { project: {}, byProjectId: {} };
+  if (user.role !== 'faculty') return { project: {}, byProjectId: {} };
+  const owned = await FacultyProject.find({ coordinatorUserId: String(user.id) }).select('id').lean();
+  const ids = owned.map((p) => p.id);
+  return { project: { id: { $in: ids } }, byProjectId: { projectId: { $in: ids } } };
 }
 
 // ---------------------------------------------------------------------------
@@ -719,12 +722,16 @@ router.get('/mentor-matching/startups', async (req, res) => {
     let startups = await agentHubService.getStartupsForMatching();
     if (req.user.role === 'faculty') {
       const coordinatorName = req.user.name || 'Faculty';
-      const lastName = coordinatorName.split(' ').pop().toLowerCase();
-      startups = startups.filter(s => 
-        !s.assignedCoordinatorName || 
-        s.assignedCoordinatorName.toLowerCase().includes(lastName) ||
-        s.assignedCoordinatorName === coordinatorName
-      );
+      const cleanName = coordinatorName.replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
+      const tokens = cleanName.split(/\s+/).filter(t => t.length > 2);
+      const matched = startups.filter(s => {
+        if (!s.assignedCoordinatorName) return true;
+        const assignedLower = s.assignedCoordinatorName.toLowerCase();
+        return tokens.some(tok => assignedLower.includes(tok)) || assignedLower.includes(cleanName);
+      });
+      if (matched.length > 0) {
+        startups = matched;
+      }
     }
     res.json({ success: true, data: startups });
   } catch (err) {
@@ -741,9 +748,12 @@ router.post('/mentor-matching/run', superAdminOnly, async (req, res) => {
     if (req.user.role === 'faculty') {
       const project = await FacultyProject.findOne({ id: projectId });
       if (project && project.assignedCoordinatorName) {
-        const coordinatorName = req.user.name || 'Faculty';
-        const lastName = coordinatorName.split(' ').pop().toLowerCase();
-        if (!project.assignedCoordinatorName.toLowerCase().includes(lastName)) {
+        const coordinatorName = req.user.name || '';
+        const cleanCoord = coordinatorName.replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
+        const tokens = cleanCoord.split(/\s+/).filter(t => t.length > 2);
+        const assignedLower = project.assignedCoordinatorName.toLowerCase();
+        const isMatch = tokens.length === 0 || tokens.some(tok => assignedLower.includes(tok)) || assignedLower.includes(cleanCoord);
+        if (!isMatch && project.coordinatorUserId && String(project.coordinatorUserId) !== String(req.user.id)) {
           return res.status(403).json({ success: false, message: 'Access denied: You are not the assigned coordinator for this startup.' });
         }
       }
@@ -926,7 +936,7 @@ router.get('/monitoring/reports', async (req, res) => {
   }
 });
 
-router.post('/monitoring/evaluate', superAdminOnly, async (req, res) => {
+router.post('/monitoring/evaluate', async (req, res) => {
   try {
     const { projectId } = req.body;
     if (!projectId) {
@@ -942,7 +952,7 @@ router.post('/monitoring/evaluate', superAdminOnly, async (req, res) => {
   }
 });
 
-router.post('/monitoring/portfolio', superAdminOnly, async (req, res) => {
+router.post('/monitoring/portfolio', async (req, res) => {
   try {
     const result = await agentHubService.evaluatePortfolioMonitoring({ actor: req.user });
     res.json({ success: true, message: 'Portfolio-wide monitoring evaluation completed.', data: result });

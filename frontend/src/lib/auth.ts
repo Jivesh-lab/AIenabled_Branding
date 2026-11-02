@@ -1,6 +1,5 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import GoogleProvider from "next-auth/providers/google";
 import GithubProvider from "next-auth/providers/github";
 import FacebookProvider from "next-auth/providers/facebook";
 import { getAuthSecret } from "@/lib/authSecret";
@@ -18,8 +17,34 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
         twoFactorCode: { label: "2FA Code", type: "text" },
+        // One-time ticket issued by the backend AFTER it verified a Google identity. NextAuth never trusts Google itself.
+        googleTicket: { label: "Google sign-in ticket", type: "text" },
       },
       async authorize(credentials) {
+        const googleTicket = (credentials as Record<string, string> | undefined)?.googleTicket;
+        if (googleTicket) {
+          let res: Response;
+          try {
+            res = await fetch(`${BACKEND_URL}/api/auth/google/exchange`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ ticket: googleTicket }),
+            });
+          } catch {
+            throw new Error("Cannot reach backend server. Please verify backend is running on port 5000.");
+          }
+          const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+          if (!res.ok || !data.success) throw new Error((data.message as string) || "Google sign-in could not be completed.");
+          const gUser = data.user as { id: string; name: string; email: string; role: string; facultyRole?: string | null };
+          return {
+            id: gUser.id,
+            name: gUser.name,
+            email: gUser.email,
+            role: gUser.role as "student" | "faculty" | "mentor" | "industry" | "investor" | "admin" | "super_admin",
+            facultyRole: gUser.facultyRole || null,
+          };
+        }
+
         if (!credentials?.email || !credentials?.password) {
           console.error("[Auth] authorize() — missing email or password");
           return null;
@@ -103,10 +128,6 @@ export const authOptions: NextAuthOptions = {
     // -----------------------------------------------------------------------
     // OAuth providers — role assignment handled post-login via onboarding flow
     // -----------------------------------------------------------------------
-    GoogleProvider({
-      clientId: process.env.GOOGLE_ID || "dummy_google_id",
-      clientSecret: process.env.GOOGLE_SECRET || "dummy_google_secret",
-    }),
     GithubProvider({
       clientId: process.env.GITHUB_ID || "dummy_github_id",
       clientSecret: process.env.GITHUB_SECRET || "dummy_github_secret",

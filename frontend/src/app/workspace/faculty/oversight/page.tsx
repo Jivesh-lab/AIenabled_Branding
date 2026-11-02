@@ -83,8 +83,8 @@ export default function FacultyOversightPage() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           {[
             { label: "Total Supervised", value: projects.length, icon: Users, color: "bg-brand/10 text-brand" },
-            { label: "On Track", value: projects.filter((p) => p.health === "On Track").length, icon: CheckCircle2, color: "bg-emerald-50 text-emerald-700" },
-            { label: "Needs Attention", value: projects.filter((p) => p.health === "Needs Attention").length, icon: Clock, color: "bg-amber-50 text-amber-700" },
+            { label: "On Track", value: projects.filter((p) => p.health === "On Track").length, icon: CheckCircle2, color: "bg-brand/10 text-brand" },
+            { label: "Needs Attention", value: projects.filter((p) => p.health === "Needs Attention").length, icon: Clock, color: "bg-brand/10 text-brand" },
             { label: "At Risk", value: projects.filter((p) => p.health === "At Risk").length, icon: AlertTriangle, color: "bg-red-50 text-danger" },
           ].map((s) => (
             <MetricCard key={s.label} label={s.label} value={s.value} icon={s.icon} tone={s.color.includes("danger") ? "danger" : s.color.includes("amber") ? "attention" : "default"} loading={loading} />
@@ -179,7 +179,7 @@ export default function FacultyOversightPage() {
                       <div>
                         <p className="text-xs font-bold text-ink mb-2">Next Milestone</p>
                         <div className="p-3 rounded-lg bg-white border border-line">
-                          <p className="text-sm font-semibold text-ink">{proj.nextMilestone || "—"}</p>
+                          <p className="text-sm font-semibold text-ink">{proj.nextMilestone || "-"}</p>
                           <p className="text-[11px] text-muted-ink mt-0.5">Due: {proj.nextMilestoneDate || "TBD"}</p>
                         </div>
                       </div>
