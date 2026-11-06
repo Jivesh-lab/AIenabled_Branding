@@ -123,7 +123,7 @@ test('super admin only: agent health, manual run, raw logs. Everyone else is ref
   assert.strictEqual((await api('/agentic/admin/pipeline', w.student)).status, 403);
   const pipeline = await api('/agentic/admin/pipeline', w.admin);
   assert.strictEqual(pipeline.status, 200);
-  assert.deepStrictEqual(Object.keys(pipeline.body.data).sort(), ['applicationsAwaitingDecision', 'introductionsAwaitingApproval', 'jobsByState', 'last30Days', 'stuckWorkflows']);
+  assert.deepStrictEqual(Object.keys(pipeline.body.data).sort(), ['applicationsAwaitingDecision', 'applicationsByStatus', 'introductionsAwaitingApproval', 'jobsByState', 'last30Days', 'stuckWorkflows']);
   const health = await api('/agentic/health', w.superAdmin);
   assert.strictEqual(health.status, 200);
   assert.strictEqual(health.body.data.scheduler.status, 'never_ran');

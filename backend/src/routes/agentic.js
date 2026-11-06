@@ -28,6 +28,7 @@ const { validateWindows, windowsFor } = require('../agentic/tools/workingHours')
 const googleCalendar = require('../agentic/tools/google');
 const { notify } = require('../agentic/tools/notify');
 const { record } = require('../agentic/actionLog');
+const py = require('../agentic/pythonClient');
 
 const router = express.Router();
 router.use(authenticate);
@@ -403,13 +404,23 @@ router.get('/admin/pipeline', requireRole('admin'), wrap(async (req, res) => {
     AgentJob.aggregate([{ $group: { _id: '$state', count: { $sum: 1 } } }]),
     ActionLog.aggregate([{ $match: { createdAt: { $gte: new Date(Date.now() - 30 * 86400000) } } }, { $group: { _id: '$status', count: { $sum: 1 } } }]),
   ]);
+  // The real application queue lives in agent-service; count from it so the card matches the Applications page.
+  let applicationsByStatus = null;
+  try {
+    const all = await py.getQueue(py.agentActor('pipeline'), 'all');
+    applicationsByStatus = {};
+    for (const a of all.queue || []) { const k = String(a.status).toLowerCase(); applicationsByStatus[k] = (applicationsByStatus[k] || 0) + 1; }
+  } catch (err) {
+    console.warn('[pipeline] application counts unavailable:', err.message);
+  }
+  const awaitingReal = applicationsByStatus ? (applicationsByStatus.submitted || 0) + (applicationsByStatus.under_review || 0) : null;
   const byStatus = Object.fromEntries(rates.map((r) => [r._id, r.count]));
   const total = Object.values(byStatus).reduce((a, b) => a + b, 0);
   const escalations = await ActionLog.countDocuments({ action: 'escalation.raise', createdAt: { $gte: new Date(Date.now() - 30 * 86400000) } });
   res.json({
     success: true,
     data: {
-      applicationsAwaitingDecision: admissions, introductionsAwaitingApproval: introductions, stuckWorkflows: stuck,
+      applicationsAwaitingDecision: awaitingReal ?? admissions, applicationsByStatus, introductionsAwaitingApproval: introductions, stuckWorkflows: stuck,
       jobsByState: Object.fromEntries(jobStates.map((r) => [r._id, r.count])),
       last30Days: { actions: total, succeeded: (byStatus.success || 0) + (byStatus.simulated || 0), failed: byStatus.failed || 0, escalations, successRate: total ? Math.round((((byStatus.success || 0) + (byStatus.simulated || 0)) / total) * 1000) / 10 : null, escalationRate: total ? Math.round((escalations / total) * 1000) / 10 : null },
     },

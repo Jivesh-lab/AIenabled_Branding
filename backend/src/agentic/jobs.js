@@ -42,7 +42,7 @@ function historyEntry(from, to, step, note) {
 }
 
 /** Create a job unless one with the same dedupeKey already exists (idempotent). */
-async function enqueue({ type, agent, dedupeKey, correlationId, triggerEvent = null, applicationId = null, projectId = null, subjectType = null, subjectId = null, data = {}, nextRunAt = new Date(), maxAttempts }) {
+async function enqueue({ type, agent, dedupeKey, correlationId, triggerEvent = null, applicationId = null, projectId = null, subjectType = null, subjectId = null, data = {}, nextRunAt = new Date(0), maxAttempts }) {
   if (!type || !agent || !dedupeKey) throw new Error('type, agent and dedupeKey are required to enqueue a job');
   const existing = await AgentJob.findOne({ dedupeKey }).lean();
   if (existing) return { job: existing, created: false };
@@ -177,7 +177,7 @@ async function signal(jobId, name, payload = {}) {
   if (!job || job.state === 'done' || job.state === 'failed') return null;
   const entry = { name, payload, at: new Date().toISOString() };
   const signals = [...(job.data?.signals || []), entry].slice(-20);
-  const wake = { 'data.signals': signals, nextRunAt: new Date() };
+  const wake = { 'data.signals': signals, nextRunAt: new Date(0) };
   if (job.state === 'running') return AgentJob.findOneAndUpdate({ _id: jobId }, { $set: wake }, { returnDocument: 'after' }).lean();
   return AgentJob.findOneAndUpdate({ _id: jobId, state: { $in: [...RUNNABLE] } }, { $set: wake }, { returnDocument: 'after' }).lean();
 }

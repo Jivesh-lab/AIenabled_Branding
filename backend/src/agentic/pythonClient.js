@@ -59,7 +59,7 @@ async function call(path, { method = 'GET', body, actor, timeoutMs = 20000 } = {
 }
 
 const getApplication = (applicationId, actor) => call(`/api/applications/${encodeURIComponent(applicationId)}`, { actor });
-const getQueue = (actor) => call('/api/applications/queue', { actor });
+const getQueue = (actor, scope = 'awaiting') => call(scope === 'awaiting' ? '/api/applications/queue' : `/api/applications/queue?scope=${encodeURIComponent(scope)}`, { actor });
 const requestAssessment = (applicationId, actor) => call(`/api/applications/${encodeURIComponent(applicationId)}/assessment`, { method: 'POST', actor, timeoutMs: 60000 });
 const decideApplication = (applicationId, decision, comments, actor) =>
   call(`/api/applications/${encodeURIComponent(applicationId)}/decide`, { method: 'POST', body: { decision, comments }, actor });

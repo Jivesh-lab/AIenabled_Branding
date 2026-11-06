@@ -836,6 +836,7 @@ router.post('/applications/:id/sync-startup', async (req, res) => {
         startup: { name: startup.name, sector: startup.sector || startup.domain, stage: startup.stage || startup.maturity, tagline: startup.tagline, problem: startup.problem },
         applicantId,
         form: { department: startup.department, teamMembers: startup.teamMembers },
+        approvedBy: req.user.id,
       });
 
       await enqueueEvent({

@@ -64,7 +64,7 @@ py.setFetch(async (url, init = {}) => {
   service.calls.push({ path, method: init.method || 'GET', body, actor });
   const json = (status, data) => ({ ok: status < 400, status, json: async () => data });
   let m;
-  if ((m = path.match(/^\/api\/applications\/queue$/))) {
+  if ((m = path.match(/^\/api\/applications\/queue(\?.*)?$/))) {
     return json(200, { queue: [...service.applications.values()].filter((a) => ['SUBMITTED', 'UNDER_REVIEW'].includes(a.status)).map((a) => ({ id: a.id, startupName: a.startup.name, status: a.status, applicantId: a.applicantId })) });
   }
   if ((m = path.match(/^\/api\/applications\/([^/]+)\/assessment$/))) {

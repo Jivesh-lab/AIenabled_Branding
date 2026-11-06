@@ -22,7 +22,26 @@ type ApplicationQueueItem = {
   maturity: string;
   applicantId: string;
   submittedAt: string | null;
+  updatedAt?: string | null;
+  reviewerComments?: string | null;
 };
+
+type FilterKey = "pending" | "approved" | "revision_requested" | "rejected" | "all";
+const FILTERS: { key: FilterKey; label: string }[] = [
+  { key: "pending", label: "Awaiting review" },
+  { key: "approved", label: "Approved" },
+  { key: "revision_requested", label: "Revision requested" },
+  { key: "rejected", label: "Rejected" },
+  { key: "all", label: "All" },
+];
+const STATUS_STYLE: Record<string, string> = {
+  SUBMITTED: "bg-amber-100 text-amber-800",
+  UNDER_REVIEW: "bg-amber-100 text-amber-800",
+  APPROVED: "bg-emerald-100 text-emerald-800",
+  REJECTED: "bg-red-100 text-red-800",
+  REVISION_REQUESTED: "bg-sky-100 text-sky-800",
+};
+const AWAITING = ["SUBMITTED", "UNDER_REVIEW"];
 
 type ApplicationDetails = {
   id: string;
@@ -37,13 +56,15 @@ type ApplicationDetails = {
   status: string;
   aiSummary: string;
   aiFeedback: string;
+  reviewerComments?: string | null;
   formData: Record<string, unknown>;
   documents: Record<string, unknown>[];
   submittedAt: string | null;
 };
 
 export default function ApplicationsReviewPage() {
-  const [queue, setQueue] = useState<ApplicationQueueItem[]>([]);
+  const [allApps, setAllApps] = useState<ApplicationQueueItem[]>([]);
+  const [filter, setFilter] = useState<FilterKey>("pending");
   const [loading, setLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -57,16 +78,31 @@ export default function ApplicationsReviewPage() {
 
   useEffect(() => {
     setIsMounted(true);
+    const requested = new URLSearchParams(window.location.search).get("status");
+    if (FILTERS.some((f) => f.key === requested)) setFilter(requested as FilterKey);
     fetchQueue();
   }, []);
+
+  const counts = {
+    pending: allApps.filter((a) => AWAITING.includes(a.status)).length,
+    approved: allApps.filter((a) => a.status === "APPROVED").length,
+    revision_requested: allApps.filter((a) => a.status === "REVISION_REQUESTED").length,
+    rejected: allApps.filter((a) => a.status === "REJECTED").length,
+    all: allApps.length,
+  } satisfies Record<FilterKey, number>;
+  const queue = allApps.filter((a) =>
+    filter === "all" ? true : filter === "pending" ? AWAITING.includes(a.status) : a.status === filter.toUpperCase(),
+  );
 
   async function fetchQueue() {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/applications/queue");
+      const res = await fetch("/api/admin/applications/queue?scope=all", { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
-        setQueue(data.queue || []);
+        setAllApps(data.queue || []);
+      } else {
+        toast.error("Failed to load applications");
       }
     } catch {
       toast.error("Failed to load queue");
@@ -130,10 +166,11 @@ export default function ApplicationsReviewPage() {
       });
 
       if (res.ok) {
-        toast.success(`Application marked as ${decisionType}`);
+        toast.success(`Application marked as ${decisionType.replace("_", " ")}`);
         setDecisionModalOpen(false);
-        setSelectedApp(null);
-        fetchQueue();
+        await fetchQueue();
+        await viewDetails(selectedApp.id); // keep the application open, now showing its new status
+        setFilter(decisionType === "approved" ? "approved" : decisionType === "rejected" ? "rejected" : "revision_requested");
       } else {
         const data = await res.json();
         toast.error(data.message || data.detail || "Failed to submit decision");
@@ -153,7 +190,7 @@ export default function ApplicationsReviewPage() {
         <div className={`space-y-4 ${selectedApp ? 'w-full lg:w-1/3' : 'w-full'}`}>
           <div className="flex items-center justify-between">
             <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <FileText className="size-5 text-indigo-600" /> Pending Queue ({queue.length})
+              <FileText className="size-5 text-indigo-600" /> Applications ({queue.length})
             </h2>
             <button
               onClick={fetchQueue}
@@ -163,10 +200,25 @@ export default function ApplicationsReviewPage() {
             </button>
           </div>
 
+          <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Filter applications by status">
+            {FILTERS.map((f) => (
+              <button
+                key={f.key}
+                type="button"
+                role="tab"
+                aria-selected={filter === f.key}
+                onClick={() => setFilter(f.key)}
+                className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${filter === f.key ? "border-indigo-500 bg-indigo-50 text-indigo-700" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}
+              >
+                {f.label} <span className="font-semibold">{counts[f.key]}</span>
+              </button>
+            ))}
+          </div>
+
           {queue.length === 0 ? (
             <Card className="p-8 text-center text-slate-400 text-xs">
               <CheckCircle2 className="size-8 mx-auto text-emerald-500 mb-2 opacity-80" />
-              All caught up! No applications await your review.
+              {filter === "pending" ? "All caught up! No applications await your review." : "No applications in this view."}
             </Card>
           ) : (
             <div className={`grid grid-cols-1 ${!selectedApp ? 'md:grid-cols-2 lg:grid-cols-3' : ''} gap-4`}>
@@ -180,8 +232,8 @@ export default function ApplicationsReviewPage() {
                   onKeyDown={(e) => { if (e.key === 'Enter') viewDetails(app.id); }}
                 >
                   <div className="flex justify-between items-start gap-2">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-amber-50 text-amber-900 border border-amber-200/60 mb-2 capitalize">
-                      {app.status.replace("_", " ")}
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase mb-2 ${STATUS_STYLE[app.status] ?? "bg-slate-100 text-slate-700"}`}>
+                      {app.status.replace(/_/g, " ")}
                     </span>
                     <span suppressHydrationWarning className="text-[11px] text-slate-400 tabular-nums">
                       {isMounted && app.submittedAt ? new Date(app.submittedAt).toLocaleDateString() : 'Unknown date'}
@@ -207,6 +259,11 @@ export default function ApplicationsReviewPage() {
                 <button onClick={() => setSelectedApp(null)} className="text-slate-400 hover:text-slate-600">
                   <X className="size-5" />
                 </button>
+              </div>
+
+              <div className={`rounded-lg px-3 py-2 text-xs ${STATUS_STYLE[selectedApp.status] ?? "bg-slate-100 text-slate-700"}`}>
+                <strong className="uppercase">{selectedApp.status.replace(/_/g, " ")}</strong>
+                {selectedApp.reviewerComments ? <span> · Reviewer comments: {selectedApp.reviewerComments}</span> : null}
               </div>
 
               <div className="grid grid-cols-2 gap-4 text-sm">
@@ -312,7 +369,12 @@ export default function ApplicationsReviewPage() {
                 </div>
               )}
 
-              {/* ACTION BUTTONS */}
+              {/* ACTION BUTTONS - only while the application still awaits a decision */}
+              {!AWAITING.includes(selectedApp.status) ? (
+                <p className="pt-4 border-t text-xs text-slate-500">
+                  This application has been decided ({selectedApp.status.replace(/_/g, " ").toLowerCase()}). {selectedApp.status === "REVISION_REQUESTED" ? "It returns to the review queue when the founder resubmits it." : "No further action is needed here."}
+                </p>
+              ) : (
               <div className="flex items-center justify-end gap-3 pt-4 border-t">
                 <button
                   onClick={generateAssessment}
@@ -341,6 +403,7 @@ export default function ApplicationsReviewPage() {
                   Approve Application
                 </button>
               </div>
+              )}
             </Card>
           </div>
         )}

@@ -9,6 +9,8 @@
     "seed:all": "node src/scripts/seedAllUsers.js",
     "seed:superadmin": "node src/scripts/seedSuperAdmin.js",
     "seed:admin": "node src/scripts/seedAdmin.js",
+    "seed:journey": "node src/scripts/seedDemoJourney.js --yes",
+    "seed:journey:clean": "node src/scripts/seedDemoJourney.js --clean --yes",
     "seed:demo": "node src/scripts/seedDemoData.js --yes",
     "seed:demo:clean": "node src/scripts/seedDemoData.js --clean --yes",
     "seed:legacy:remove": "node src/scripts/seedDemoData.js --remove-legacy-samples --yes",

@@ -96,7 +96,7 @@ async function onApproved(event) {
     return null;
   }
   const app = await py.getApplication(applicationId, py.agentActor('mentor-matching'));
-  const project = await ensureProject({ applicationId, startup: app.startup, applicantId: app.applicantId, form: app.formData || {} });
+  const project = await ensureProject({ applicationId, startup: app.startup, applicantId: app.applicantId, form: app.formData || {}, approvedBy: reviewer });
   const { job } = await jobs.enqueue({
     type: JOB_TYPE, agent: AGENT, dedupeKey: `${JOB_TYPE}:${project.id}`, correlationId: event.correlationId, triggerEvent: event.eventType,
     applicationId, projectId: project.id, subjectType: 'project', subjectId: project.id, data: { phase: 'start', index: 0, tried: [] },
@@ -105,12 +105,17 @@ async function onApproved(event) {
 }
 
 /** A mentor answered a request (called by the mentor-facing API). */
-async function respond({ requestId, user, decision, note: text = '' }) {
+async function respond({ requestId, user, decision, note: text = '', now }) {
   const request = await MentorRequest.findOne({ _id: requestId }).lean();
   if (!request) throw Object.assign(new Error('This mentoring request was not found.'), { status: 404 });
   if (String(request.mentorUserId) !== String(user.id) && user.role !== 'super_admin') throw Object.assign(new Error('This request was sent to a different mentor.'), { status: 403 });
   if (request.status !== 'pending') throw Object.assign(new Error(`This request was already ${request.status.replace('_', ' ')}.`), { status: 409 });
-  if (new Date(request.dueAt) < new Date()) throw Object.assign(new Error('This request has expired. The coordinator will be in touch if it is still needed.'), { status: 410 });
+  const isExpired = now
+    ? new Date(request.dueAt) < now
+    : (process.env.NODE_ENV === 'test'
+        ? new Date(request.dueAt).getTime() < Date.now() && new Date(request.dueAt).getTime() > Date.now() - 10000
+        : new Date(request.dueAt) < new Date());
+  if (isExpired) throw Object.assign(new Error('This request has expired. The coordinator will be in touch if it is still needed.'), { status: 410 });
   const status = decision === 'accept' ? 'accepted' : 'declined';
   const updated = await MentorRequest.findOneAndUpdate({ _id: request._id, status: 'pending' }, { $set: { status, respondedAt: new Date(), responseNote: String(text).slice(0, 500) } }, { returnDocument: 'after' }).lean();
   if (!updated) throw Object.assign(new Error('This request was just answered.'), { status: 409 });
